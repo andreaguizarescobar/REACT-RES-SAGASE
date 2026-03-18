@@ -2,7 +2,7 @@ import { hash, compare } from 'bcryptjs';
 import crypto from 'crypto';
 import userModel from '../models/user.model.js';
 import jwt from '../config/jwt.js';
-import mailService from './mail.service.js';
+import { sendResetEmail } from './mail.service.js';
 
 const registerUser = async (data) => {
   const userExists = await userModel.findOne({
@@ -41,6 +41,22 @@ const loginUser = async (username, password) => {
   };
 };
 
+export const getAllUsers = async () => {
+  return await userModel.find();
+};
+
+export const getUser = async (userId) => {
+  return await userModel.findOne({ userId });
+};
+
+export const deleteUser = async (userId) => {
+  return await userModel.deleteOne({ userId });
+};
+
+export const patchUser = async (userId, data) => {
+  return await userModel.findOneAndUpdate({ userId }, data);
+};
+
 export const forgotPassword = async (email) => {
   const user = await userModel.findOne({ email });
   if (!user) return;
@@ -67,10 +83,13 @@ export const resetPassword = async (token, newPassword) => {
   return "Contraseña actualizada";
 };
 
-
 export default {
   registerUser,
   loginUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getUser,
+  getAllUsers,
+  deleteUser,
+  patchUser
 };

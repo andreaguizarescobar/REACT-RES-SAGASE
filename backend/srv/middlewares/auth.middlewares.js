@@ -1,24 +1,21 @@
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
-const authMiddleware = (req, res, next) => {
-
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({
-      message: "Token requerido"
-    });
-  }
-  const token = authHeader.split(" ")[1];
+export const verifyToken = (req, res, next) => {
   try {
-    const decoded = verify(token, process.env.JWT_SECRET);
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+      return res.status(401).json({ message: "No autorizado" });
+    }
+    const token = authHeader.split(' ')[0];
+    if (!token) {
+      return res.status(401).json({ message: "Token inválido", nota: token + " " + authHeader });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({
-      message: "Token inválido"
+      message: "Token inválido o expirado"
     });
   }
 };
-
-export default authMiddleware;

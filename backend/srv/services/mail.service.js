@@ -1,4 +1,4 @@
-import sgMail from '../config/mail.js';
+import { transporter } from "../config/mail.js";
 
 export const sendResetEmail = async (email, token) => {
 
@@ -16,5 +16,5 @@ export const sendResetEmail = async (email, token) => {
     `
   };
 
-  await sgMail.send(msg);
+  await transporter.send(msg);
 };
