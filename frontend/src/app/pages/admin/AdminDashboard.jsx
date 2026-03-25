@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Header } from "../components/Header";
-import { Sidebar } from "../components/Sidebar";
-import { MainContent } from "../components/MainContent";
+import { Header } from "../../components/Header";
+import { SidebarAdmin } from "../../components/SideBarAdmin";
+import { MainContentAdmin } from "../../components/MainContentAdmin";
 
-export function Dashboard() {
+export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState("home");
 
@@ -19,8 +19,8 @@ export function Dashboard() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar isOpen={sidebarOpen} onSelectView={setCurrentView} />
-        <MainContent currentView={currentView} />
+        <SidebarAdmin isOpen={sidebarOpen} onSelectView={setCurrentView} />
+        <MainContentAdmin currentView={currentView} />
       </div>
     </div>
   );

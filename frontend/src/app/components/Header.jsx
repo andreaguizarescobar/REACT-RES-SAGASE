@@ -1,10 +1,17 @@
 import { User, Menu, LogOut, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import nayaritLogo from "/src/app/assets/nayaritLogo.png";
 
 export function Header({ onToggleSidebar, onGoHome }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Determina si es admin por la ruta o por una bandera en localStorage (ajusta según tu auth)
+  const isAdmin =
+    location?.pathname?.startsWith?.("/admin") ||
+    localStorage.getItem("isAdmin") === "true";
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -59,7 +66,9 @@ export function Header({ onToggleSidebar, onGoHome }) {
           />
         </button>
 
-        <h1 className="text-lg text-gray-800">Escritorio Virtual</h1>
+        <h1 className="text-lg text-gray-800">
+          {isAdmin ? "Administración" : "Escritorio Virtual"}
+        </h1>
       </div>
 
       <div className="flex items-center gap-4">
@@ -126,27 +135,43 @@ export function Header({ onToggleSidebar, onGoHome }) {
             className="flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded transition-colors"
           >
             <User size={18} />
-            <span>Andrea Escobar</span>
+            <span>
+              {isAdmin ? "Administración_SAGA" : "Andrea Escobar"}
+            </span>
           </button>
 
-          {showDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowDropdown(false)}
-              />
+          <AnimatePresence>
+            {showDropdown && (
+              <>
+                {/* Overlay */}
+                <motion.div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowDropdown(false)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
 
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                {/* Dropdown */}
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 origin-top-right"
                 >
-                  <LogOut size={16} />
-                  <span>Cerrar sesión</span>
-                </button>
-              </div>
-            </>
-          )}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
         </div>
       </div>
     </header>

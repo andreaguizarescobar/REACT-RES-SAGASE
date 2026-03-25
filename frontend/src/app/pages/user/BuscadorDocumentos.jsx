@@ -23,6 +23,7 @@ const documentosMock = [
   },
 ];
 
+
 export default function BuscadorDocumentos() {
   const [criterio, setCriterio] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
@@ -31,24 +32,19 @@ export default function BuscadorDocumentos() {
   const [resultados, setResultados] = useState([]);
   const [menuContextual, setMenuContextual] = useState(null);
 
-  const buscar = () => {
-    const filtrados = documentosMock.filter((doc) =>
-      Object.values(doc)
-        .join(" ")
-        .toLowerCase()
-        .includes(criterio.toLowerCase())
-    );
+  const resultadosFiltrados = documentosMock.filter((doc) =>
+    Object.values(doc)
+      .join(" ")
+      .toLowerCase()
+      .includes(criterio.toLowerCase())
+  );
 
-    setResultados(filtrados);
-    setPaginaActual(1);
-  };
-
-  const totalPaginas = Math.ceil(resultados.length / filasPorPagina);
+const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
 
   const indiceInicial = (paginaActual - 1) * filasPorPagina;
   const indiceFinal = indiceInicial + filasPorPagina;
 
-  const resultadosPaginados = resultados.slice(indiceInicial, indiceFinal);
+  const resultadosPaginados = resultadosFiltrados.slice(indiceInicial, indiceFinal);
 
   const handleRightClick = (e, documento) => {
     e.preventDefault();
@@ -97,43 +93,59 @@ export default function BuscadorDocumentos() {
           placeholder="Buscar por folio, remitente, síntesis..."
           className="flex-1 px-3 py-2 border rounded"
         />
-        <button
-          onClick={buscar}
-          className="px-4 py-2 bg-[#8B1538] text-white rounded"
-        >
-          Buscar
-        </button>
       </div>
 
-      <div className="overflow-auto bg-white border rounded">
-        {resultadosPaginados.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No hay resultados. Ingresa un criterio y presiona Buscar.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
+      <div className="overflow-x-auto bg-white border rounded-lg shadow-sm">
+        <table className="min-w-full text-xs">
+          
+          {/* HEADER */}
+          <thead className="bg-[#8B1538] text-white">
+            <tr>
+              <th className="px-4 py-3 text-left font-medium">Folio</th>
+              <th className="px-4 py-3 text-left font-medium">Número</th>
+              <th className="px-4 py-3 text-left font-medium">Fecha</th>
+              <th className="px-4 py-3 text-left font-medium">Síntesis</th>
+              <th className="px-4 py-3 text-left font-medium">Remitente</th>
+              <th className="px-4 py-3 text-left font-medium">Estatus</th>
+            </tr>
+          </thead>
+
+          {/* BODY */}
+          <tbody>
+            {resultadosPaginados.length === 0 && (
               <tr>
-                <th className="p-2 text-left">Folio</th>
-                <th className="p-2 text-left">Número</th>
-                <th className="p-2 text-left">Fecha</th>
-                <th className="p-2 text-left">Síntesis</th>
-                <th className="p-2 text-left">Remitente</th>
-                <th className="p-2 text-left">Estatus</th>
+                <td colSpan="6" className="text-center py-6 text-gray-500">
+                  Sin resultados
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {resultadosPaginados.map((doc) => (
-                <tr key={doc.folio} onContextMenu={(e) => handleRightClick(e, doc)} className="hover:bg-gray-50">
-                  <td className="p-2">{doc.folio}</td>
-                  <td className="p-2">{doc.numeroDocumento}</td>
-                  <td className="p-2">{doc.fecha}</td>
-                  <td className="p-2">{doc.sintesis}</td>
-                  <td className="p-2">{doc.remitenteInterno || doc.remitenteExterno}</td>
-                  <td className="p-2">{doc.estatus}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            )}
+
+            {resultadosPaginados.map((doc, index) => (
+              <tr
+                key={doc.folio}
+                onContextMenu={(e) => handleRightClick(e, doc)}
+                className={`border-t cursor-context-menu transition ${
+                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                } hover:bg-gray-100`}
+              >
+                <td className="px-4 py-2 font-medium text-gray-700">
+                  {doc.folio}
+                </td>
+                <td className="px-4 py-2">{doc.numeroDocumento}</td>
+                <td className="px-4 py-2">{doc.fecha}</td>
+                <td className="px-4 py-2">{doc.sintesis}</td>
+                <td className="px-4 py-2">
+                  {doc.remitenteInterno || doc.remitenteExterno}
+                </td>
+                <td className="px-4 py-2">
+                  <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">
+                    {doc.estatus}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {totalPaginas > 1 && (

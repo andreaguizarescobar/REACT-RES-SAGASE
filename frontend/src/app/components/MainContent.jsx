@@ -2,19 +2,19 @@ import { useState } from "react";
 import { Inbox, ListTodo, Send } from "lucide-react";
 import { Switch } from "./ui/switch";
 
-import { TableroControl } from "../pages/TableroControl";
-import { RegistrarDocumento } from "../pages/RegistrarDocumento.jsx";
-import BuscadorDocumentos from "../pages/BuscadorDocumentos.jsx";
-import { ReporteAsuntos } from "../pages/ReporteAsunto";
-import { GeneracionOficios } from "../pages/GeneracionOficios";
-import { ControlOficios } from "../pages/ControlOficios";
-import { SalidaCorrespondencia } from "../pages/SalidaCorrespondencia";
-import { ModificaSalidaCorrespondencia } from "../pages/ModificaSalidaCorrespondencia";
-import { ConsultaSalidaCorrespondencia } from "../pages/ConsultaSalidaCorrespondencia";
-import { ReporteSalidaCorrespondencia } from "../pages/ReporteSalidaCorrespondencia";
-import { TableroControlSalidaCorrespondencia } from "../pages/TableroControlSalidaCorrespondencia";
-import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/RegistraInstruccionesSolicitudesNotificacionesInt";
-import { ReporteAcuerdos } from "../pages/ReporteAcuerdos";
+import { TableroControl } from "../pages/user/TableroControl";
+import { RegistrarDocumento } from "../pages/user/RegistrarDocumento.jsx";
+import BuscadorDocumentos from "../pages/user/BuscadorDocumentos.jsx";
+import { ReporteAsuntos } from "../pages/user/ReporteAsunto";
+import { GeneracionOficios } from "../pages/user/GeneracionOficios";
+import { ControlOficios } from "../pages/user/ControlOficios";
+import { SalidaCorrespondencia } from "../pages/user/SalidaCorrespondencia";
+import { ModificaSalidaCorrespondencia } from "../pages/user/ModificaSalidaCorrespondencia";
+import { ConsultaSalidaCorrespondencia } from "../pages/user/ConsultaSalidaCorrespondencia";
+import { ReporteSalidaCorrespondencia } from "../pages/user/ReporteSalidaCorrespondencia";
+import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroControlSalidaCorrespondencia";
+import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
+import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 
 import { motion, AnimatePresence } from "framer-motion";
 

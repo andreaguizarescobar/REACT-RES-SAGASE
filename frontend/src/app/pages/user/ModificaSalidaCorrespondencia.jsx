@@ -40,19 +40,16 @@ export function ModificaSalidaCorrespondencia() {
     },
   ];
 
-  const handleBuscar = () => {
-    const texto = criterio.toLowerCase();
+  const resultadosFiltrados = dataMock.filter((item) => {
+  const texto = criterio.toLowerCase();
 
-    const filtrado = dataMock.filter(
-      (item) =>
-        item.folioSalida.toLowerCase().includes(texto) ||
-        item.folioSAGA.toLowerCase().includes(texto) ||
-        item.destinatario.toLowerCase().includes(texto) ||
-        item.nivelImportancia.toLowerCase().includes(texto)
-    );
-
-    setResultados(filtrado);
-  };
+  return (
+    item.folioSalida.toLowerCase().includes(texto) ||
+    item.folioSAGA.toLowerCase().includes(texto) ||
+    item.destinatario.toLowerCase().includes(texto) ||
+    item.nivelImportancia.toLowerCase().includes(texto)
+  );
+});
 
   const handleRightClick = (e, registro) => {
     e.preventDefault();
@@ -109,18 +106,9 @@ export function ModificaSalidaCorrespondencia() {
           />
         </div>
 
-        <div className="flex justify-center">
-          <button
-            onClick={handleBuscar}
-            className="bg-red-600 text-white px-12 py-2 rounded hover:opacity-90"
-          >
-            Buscar
-          </button>
-        </div>
-
         {/* Tabla */}
         <AnimatePresence>
-          {resultados.length > 0 && (
+          {resultadosFiltrados.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -147,7 +135,7 @@ export function ModificaSalidaCorrespondencia() {
                 </thead>
 
                 <tbody>
-                  {resultados.map((registro, index) => (
+                  {resultadosFiltrados.map((registro, index) => (
                     <tr
                       key={index}
                       onContextMenu={(e) =>

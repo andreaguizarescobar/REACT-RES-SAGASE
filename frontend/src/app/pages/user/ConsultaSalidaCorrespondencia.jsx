@@ -40,19 +40,17 @@ export function ConsultaSalidaCorrespondencia() {
     },
   ];
 
-  const handleBuscar = () => {
+  const resultadosFiltrados = dataMock.filter((item) => {
     const texto = criterio.toLowerCase();
 
-    const filtrado = dataMock.filter(
-      (item) =>
-        item.folioSalida.toLowerCase().includes(texto) ||
-        item.destinatario.toLowerCase().includes(texto) ||
-        item.folioSAGA.toLowerCase().includes(texto) ||
-        item.nivelImportancia.toLowerCase().includes(texto)
+    return (
+      item.folioSalida.toLowerCase().includes(texto) ||
+      item.destinatario.toLowerCase().includes(texto) ||
+      item.folioSAGA.toLowerCase().includes(texto) ||
+      item.nivelImportancia.toLowerCase().includes(texto)
     );
+  });
 
-    setResultados(filtrado);
-  };
 
   const handleRightClick = (e, registro) => {
     e.preventDefault();
@@ -74,7 +72,7 @@ export function ConsultaSalidaCorrespondencia() {
     const headers =
       "Folio,Fecha,Nivel,Folio SAGA,Destinatario\n";
 
-    const rows = resultados
+    const rows = resultadosFiltrados
       .map(
         (r) =>
           `${r.folioSalida},${r.fechaRegistro},${r.nivelImportancia},${r.folioSAGA},"${r.destinatario}"`
@@ -131,18 +129,9 @@ export function ConsultaSalidaCorrespondencia() {
           />
         </div>
 
-        <div className="flex justify-center">
-          <button
-            onClick={handleBuscar}
-            className="bg-red-600 text-white px-12 py-2 rounded hover:opacity-90"
-          >
-            Buscar
-          </button>
-        </div>
-
         {/* Exportar */}
         <AnimatePresence>
-          {resultados.length > 0 && (
+          {resultadosFiltrados.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -169,6 +158,53 @@ export function ConsultaSalidaCorrespondencia() {
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-x-auto border rounded"
+          >
+            <table className="min-w-full text-xs">
+              <thead className="bg-[#8B1538] text-white">
+                <tr>
+                  <th className="px-3 py-2 text-left">Folio</th>
+                  <th className="px-3 py-2 text-left">Fecha</th>
+                  <th className="px-3 py-2 text-left">Nivel</th>
+                  <th className="px-3 py-2 text-left">Folio SAGA</th>
+                  <th className="px-3 py-2 text-left">Destinatario</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {resultadosFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-gray-500">
+                      Sin resultados
+                    </td>
+                  </tr>
+                )}
+
+                {resultadosFiltrados.map((registro, index) => (
+                  <tr
+                    key={index}
+                    onContextMenu={(e) => handleRightClick(e, registro)}
+                    className="border-t hover:bg-gray-100 cursor-context-menu"
+                  >
+                    <td className="px-3 py-2">{registro.folioSalida}</td>
+                    <td className="px-3 py-2">{registro.fechaRegistro}</td>
+                    <td className="px-3 py-2 capitalize">
+                      {registro.nivelImportancia}
+                    </td>
+                    <td className="px-3 py-2">{registro.folioSAGA}</td>
+                    <td className="px-3 py-2">{registro.destinatario}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Menú contextual */}

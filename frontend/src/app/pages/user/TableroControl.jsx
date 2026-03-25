@@ -382,6 +382,16 @@ export function TableroControl() {
                     <tr
                       key={index}
                       className="border-t hover:bg-gray-50"
+                      onContextMenu={(e) => {
+                        e.preventDefault(); // evita menú nativo
+
+                        setDocumentoSeleccionado(doc);
+
+                        setMenuContextual({
+                          x: e.clientX,
+                          y: e.clientY,
+                        });
+                      }}
                     >
                       <td className="px-3 py-2">
                         {doc.folio}
@@ -429,6 +439,45 @@ export function TableroControl() {
         </div>
       )}
 
+      {menuContextual && (
+        <div
+          className="fixed bg-white shadow-lg rounded-lg border z-50 w-48"
+          style={{
+            top: menuContextual.y,
+            left: menuContextual.x,
+          }}
+        >
+          <button
+            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+            onClick={() => {
+              alert(`Ver Documento de ${documentoSeleccionado.folio}`);
+              setMenuContextual(null);
+            }}
+          >
+            Ver Documento
+          </button>
+
+          <button
+            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+            onClick={() => {
+              alert(`Editar ${documentoSeleccionado.folio}`);
+              setMenuContextual(null);
+            }}
+          >
+            Editar
+          </button>
+
+          <button
+            className="block w-full text-left px-4 py-2 hover:bg-red-100 text-red-600"
+            onClick={() => {
+              alert(`Eliminar ${documentoSeleccionado.folio}`);
+              setMenuContextual(null);
+            }}
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
