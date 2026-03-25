@@ -5,7 +5,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
 import { useState, useEffect, useRef } from "react";
 
 /* ============================
@@ -83,6 +82,16 @@ const documentos = [
     motivo: "Turnado a área técnica",
   },
   {
+    folio: "2025000001",
+    numeroDocumento: "OFI-001",
+    fecha: "2025-02-01",
+    sintesis: "Agradecimiento",
+    remitenteInterno: "Dirección Administrativa",
+    remitenteExterno: "Secretaría General",
+    estatus: "Con instrucción turnada",
+    motivo: "Turnado a área técnica",
+  },
+  {
     folio: "2025000002",
     numeroDocumento: "OFI-002",
     fecha: "2025-02-02",
@@ -108,7 +117,12 @@ const documentos = [
    COMPONENTE DONUT
 ============================ */
 
-function DonutChart({ title, data, clickable, onClickSegment }) {
+function DonutChart({
+  title,
+  data,
+  clickable,
+  onClickSegment,
+}) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6">
       <h3 className="text-base font-semibold text-gray-700 mb-4">
@@ -125,6 +139,7 @@ function DonutChart({ title, data, clickable, onClickSegment }) {
               outerRadius="80%"
               paddingAngle={3}
               style={{ outline: "none" }}
+              activeShape={false}
               onClick={(entry) =>
                 clickable && onClickSegment?.(entry.name)
               }
@@ -139,13 +154,12 @@ function DonutChart({ title, data, clickable, onClickSegment }) {
                 />
               ))}
             </Pie>
-
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      {/* LEYENDA */}
+      {/* Leyenda */}
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         {data.map((item, index) => (
           <div key={index} className="flex items-start gap-2">
@@ -153,7 +167,6 @@ function DonutChart({ title, data, clickable, onClickSegment }) {
               className="w-3 h-3 rounded-sm mt-1"
               style={{ backgroundColor: item.color }}
             />
-
             <span className="break-words text-gray-600">
               {item.name} ({item.value})
             </span>
@@ -169,37 +182,37 @@ function DonutChart({ title, data, clickable, onClickSegment }) {
 ============================ */
 
 export function TableroControl() {
+  const [estatusSeleccionado, setEstatusSeleccionado] = useState(null);
 
-  const [estatusSeleccionado, setEstatusSeleccionado] =
-    useState(null);
-
-  const [paginaActual, setPaginaActual] = useState(1);
-
-  const [menuContextual, setMenuContextual] = useState(null);
-
-  const [documentoSeleccionado, setDocumentoSeleccionado] =
-    useState(null);
-
-  const tablaModalRef = useRef(null);
-
-  const registrosPorPagina = 6;
+  const [documentoEditar, setDocumentoEditar] =useState(null);
 
   const documentosFiltrados = documentos.filter(
-    (doc) => doc.estatus === estatusSeleccionado
+    (doc) => doc.estatus === estatusSeleccionado,
   );
 
+  const tablaModalRef = useRef(null);
+  const bitacoraRef = useRef(null);
+    
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 6;
+
   const totalPaginas = Math.ceil(
-    documentosFiltrados.length / registrosPorPagina
+    documentosFiltrados.length / registrosPorPagina,
   );
 
   const indexInicio = (paginaActual - 1) * registrosPorPagina;
-
   const indexFin = indexInicio + registrosPorPagina;
 
   const documentosPaginados = documentosFiltrados.slice(
     indexInicio,
-    indexFin
+    indexFin,
   );
+
+  const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+
+  const [tabActiva, setTabActiva] = useState("datosAsunto");
+
+ const [menuContextual, setMenuContextual] = useState(null);
 
   useEffect(() => {
     const cerrarMenu = () => setMenuContextual(null);
@@ -208,20 +221,69 @@ export function TableroControl() {
       window.removeEventListener("click", cerrarMenu);
   }, []);
 
-  const exportarExcelModal = () => {
+  const handlePrint = () => {
+    window.print();
+  };
 
+  const descargarBitacora = () => {
+    window.print();
+  };
+  
+  const bitacora = [
+    {
+      usuario: "Víctor Manuel Enríquez Paniagua",
+      descripcion: "Registró el asunto",
+      fecha: "11/10/2022",
+      hora: "21:45:30",
+      tipo: "registro",
+    },
+    {
+      usuario: "Víctor Manuel Enríquez Paniagua",
+      descripcion: "Adjuntó el documento: GUARDIA NACIONAL.pdf",
+      fecha: "11/10/2022",
+      hora: "21:47:11",
+      tipo: "adjunto",
+    },
+    {
+      usuario: "Víctor Manuel Enríquez Paniagua",
+      descripcion:
+        "Generó la instrucción: Atender el tema y dar respuesta al interesado. Prioridad: Trámite Extra-urgente.",
+      fecha: "11/10/2022",
+      hora: "21:48:54",
+      tipo: "instruccion",
+    },
+    {
+      usuario: "Víctor Manuel Enríquez Paniagua",
+      descripcion:
+        "Autorizado y turnado a Dirección de Desarrollo Archivístico Nacional",
+      fecha: "11/10/2022",
+      hora: "21:48:56",
+      tipo: "autorizado",
+    },
+  ];
+
+  const imprimirDoc = () => {
+  window.print();
+};
+
+
+  const exportarExcelModal = () => {
+    const datos = documentosFiltrados;
+  
+    if (!datos.length) return;
+  
     const encabezados = [
       "Folio",
-      "Documento",
+      "No. Documento",
       "Fecha",
       "Síntesis",
-      "Remitente interno",
-      "Remitente externo",
+      "Remitente Interno",
+      "Remitente Externo",
       "Estatus",
-      "Motivo",
+      "Motivo"
     ];
-
-    const filas = documentosFiltrados.map((doc) => [
+  
+    const filas = datos.map((doc) => [
       doc.folio,
       doc.numeroDocumento,
       doc.fecha,
@@ -229,38 +291,32 @@ export function TableroControl() {
       doc.remitenteInterno,
       doc.remitenteExterno,
       doc.estatus,
-      doc.motivo,
+      doc.motivo
     ]);
-
+  
     let contenidoCSV =
-      encabezados.join(",") +
-      "\n" +
+      encabezados.join(",") + "\n" +
       filas.map((fila) => fila.join(",")).join("\n");
-
+  
     const blob = new Blob(["\uFEFF" + contenidoCSV], {
-      type: "text/csv;charset=utf-8;",
+      type: "text/csv;charset=utf-8;"
     });
-
+  
     const link = document.createElement("a");
-
     link.href = URL.createObjectURL(blob);
-
     link.download = `Documentos_${estatusSeleccionado}.csv`;
-
     link.click();
   };
-
+    
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
-
       <h1 className="text-3xl font-bold text-[#8B1538] mb-6">
         Tablero de Control
       </h1>
 
       {/* GRID DE GRÁFICAS */}
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
+        {/* PRIMERA INTERACTIVA */}
         <DonutChart
           title="Fichas de Gestión"
           data={fichasGestion}
@@ -272,12 +328,12 @@ export function TableroControl() {
         />
 
         <DonutChart
-          title="Instrucciones enviadas"
+          title="Instrucciones y solicitudes enviadas"
           data={instruccionesEnviadas}
         />
 
         <DonutChart
-          title="Instrucciones recibidas"
+          title="Instrucciones y solicitudes recibidas"
           data={instruccionesRecibidas}
         />
 
@@ -286,196 +342,1058 @@ export function TableroControl() {
           data={copiasConocimiento}
         />
 
+        {/* Documentos internos */}
         <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-center items-center text-center">
           <h3 className="text-base font-semibold text-gray-700 mb-4">
             Documentos internos
           </h3>
-
           <span className="text-5xl font-bold text-[#8B1538]">
             {documentosInternos}
           </span>
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* ============================
+         MODAL DINÁMICO
+      ============================ */}
 
       {estatusSeleccionado && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center print:block">
+          {/* Fondo oscuro */}
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm no-print"
             onClick={() => setEstatusSeleccionado(null)}
           />
 
-          <div className="relative bg-white w-11/12 max-w-5xl p-6 rounded-2xl shadow-2xl">
-
-            <div className="flex justify-between mb-4">
-
+          {/* Ventana */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[80vh] overflow-y-auto p-6 print:shadow-none print:max-h-none print:w-full">
+            <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
+              {" "}
               <h3 className="text-xl font-semibold text-[#8B1538]">
-                Documentos: {estatusSeleccionado}
+                Documentos en estatus: {estatusSeleccionado}
               </h3>
-
               <button
                 onClick={() => setEstatusSeleccionado(null)}
+                className="text-gray-500 hover:text-black text-xl"
               >
                 ✕
               </button>
-
             </div>
 
-            <button
-              onClick={exportarExcelModal}
-              className="bg-green-600 text-white px-4 py-2 rounded mb-4"
-            >
-              Exportar Excel
-            </button>
+            <div className="flex justify-start gap-3 mb-4 no-print">
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm shadow"
+                  onClick={imprimirDoc}
+                >
+                Exportar PDF
+              </button>
 
-            <div
-              ref={tablaModalRef}
-              className="overflow-x-auto"
-            >
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow"
+                  onClick={exportarExcelModal}              
+                >
+                Exportar Excel
+              </button>
+            </div>
 
-              <table className="w-full text-sm border">
+            <div ref={tablaModalRef} className="zona-tabla-modal overflow-x-auto print-area">
+              {/* Título visible solo en impresión */}
+              <div className="hidden print:block mb-6 text-center">
+                <h1 className="text-2xl font-bold text-[#8B1538] mb-2">
+                  SAGASE-INTERFACES - Figma Make
+                </h1>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  Documentos en estatus: {estatusSeleccionado}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Fecha de impresión: {new Date().toLocaleString('es-MX', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
 
+              <table className="w-full text-sm border border-gray-200 tabla-documentos">
                 <thead className="bg-[#8B1538] text-white">
-
                   <tr>
                     <th className="px-3 py-2 text-left">
                       Folio
                     </th>
-
                     <th className="px-3 py-2 text-left">
-                      Documento
+                      No. de Documento
                     </th>
-
                     <th className="px-3 py-2 text-left">
-                      Fecha
+                      Fecha del documento
                     </th>
-
                     <th className="px-3 py-2 text-left">
-                      Síntesis
+                      Síntesis del asunto
                     </th>
-
                     <th className="px-3 py-2 text-left">
                       Remitente interno
                     </th>
-
                     <th className="px-3 py-2 text-left">
                       Remitente externo
                     </th>
-
                     <th className="px-3 py-2 text-left">
                       Estatus
                     </th>
-
                     <th className="px-3 py-2 text-left">
                       Motivo
                     </th>
-
                   </tr>
-
                 </thead>
 
                 <tbody>
-
-                  {documentosPaginados.map((doc, index) => (
-                    <tr
-                      key={index}
-                      className="border-t hover:bg-gray-50"
-                      onContextMenu={(e) => {
-                        e.preventDefault(); // evita menú nativo
-
-                        setDocumentoSeleccionado(doc);
-
-                        setMenuContextual({
-                          x: e.clientX,
-                          y: e.clientY,
-                        });
-                      }}
-                    >
-                      <td className="px-3 py-2">
-                        {doc.folio}
+                  {documentosFiltrados.length > 0 ? (
+                    documentosFiltrados.map((doc, index) => (
+                      <tr
+                        key={index}
+                        className="border-t hover:bg-gray-50 cursor-context-menu"
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setMenuContextual({
+                            x: Math.min(
+                              e.pageX,
+                              window.innerWidth - 180,
+                            ),
+                            y: Math.min(
+                              e.pageY,
+                              window.innerHeight - 100,
+                            ),
+                            documento: doc,
+                          });
+                        }}
+                      >
+                        <td className="px-3 py-2">
+                          {doc.folio}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.numeroDocumento}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.fecha}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.sintesis}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.remitenteInterno}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.remitenteExterno}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.estatus}
+                        </td>
+                        <td className="px-3 py-2">
+                          {doc.motivo}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="text-center py-4 text-gray-500"
+                      >
+                        No hay documentos en este estatus
                       </td>
-
-                      <td className="px-3 py-2">
-                        {doc.numeroDocumento}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.fecha}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.sintesis}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.remitenteInterno}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.remitenteExterno}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.estatus}
-                      </td>
-
-                      <td className="px-3 py-2">
-                        {doc.motivo}
-                      </td>
-
                     </tr>
-                  ))}
-
+                  )}
                 </tbody>
-
               </table>
+              {menuContextual && (
+                <div
+                  className="fixed bg-white shadow-lg rounded-lg border text-sm z-50"
+                  style={{
+                    top: menuContextual.y,
+                    left: menuContextual.x,
+                  }}
+                >
+                  <button
+                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                    onClick={() => {
+                      setDocumentoSeleccionado(
+                        menuContextual.documento,
+                      );
+                      setMenuContextual(null);
+                    }}
+                  >
+                    Ver documento
+                  </button>
+                  
+                  <button
+                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+                    onClick={() => {
+                      setDocumentoEditar(menuContextual.documento);
+                      setMenuContextual(null);
+                    }}
+                  >
+                    Modificar registro
+                  </button>
 
+                </div>
+              )}
+              {/* PAGINACIÓN */}
+              {totalPaginas > 1 && (
+                <div className="flex justify-start items-center gap-2 mt-4 text-sm">
+                  <button
+                    disabled={paginaActual === 1}
+                    onClick={() =>
+                      setPaginaActual(paginaActual - 1)
+                    }
+                    className="px-2 py-1 border rounded disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+
+                  {Array.from(
+                    { length: totalPaginas },
+                    (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPaginaActual(i + 1)}
+                        className={`px-3 py-1 rounded border ${
+                          paginaActual === i + 1
+                            ? "bg-[#8B1538] text-white"
+                            : "bg-white"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    disabled={paginaActual === totalPaginas}
+                    onClick={() =>
+                      setPaginaActual(paginaActual + 1)
+                    }
+                    className="px-2 py-1 border rounded disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
             </div>
 
+            {documentoSeleccionado && (
+              <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto">
+                <div
+                  className="absolute inset-0 bg-black/40"
+                  onClick={() => setDocumentoSeleccionado(null)}
+                />
+
+                <div
+                  className="
+                  relative 
+                  bg-white 
+                  w-full 
+                  max-w-6xl 
+                  h-[90vh] sm:h-[85vh] 
+                  rounded-2xl 
+                  shadow-2xl 
+                  flex 
+                  flex-col 
+                  pt-6
+                "
+                >
+                  {/* Header */}
+                  <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
+                    <h2 className="text-xl font-bold text-[#8B1538]">
+                      Documento {documentoSeleccionado.folio}
+                    </h2>
+
+                    <button
+                      onClick={() =>
+                        setDocumentoSeleccionado(null)
+                      }
+                      className="text-gray-500 hover:text-black"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex border-b mb-1 text-sm overflow-x-auto">
+                    {[
+                      {
+                        id: "datosAsunto",
+                        label: "Datos del curso",
+                      },
+                      {
+                        id: "relacionado",
+                        label: "Relacionado con",
+                      },
+                      { id: "asunto", label: "Asunto" },
+                      { id: "turnar", label: "Turnar asunto" },
+                      {
+                        id: "verTurnos",
+                        label: "Ver todos los turnos",
+                      },
+                      {
+                        id: "copias",
+                        label: "Copias de conocimiento",
+                      },
+                      { id: "bitacora", label: "Bitácora" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setTabActiva(tab.id)}
+                        className={`px-4 py-2 whitespace-nowrap ${
+                          tabActiva === tab.id
+                            ? "border-b-2 border-[#8B1538] text-[#8B1538] font-semibold"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* CONTENIDO */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    {tabActiva === "datosAsunto" && (
+                      <div className="space-y-6">
+                        {/* DATOS GENERALES */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                            Datos generales
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Folio de documento*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.folio
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Fecha de documento*
+                              </label>
+                              <input
+                                type="date"
+                                value={
+                                  documentoSeleccionado.fechaDocumento ||
+                                  documentoSeleccionado.fecha
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Fecha de acuse*
+                              </label>
+                              <input
+                                type="date"
+                                value={
+                                  documentoSeleccionado.fechaAcuse ||
+                                  documentoSeleccionado.fecha
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Fecha informado*
+                              </label>
+                              <input
+                                type="date"
+                                value={
+                                  documentoSeleccionado.fechaInformado ||
+                                  documentoSeleccionado.fecha
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* REMITENTE */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                            Remitente
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Tipo de remitente*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.tipoRemitente ||
+                                  "Interno"
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Remitente interno*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.remitenteInterno
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <label className="block text-gray-500 mb-1">
+                                Remitente externo*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.remitenteExterno
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  documentoSeleccionado.otroFuncionario ||
+                                  false
+                                }
+                                disabled
+                                className="w-4 h-4"
+                              />
+                              <label className="text-gray-700">
+                                Otro funcionario ó ciudadano
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* DATOS ESPECÍFICOS */}
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
+                            Datos específicos
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Tipo de documento*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.tipoDocumento ||
+                                  "Oficio"
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Alta de tipo de documento
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.altaTipoDocumento
+                                    ? "Sí"
+                                    : "No"
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Tema principal*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.temaPrincipal ||
+                                  "Administrativo"
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Tema secundario
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.temaSecundario ||
+                                  ""
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Evento*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.evento ||
+                                  ""
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Fecha y hora del evento*
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={
+                                  documentoSeleccionado.fechaEvento ||
+                                  ""
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div className="md:col-span-3">
+                              <label className="block text-gray-500 mb-1">
+                                Material adicional
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.materialAdicional ||
+                                  ""
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            <div className="md:col-span-3">
+                              <label className="block text-gray-500 mb-1">
+                                Síntesis del asunto*
+                              </label>
+                              <textarea
+                                value={
+                                  documentoSeleccionado.sintesis
+                                }
+                                disabled
+                                rows={3}
+                                className="w-full border border-gray-300 rounded px-2 py-2 bg-gray-50 text-gray-700 resize-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                   
+                    {tabActiva === "asunto" && (
+                      <div className="space-y-4">
+                        {/* Tabla de anexos */}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border border-gray-200">
+                            <thead className="bg-[#8B1538] text-white">
+                              <tr>
+                                <th className="px-4 py-2 text-left">
+                                  Documento anexo
+                                </th>
+                                <th className="px-4 py-2 text-left">
+                                  Registrador del anexo
+                                </th>
+                                <th className="px-4 py-2 text-left">
+                                  Nombre del documento
+                                </th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {/* Simulación de anexos */}
+                              {[
+                                {
+                                  registrador:
+                                    "Víctor Manuel Enríquez Paniagua",
+                                  nombre:
+                                    "GUARDIA NACIONAL.pdf",
+                                },
+                                {
+                                  registrador:
+                                    "María Verónica Leal Camarena",
+                                  nombre:
+                                    "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
+                                },
+                                {
+                                  registrador:
+                                    "Víctor Manuel Enríquez Paniagua",
+                                  nombre:
+                                    "Ficha de Gestión Instrucción Distribuir los materiales.pdf",
+                                },
+                              ].map((anexo, index) => (
+                                <tr
+                                  key={index}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  <td className="px-4 py-2">
+                                    <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs">
+                                      Ver Archivo
+                                    </button>
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {anexo.registrador}
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {anexo.nombre}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Paginación estilo pequeño */}
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
+                            <button className="px-2 py-1 border rounded bg-gray-100">
+                              1
+                            </button>
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {tabActiva === "turnar" && (
+                      <div className="text-sm text-gray-600">
+                        Aquí se podrá realizar el turnado del
+                        documento.
+                      </div>
+                    )}
+
+                    {tabActiva === "verTurnos" && (
+                      <div className="space-y-4">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-[1200px] w-full text-xs border border-gray-200">
+                            <thead className="bg-[#8B1538] text-white">
+                              <tr>
+                                <th className="px-3 py-2 text-left">
+                                  Instrucción
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Funcionario que turna
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Área de destino
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Prioridad
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Fecha compromiso
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Área que turna
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Quién lo turna
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Estatus
+                                </th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {[
+                                {
+                                  instruccion:
+                                    "Atender el tema y dar respuesta al interesado, marcando copia a esta oficina",
+                                  funcionario:
+                                    "María Verónica Leal Camarena",
+                                  areaDestino:
+                                    "Dirección de Administración",
+                                  prioridad:
+                                    "Trámite Extra-urgente",
+                                  fecha: "2022-10-13",
+                                  areaTurna:
+                                    "Dirección de Desarrollo Archivístico Nacional",
+                                  quienTurna:
+                                    "María Verónica Leal Camarena",
+                                  estatus:
+                                    "Autorizados y turnados",
+                                },
+                                {
+                                  instruccion:
+                                    "Distribuir los materiales",
+                                  funcionario:
+                                    "Guillermo Bonilla Tenorio",
+                                  areaDestino:
+                                    "Dirección de Desarrollo Archivístico Nacional",
+                                  prioridad:
+                                    "Trámite Extra-urgente",
+                                  fecha: "2022-10-13",
+                                  areaTurna:
+                                    "Dirección de Desarrollo Archivístico Nacional",
+                                  quienTurna:
+                                    "Víctor Manuel Enríquez Paniagua",
+                                  estatus: "Concluido",
+                                },
+                              ].map((turno, index) => (
+                                <tr
+                                  key={index}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  <td className="px-3 py-2">
+                                    {turno.instruccion}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.funcionario}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.areaDestino}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.prioridad}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.fecha}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.areaTurna}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {turno.quienTurna}
+                                  </td>
+                                  <td className="px-3 py-2 font-medium">
+                                    {turno.estatus}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Paginación pequeña inferior */}
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
+                            <button className="px-2 py-1 border rounded bg-gray-100">
+                              1
+                            </button>
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {tabActiva === "copias" && (
+                      <div className="space-y-4">
+                        {/* TABLA */}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border border-gray-200">
+                            <thead className="bg-[#8B1538] text-white">
+                              <tr>
+                                <th className="px-4 py-2 text-left">
+                                  Funcionario
+                                </th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {[
+                                "Víctor Manuel Enríquez Paniagua",
+                                "María Verónica Leal Camarena",
+                                "Guillermo Bonilla Tenorio",
+                                "Dirección de Administración",
+                                "Unidad de Correspondencia",
+                                "Órgano Interno de Control",
+                              ].map((funcionario, index) => (
+                                <tr
+                                  key={index}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {funcionario}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* PAGINACIÓN */}
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
+
+                            <button className="px-2 py-1 border rounded bg-[#8B1538] text-white">
+                              1
+                            </button>
+
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {tabActiva === "bitacora" && (
+                      <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
+                        <div className="w-full max-w-4xl">
+                    
+                          {/* Barra visor */}
+                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
+                    
+                            <div className="flex items-center gap-3">
+                              <button onClick={descargarBitacora}
+                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
+                                 ⬇ Descargar
+                              </button>
+                              <button
+                                onClick={handlePrint}
+                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
+                              >
+                                 🖨 Imprimir Bitácora
+                              </button>
+                            </div>
+                    
+                            <div className="flex items-center gap-3 text-sm">
+                              <button className="px-2">◀</button>
+                              <span>Página 1 de 2</span>
+                              <button className="px-2">▶</button>
+                            </div>
+                    
+                            <div className="flex items-center gap-2">
+                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
+                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
+                            </div>
+                          </div>
+                    
+                          {/* Hoja */}
+                          <div ref={bitacoraRef} className="zona-impresion">
+                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
+                      
+                              <div className="text-center py-6 border-b">
+                                <h2 className="text-xl font-bold text-gray-800">
+                                  Bitácora
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Folio: {documentoSeleccionado?.folio}
+                                </p>
+                              </div>
+                      
+                              <div className="p-6 space-y-4">
+                      
+                                {bitacora.length ? (
+                                  bitacora.map((movimiento, index) => {
+                                    const esPrincipal =
+                                      movimiento.tipo === "registro" ||
+                                      movimiento.tipo === "turnado" ||
+                                      movimiento.tipo === "autorizado";
+                      
+                                    return (
+                                      <div
+                                        key={index}
+                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
+                                        ${esPrincipal
+                                          ? "bg-[#8B1538] text-white"
+                                          : "bg-[#E6D2A2] text-gray-800"
+                                        }`}
+                                      >
+                                        <div>
+                                          <p className="font-semibold">
+                                            {movimiento.usuario}
+                                          </p>
+                      
+                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
+                                            {movimiento.descripcion}
+                                          </p>
+                                        </div>
+                      
+                                        <div className="text-right text-xs whitespace-nowrap">
+                                          <p>{movimiento.fecha}</p>
+                                          <p>{movimiento.hora}</p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="text-center text-gray-500 text-sm">
+                                    No hay movimientos registrados.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+ 
+                          </div>
+                    
+                        </div>
+                      </div>
+                    )}
+     
+                  </div>
+                </div>
+              </div>
+            )}
+
+             {documentoEditar && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                <div
+                  className="absolute inset-0 bg-black/40"
+                  onClick={() => setDocumentoEditar(null)}
+                />
+            
+                <div className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
+                  
+                  {/* Header */}
+                  <div className="flex justify-between items-center border-b pb-4 mb-6">
+                    <h2 className="text-xl font-bold text-[#8B1538]">
+                      Modificación de registro
+                    </h2>
+            
+                    <button
+                      onClick={() => setDocumentoEditar(null)}
+                      className="text-gray-500 hover:text-black"
+                    >
+                      ✕
+                    </button>
+                  </div>
+            
+                  {/* FORMULARIO EDITABLE */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            
+                    <div>
+                      <label className="block text-gray-500 mb-1">
+                        Folio
+                      </label>
+                      <input
+                        value={documentoEditar.folio}
+                        disabled
+                        className="w-full border border-gray-300 rounded px-2 py-2 bg-gray-50"
+                      />
+                    </div>
+            
+                    <div>
+                      <label className="block text-gray-500 mb-1">
+                        No. Documento
+                      </label>
+                      <input
+                        value={documentoEditar.numeroDocumento}
+                        onChange={(e) =>
+                          setDocumentoEditar({
+                            ...documentoEditar,
+                            numeroDocumento: e.target.value,
+                          })
+                        }
+                        className="w-full border border-gray-300 rounded px-2 py-2"
+                      />
+                    </div>
+            
+                    <div className="md:col-span-2">
+                      <label className="block text-gray-500 mb-1">
+                        Síntesis
+                      </label>
+                      <textarea
+                        value={documentoEditar.sintesis}
+                        onChange={(e) =>
+                          setDocumentoEditar({
+                            ...documentoEditar,
+                            sintesis: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="w-full border border-gray-300 rounded px-2 py-2"
+                      />
+                    </div>
+            
+                    <div>
+                      <label className="block text-gray-500 mb-1">
+                        Estatus
+                      </label>
+                      <input
+                        value={documentoEditar.estatus}
+                        onChange={(e) =>
+                          setDocumentoEditar({
+                            ...documentoEditar,
+                            estatus: e.target.value,
+                          })
+                        }
+                        className="w-full border border-gray-300 rounded px-2 py-2"
+                      />
+                    </div>
+            
+                    <div>
+                      <label className="block text-gray-500 mb-1">
+                        Motivo
+                      </label>
+                      <input
+                        value={documentoEditar.motivo}
+                        onChange={(e) =>
+                          setDocumentoEditar({
+                            ...documentoEditar,
+                            motivo: e.target.value,
+                          })
+                        }
+                        className="w-full border border-gray-300 rounded px-2 py-2"
+                      />
+                    </div>
+            
+                  </div>
+            
+                  {/* Botón actualizar */}
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={() => {
+                        console.log("Documento actualizado:", documentoEditar);
+                        setDocumentoEditar(null);
+                      }}
+                      className="bg-[#8B1538] text-white px-6 py-2 rounded-lg hover:opacity-90"
+                    >
+                      Actualizar
+                    </button>
+                  </div>
+            
+                </div>
+              </div>
+            )}
+
           </div>
-
-        </div>
-      )}
-
-      {menuContextual && (
-        <div
-          className="fixed bg-white shadow-lg rounded-lg border z-50 w-48"
-          style={{
-            top: menuContextual.y,
-            left: menuContextual.x,
-          }}
-        >
-          <button
-            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-            onClick={() => {
-              alert(`Ver Documento de ${documentoSeleccionado.folio}`);
-              setMenuContextual(null);
-            }}
-          >
-            Ver Documento
-          </button>
-
-          <button
-            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-            onClick={() => {
-              alert(`Editar ${documentoSeleccionado.folio}`);
-              setMenuContextual(null);
-            }}
-          >
-            Editar
-          </button>
-
-          <button
-            className="block w-full text-left px-4 py-2 hover:bg-red-100 text-red-600"
-            onClick={() => {
-              alert(`Eliminar ${documentoSeleccionado.folio}`);
-              setMenuContextual(null);
-            }}
-          >
-            Eliminar
-          </button>
         </div>
       )}
     </div>

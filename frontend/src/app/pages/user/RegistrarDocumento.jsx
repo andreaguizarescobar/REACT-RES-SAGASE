@@ -289,12 +289,12 @@ const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
 const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
 
 const temas = [
-  { value: "educacion", label: "Educación" },
-  { value: "salud", label: "Salud" },
-  { value: "seguridad", label: "Seguridad" },
-  { value: "infraestructura", label: "Infraestructura" },
-  { value: "economia", label: "Economía" },
-  { value: "medio_ambiente", label: "Medio ambiente" },
+  { value: "administrativo", label: "Administrativo" },
+  { value: "juridico", label: "Jurídico" },
+  { value: "finanzas", label: "Finanzas" },
+  { value: "recursos_humanos", label: "Recursos Humanos" },
+  { value: "agradecimiento", label: "Agradecimiento" },
+  { value: "solicitud", label: "Solicitud" },
 ];
 const temasFiltradosPrincipal = temas.filter((t) =>
   t.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
