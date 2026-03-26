@@ -5,7 +5,7 @@ const AreaSchema = new Schema({
   nombre: String,
   abreviatura: String,
   direccion: Boolean,
-  pertenece: String
+  pertenece: { type: Schema.Types.ObjectId, ref: 'Area' },
 }, { timestamps: true });
 
 export default model('Area', AreaSchema);

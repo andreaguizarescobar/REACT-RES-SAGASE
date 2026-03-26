@@ -4,14 +4,14 @@ import * as tipoDocumentoController from "../controllers/tipoDocumento.controlle
 const router = Router();
 
 // tipoDocumento/getAll
-router.get('/', tipoDocumentoController.getTipoDocumentoList);
-// tipoDocumento/getItem/:id
-router.get('/:id', tipoDocumentoController.getTipoDocumentoItem);
+router.get('/getAll', tipoDocumentoController.getAll);
+// tipoDocumento/:tipo
+router.get('/:tipo', tipoDocumentoController.getTipoDocumento);
 // tipoDocumento/create
-router.post('/', tipoDocumentoController.postTipoDocumentoItem);
-// tipoDocumento/update/:id
-router.put('/:id', tipoDocumentoController.putTipoDocumentoItem);
-// tipoDocumento/delete/:id
-router.delete('/:id', tipoDocumentoController.deleteTipoDocumentoItem);
+router.post('/create', tipoDocumentoController.postTipoDocumento);
+// tipoDocumento/update/:tipo
+router.put('/update/:tipo', tipoDocumentoController.putTipoDocumento);
+// tipoDocumento/delete/:tipo
+router.delete('/delete/:tipo', tipoDocumentoController.deleteTipoDocumento);
 
 export default router;

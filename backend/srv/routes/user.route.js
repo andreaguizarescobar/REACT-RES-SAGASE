@@ -5,19 +5,19 @@ import authorizeRole from "../middlewares/role.middleware.js";
 const router = Router();
 // user/getAll
 router.get('/getAll', verifyToken, authorizeRole('ADMIN'), userController.getAllUsers);
-// user/getUser/:id
+// user/getUser/:userId
 router.get('/getUser/:userId', verifyToken, userController.getUser);
-// user/getItem/:id
+// user/login
 router.post('/login', userController.login);
-// user/create
+// user/register
 router.post('/register',verifyToken, authorizeRole('ADMIN'), userController.register);
 // user/forgot-password
 router.post('/forgot-password', userController.forgot);
 // user/reset-password
 router.post('/reset-password', userController.reset);
-// user/update/:id
-router.patch('/:userId', verifyToken, userController.patchUser);
-// user/delete/:id
-router.delete('/:userId', verifyToken, authorizeRole('ADMIN'), userController.deleteUser);
+// user/update/:userId
+router.patch('/update/:userId', verifyToken, userController.patchUser);
+// user/delete/:userId
+router.delete('/delete/:userId', verifyToken, authorizeRole('ADMIN'), userController.deleteUser);
 
 export default router;

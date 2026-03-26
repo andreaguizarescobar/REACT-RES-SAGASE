@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 
 const RemitenteSchema = new Schema({
-  remId: { type: Number, required: true, unique: true },
+  remId: { type: String, required: true, unique: true },
   name: String,
   tipo: String,
   cargo: String,

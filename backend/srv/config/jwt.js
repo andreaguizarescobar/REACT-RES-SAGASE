@@ -6,7 +6,7 @@ const generateToken = (user) => {
     {
       id: user._id,
       username: user.username,
-      rol: user.rol,
+      roles: user.roles,
       area: user.area,
       process: user.procesos 
     },

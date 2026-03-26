@@ -2,14 +2,14 @@ import { Router } from "express";
 import * as temaPrincipalController from "../controllers/temaPrincipal.controller.js";
 const router = Router();
 // temaPrincipal/getAll
-router.get('/', temaPrincipalController.getTemaPrincipalList);
+router.get('/getAll', temaPrincipalController.getAll);
 // temaPrincipal/getItem/:id
-router.get('/:id', temaPrincipalController.getTemaPrincipalItem);
+router.get('/:id', temaPrincipalController.getTemaPrincipal);
 // temaPrincipal/create
-router.post('/', temaPrincipalController.postTemaPrincipalItem);
+router.post('/create', temaPrincipalController.postTemaPrincipal);
 // temaPrincipal/update/:id
-router.put('/:id', temaPrincipalController.putTemaPrincipalItem);
+router.put('/update/:id', temaPrincipalController.putTemaPrincipal);
 // temaPrincipal/delete/:id
-router.delete('/:id', temaPrincipalController.deleteTemaPrincipalItem);
+router.delete('/delete/:id', temaPrincipalController.deleteTemaPrincipal);
 
 export default router;

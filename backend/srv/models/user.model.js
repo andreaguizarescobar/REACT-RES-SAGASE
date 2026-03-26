@@ -11,10 +11,16 @@ const UserSchema = new Schema({
   telefono: String,
   email: String,
   status: String,
-  rol: { type: String },
+  roles: [{rol: { type: String }}],
   // Campos para recuperación de contraseña
   resetToken: String,
-  resetTokenExpires: Date
+  resetTokenExpires: Date,
+  //campos para cambio de contraseña en primer inicio de sesión
+  firstLogin: { type: Boolean, default: true },
+  passwordChangedAt: Date,
+
+  createdBy: String,
+  updatedBy: String,
 }, { timestamps: true });
 
 export default model('users', UserSchema);

@@ -3,26 +3,30 @@ import * as documentoController from "../controllers/documento.controller.js";
 const router = Router();
 
 // documento/getAll
-router.get('/', documentoController.getDocumentoList);
-// documento/getItem/:id
-router.get('/:id', documentoController.getDocumentoItem);
+router.get('/', documentoController.getAll);
+// documento/:docId
+router.get('/:docId', documentoController.getById);
 // documento/create
-router.post('/', documentoController.postDocumentoItem);
-// documento/update/:id
-router.put('/:id', documentoController.putDocumentoItem);
-// patch documento/:id/turnado
-router.patch('/:id/turnado', documentoController.patchTurnadoDocumentoItem);
-// patch documento/:id/bitacora
-router.patch('/:id/bitacora', documentoController.patchBitacoraDocumentoItem);
-// patch documento/:id/copia
-router.patch('/:id/copia', documentoController.patchCopiaDocumentoItem);
-// patch documento/:id/anexo
-router.patch('/:id/anexo', documentoController.patchAnexoDocumentoItem);
-// patch documento/:id/status
-router.patch('/:id/status', documentoController.patchStatusDocumentoItem);
-// patch documento/:id/relacionado
-router.patch('/:id/relacionado', documentoController.patchRelacionadoDocumentoItem);
-// documento/delete/:id
-router.delete('/:id', documentoController.deleteDocumentoItem);
+router.post('/create/', documentoController.create);
+// documento/update/:docId
+router.put('/:docId', documentoController.putDocumento);
+// patch documento/:docId/turnado
+router.patch('/:docId/turnado', documentoController.patchTurnadoDocumento);
+// patch documento/:docId/bitacora
+router.patch('/:docId/bitacora', documentoController.patchBitacoraDocumento);
+// patch documento/:docId/copia
+router.patch('/:docId/copia', documentoController.patchCopiaDocumento);
+// patch documento/:docId/anexo
+router.patch('/:docId/anexo', documentoController.patchAnexoDocumento);
+// patch documento/:docId/removerAnexo
+router.patch('/:docId/removerAnexo', documentoController.patchRemoverAnexoDocumento);
+// patch documento/:docId/status
+router.patch('/:docId/status', documentoController.patchStatusDocumento);
+// patch documento/:docId/relacionado
+router.patch('/:docId/relacionado', documentoController.patchRelacionadoDocumento);
+// patch documento/:docId/removerRelacionado
+router.patch('/:docId/removerRelacionado', documentoController.patchRemoverRelacionadoDocumento);
+// documento/delete/:docId
+router.delete('/delete/:docId', documentoController.deleteDocumento);
 
 export default router;

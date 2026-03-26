@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 
 const TipoDocumentoSchema = new Schema({
-  tipo: String,
+  tipo: {type: String, required: true, unique: true, index: true, trim: true,},
   historico: Boolean
 }, { timestamps: true });
 
