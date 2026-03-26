@@ -23,7 +23,12 @@ export function Login() {
     },
     {
       username: "AGN-LPS",
-      password: "Usuario123!",
+      password: "User1!",
+      password_temporal: false,
+    },
+    {
+      username: "Administracion_SAGA",
+      password: "4dministraci0n_S4g4",
       password_temporal: false,
     },
   ];
@@ -41,13 +46,17 @@ export function Login() {
 
     if (!user) {
       Swal.fire({
+        toast: true,
+        position: "top-end",
         icon: "error",
-        title: "Error",
-        text: "Credenciales incorrectas",
-        confirmButtonColor: "#8B1538",
+        title: "Credenciales incorrectas",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
       });
       return;
     }
+
 
     // 🔥 PRIMER INGRESO
     if (user.password_temporal) {
@@ -98,6 +107,7 @@ export function Login() {
       text: "Ahora puedes continuar",
       confirmButtonText: "Continuar",
       confirmButtonColor: "#8B1538",
+      timer: 3000,
       background: "#fff",
       customClass: {
         popup: "rounded-xl",
@@ -107,6 +117,14 @@ export function Login() {
     setShowModal(false);
     navigate("/dashboard");
   };
+
+  const isPasswordValid =
+  validarPassword(newPassword) &&
+  newPassword === confirmPassword &&
+  newPassword.length > 0;
+
+  const cumpleRegex = validarPassword(newPassword);
+  const coincide = newPassword === confirmPassword && confirmPassword.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -230,7 +248,8 @@ export function Login() {
               >
                 {/* HEADER */}
                 <div className="px-4 py-3 border-b text-sm font-semibold text-gray-700">
-                  Es necesario modificar su contraseña
+                  <h3>Nuevo Usuario</h3>
+                  Es necesario modificar su contraseña...
                 </div>
 
                 <div className="text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 leading-relaxed">
@@ -287,6 +306,37 @@ export function Login() {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+
+                    <div className="px-1">
+                      {newPassword.length > 0 && (
+                        <p
+                          className={`text-xs mt-1 ${
+                            cumpleRegex && coincide ? "text-green-600" : "text-red-500"
+                          }`}
+                        >
+                          {cumpleRegex
+                            ? coincide
+                              ? "✔ Contraseña válida y coincide"
+                              : "✔ Contraseña válida"
+                            : "La contraseña no cumple con los requisitos"}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end px-6 pb-4">
+                      <button
+                        onClick={handleGuardarPassword}
+                        disabled={!isPasswordValid}
+                        className={`px-4 py-2 rounded text-white text-sm transition
+                          ${
+                            isPasswordValid
+                              ? "bg-[#8B1538] hover:bg-[#6B0F2A]"
+                              : "bg-gray-300 cursor-not-allowed"
+                          }`}
+                      >
+                        Confirmar
                       </button>
                     </div>
 

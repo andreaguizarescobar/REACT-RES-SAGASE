@@ -1,5 +1,6 @@
 import { Minus } from "lucide-react";
 import { useState } from "react";
+import Swal from "sweetalert2";
 
 export function SalidaCorrespondencia() {
   const [form, setForm] = useState({
@@ -21,10 +22,31 @@ export function SalidaCorrespondencia() {
     otroRemitente: false,
   });
 
+  const areas = [
+    { value: "direccion_general", label: "Dirección General" },
+    { value: "recursos_humanos", label: "Recursos Humanos" },
+    { value: "finanzas", label: "Finanzas" },
+    { value: "juridico", label: "Jurídico" },
+    { value: "tecnologias", label: "Tecnologías de la Información" },
+    { value: "archivo", label: "Archivo" },
+    { value: "atencion_ciudadana", label: "Atención Ciudadana" },
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // 🔥 LIMPIAR ERROR DEL CAMPO EDITADO
+    setErrores((prev) => ({
+      ...prev,
+      [name]: false,
+    }));
   };
+
 
   const Toggle = ({ checked, onChange }) => (
     <button
@@ -42,10 +64,76 @@ export function SalidaCorrespondencia() {
     </button>
   );
 
-  const handleGuardar = () => {
-    console.log("Datos guardados:", form);
-    alert("Registro guardado correctamente");
+  const [errores, setErrores] = useState({});
+
+  const validarCampos = () => {
+    let nuevosErrores = {};
+
+    if (!form.anio) nuevosErrores.anio = true;
+    if (!form.folioSalida) nuevosErrores.folioSalida = true;
+    if (!form.fechaRegistro) nuevosErrores.fechaRegistro = true;
+    if (!form.nivelImportancia) nuevosErrores.nivelImportancia = true;
+    if (!form.soporte) nuevosErrores.soporte = true;
+    if (!form.areaTramitadora) nuevosErrores.areaTramitadora = true;
+    if (!form.numeroOficio) nuevosErrores.numeroOficio = true;
+    if (!form.asunto) nuevosErrores.asunto = true;
+    if (!form.nombreCargo) nuevosErrores.nombreCargo = true;
+
+    // Validación extra si es urgente
+    if (form.nivelImportancia === "urgente") {
+      if (!form.fechaLimite) nuevosErrores.fechaLimite = true;
+      if (!form.horaLimite) nuevosErrores.horaLimite = true;
+      if (!form.justificacion) nuevosErrores.justificacion = true;
+    }
+
+    setErrores(nuevosErrores);
+
+    return Object.keys(nuevosErrores).length === 0;
   };
+
+  const handleGuardar = () => {
+    if (!validarCampos()) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Faltan campos obligatorios",
+        showConfirmButton: false,
+        timer: 2500,
+      });
+      return;
+    }
+
+    // 🔥 MODAL DE CONFIRMACIÓN
+    Swal.fire({
+      title: "Confirmación",
+      text: "¿Seguro que desea continuar?, ¿su información está correcta?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "OK",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#8B1538",
+      cancelButtonColor: "#6B7280",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // ✅ AQUÍ YA GUARDA
+        console.log("Datos guardados:", form);
+
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Documento guardado correctamente",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+
+        // 👉 Aquí después puedes meter tu API
+        // await guardarDatos(form);
+      }
+    });
+  };
+
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
@@ -70,7 +158,9 @@ export function SalidaCorrespondencia() {
               name="anio"
               value={form.anio}
               onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
+              className={`w-full border rounded px-2 py-1 ${
+                errores.anio ? "border-red-500 bg-red-50" : ""
+              }`}
             >
               <option value="">Selecciona año</option>
               <option>2025</option>
@@ -87,7 +177,9 @@ export function SalidaCorrespondencia() {
               name="folioSalida"
               value={form.folioSalida}
               onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
+              className={`w-full border rounded px-2 py-1 ${
+                errores.folioSalida ? "border-red-500 bg-red-50" : ""
+              }`}
             />
           </div>
 
@@ -98,7 +190,9 @@ export function SalidaCorrespondencia() {
               name="fechaRegistro"
               value={form.fechaRegistro}
               onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
+              className={`w-full border rounded px-2 py-1 ${
+                errores.fechaRegistro ? "border-red-500 bg-red-50" : ""
+}`}
             />
           </div>
         </div>
@@ -111,7 +205,9 @@ export function SalidaCorrespondencia() {
               name="nivelImportancia"
               value={form.nivelImportancia}
               onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
+              className={`w-full border rounded px-2 py-1 ${
+                errores.nivelImportancia ? "border-red-500 bg-red-50" : ""
+              }`}
             >
               <option value="">Selecciona opción</option>
               <option value="normal">Normal</option>
@@ -125,7 +221,9 @@ export function SalidaCorrespondencia() {
               name="soporte"
               value={form.soporte}
               onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
+              className={`w-full border rounded px-2 py-1 ${
+                errores.soporte ? "border-red-500 bg-red-50" : ""
+              }`}
             >
               <option value="">Selecciona opción</option>
               <option>Físico</option>
@@ -184,9 +282,16 @@ export function SalidaCorrespondencia() {
                 name="areaTramitadora"
                 value={form.areaTramitadora}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1"
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.areaTramitadora ? "border-red-500 bg-red-50" : ""
+                }`}
               >
                 <option value="">Selecciona opción</option>
+                {areas.map((area) => (
+                  <option key={area.value} value={area.value}>
+                    {area.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -196,7 +301,9 @@ export function SalidaCorrespondencia() {
                 name="numeroOficio"
                 value={form.numeroOficio}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1"
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.numeroOficio ? "border-red-500 bg-red-50" : ""
+                }`}
               />
             </div>
 
@@ -206,7 +313,9 @@ export function SalidaCorrespondencia() {
                 name="asunto"
                 value={form.asunto}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1"
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.asunto ? "border-red-500 bg-red-50" : ""
+                }`}
               />
             </div>
 
@@ -257,7 +366,9 @@ export function SalidaCorrespondencia() {
                 value={form.nombreCargo}
                 onChange={handleChange}
                 placeholder="Buscar y seleccionar opción"
-                className="w-full border rounded px-2 py-1"
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.nombreCargo ? "border-red-500 bg-red-50" : ""
+                }`}
               />
             </div>
 

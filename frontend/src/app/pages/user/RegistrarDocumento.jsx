@@ -101,11 +101,22 @@ export function RegistrarDocumento() {
   });
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
-  };
+
+    // 🔥 quitar error al escribir
+    if (errores[name]) {
+      setErrores({
+        ...errores,
+        [name]: false,
+      });
+    }
+};
+
 
   const Toggle = ({ checked, onChange }) => (
     <button
@@ -361,8 +372,11 @@ const temasFiltradosSecundario = temas.filter((t) =>
               <label className="text-xs text-gray-500">Ejercicio</label>
               <select
                 name="ejercicio"
-                className="w-full border rounded px-2 py-1"
+                value={form.ejercicio}
                 onChange={handleChange}
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.ejercicio ? "border-red-500 bg-red-50" : ""
+                }`}
               >
                 <option value="">Seleccionar</option>
                 <option value="2024">2024</option>
@@ -386,7 +400,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="noDocumento"
                   value={form.noDocumento}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                  className={`w-full border rounded px-2 py-1 ${
+                    errores.noDocumento ? "border-red-500 bg-red-50" : ""
+                  }`}
                 />
               </div>
 
@@ -397,7 +413,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="fechaDocumento"
                   value={form.fechaDocumento}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                   className={`w-full border rounded px-2 py-1 ${
+                    errores.fechaDocumento ? "border-red-500 bg-red-50" : ""
+                  }`}
                 />
               </div>
 
@@ -408,7 +426,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="fechaAcuse"
                   value={form.fechaAcuse}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                  className={`w-full border rounded px-2 py-1 ${
+                    errores.fechaAcuse ? "border-red-500 bg-red-50" : ""
+                  }`}
                 />
               </div>
 
@@ -419,7 +439,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="fechaRegistro"
                   value={form.fechaRegistro}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                  className={`w-full border rounded px-2 py-1 ${
+                    errores.fechaRegistro ? "border-red-500 bg-red-50" : ""
+                  }`}
                 />
               </div>
 
@@ -459,7 +481,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="tipoRemitente"
                   value={form.tipoRemitente}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                    className={`w-full border rounded px-2 py-1 ${
+                      errores.tipoRemitente ? "border-red-500 bg-red-50" : ""
+                    }`}
                 >
                   <option value="">Seleccionar</option>
                   <option value="interno">Interno</option>
@@ -485,7 +509,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                       name="remitenteInterno"
                       value={form.remitenteInterno}
                       onChange={handleChange}
-                      className="w-full border rounded px-2 py-1"
+                      className={`w-full border rounded px-2 py-1 ${
+                        errores.remitenteInterno ? "border-red-500 bg-red-50" : ""
+                      }`}
                     >
                       <option value="">Seleccionar</option>
                       {usuariosInstitucion.map((u) => (
@@ -515,7 +541,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
 
                       {/* BUSCADOR */}
                       <div ref={refRemitenteExt} className="flex-1 relative">
-                        <div className="flex items-center border rounded px-2">
+                        <div className={`flex items-center border rounded px-2 ${
+                            errores.remitenteExterno ? "border-red-500 bg-red-50" : ""
+                          }`}>
                           <Search size={16} className="text-gray-400" />
                           <input
                             value={busquedaRemitenteExt}
@@ -594,14 +622,25 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   <label className="text-xs text-gray-500">
                     Selecciona tipo de documento *
                   </label>
-                  <div className="flex items-center border rounded px-2">
+                  <div
+                    className={`flex items-center border rounded px-2 ${
+                      errores.tipoDocumento ? "border-red-500 bg-red-50" : ""
+                    }`}
+                  >
                     <Search size={16} className="text-gray-400" />
                     <input
                       value={busquedaTipoDoc}
-                      onChange={(e) => setBusquedaTipoDoc(e.target.value)}
+                      onChange={(e) => {
+                        setBusquedaTipoDoc(e.target.value);
+
+                        if (errores.tipoDocumento) {
+                          setErrores({ ...errores, tipoDocumento: false });
+                        }
+                      }}
                       onFocus={() => setMostrarOpcionesTipoDoc(true)}
                       className="w-full px-2 py-1 outline-none"
                       placeholder="Buscar y seleccionar opción"
+
                     />
                   </div>
 
@@ -614,6 +653,7 @@ const temasFiltradosSecundario = temas.filter((t) =>
                             setForm({ ...form, tipoDocumento: t.value });
                             setBusquedaTipoDoc(t.label);
                             setMostrarOpcionesTipoDoc(false);
+
                           }}
                           className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                         >
@@ -681,7 +721,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                     Selecciona tema principal *
                   </label>
 
-                  <div className="flex items-center border rounded px-2">
+                  <div className={`flex items-center border rounded px-2 ${
+                    errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
+                  }`}>
                     <Search size={16} className="text-gray-400" />
                     <input
                       value={busquedaTemaPrincipal}
@@ -814,7 +856,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   name="sintesis"
                   value={form.sintesis}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
+                  className={`w-full border rounded px-2 py-1 ${
+                    errores.sintesis ? "border-red-500 bg-red-50" : ""
+                  }`}
                 />
               </div>
 

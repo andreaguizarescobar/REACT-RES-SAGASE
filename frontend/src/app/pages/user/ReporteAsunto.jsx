@@ -1,13 +1,13 @@
-import { Minus } from "lucide-react";
-import { useState } from "react";
+import { Minus } from 'lucide-react';
+import { useState } from 'react';
 
 export function ReporteAsuntos() {
 
   const [form, setForm] = useState({
-    origen: "",
-    unidadAdministrativa: "",
-    fechaInicio: "",
-    fechaFin: "",
+    origen: '',
+    unidadAdministrativa: '',
+    fechaInicio: '',
+    fechaFin: '',
     registrados: false,
     autorizadosTurnados: false,
     recibidosEjecucion: false,
@@ -52,11 +52,11 @@ export function ReporteAsuntos() {
   const handleOrigenToggle = (value) => {
     setForm((prev) => ({
       ...prev,
-      origen: prev.origen === value ? "" : value
+      origen: prev.origen === value ? '' : value
     }));
   };
 
-  const Toggle = ({ label, checked, onChange, className = "" }) => (
+  const Toggle = ({ label, checked, onChange, className = '' }) => (
     <div className={`flex items-center justify-between gap-4 w-full ${className}`}>
       <span className="flex-1 text-xs sm:text-sm">
         {label}
@@ -66,12 +66,12 @@ export function ReporteAsuntos() {
         type="button"
         onClick={onChange}
         className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors ${
-          checked ? "bg-[#8B1538]" : "bg-gray-300"
+          checked ? 'bg-[#8B1538]' : 'bg-gray-300'
         }`}
       >
         <span
           className={`absolute top-[2px] left-[2px] h-4 w-4 bg-white rounded-full transition-transform ${
-            checked ? "translate-x-5" : ""
+            checked ? 'translate-x-5' : ''
           }`}
         />
       </button>
@@ -107,7 +107,7 @@ export function ReporteAsuntos() {
       encabezados.join(",") + "\n" + filas.join("\n");
 
     const blob = new Blob([csvContenido], {
-      type: "text/csv;charset=utf-8;"
+      type: "text/csv;charset=utf-8;",
     });
 
     const url = URL.createObjectURL(blob);
@@ -130,7 +130,6 @@ export function ReporteAsuntos() {
         <h1 className="text-sm font-semibold text-gray-800">
           Reporte de Asuntos
         </h1>
-
         <button className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white">
           <Minus size={14} />
         </button>
@@ -146,22 +145,21 @@ export function ReporteAsuntos() {
 
           <div className="space-y-8">
 
-            {/* ORIGEN */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-md">
               <Toggle
                 label="Recibido"
-                checked={form.origen === "recibido"}
-                onChange={() => handleOrigenToggle("recibido")}
+                checked={form.origen === 'recibido'}
+                onChange={() => handleOrigenToggle('recibido')}
               />
 
               <Toggle
                 label="Enviado"
-                checked={form.origen === "enviado"}
-                onChange={() => handleOrigenToggle("enviado")}
+                checked={form.origen === 'enviado'}
+                onChange={() => handleOrigenToggle('enviado')}
               />
             </div>
 
-            {form.origen === "enviado" && (
+            {form.origen === 'enviado' && (
               <div className="space-y-4 max-w-3xl">
 
                 <p className="text-xs text-gray-700">
@@ -196,84 +194,41 @@ export function ReporteAsuntos() {
               </div>
             )}
 
-            {/* FECHAS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-2xl">
-              <div>
-                <label className="block mb-1">
-                  Fecha inicial de turnado:
-                </label>
-
-                <input
-                  type="date"
-                  value={form.fechaInicio}
-                  onChange={(e) =>
-                    setForm({ ...form, fechaInicio: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded px-2 py-1"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1">
-                  Fecha final de turnado:
-                </label>
-
-                <input
-                  type="date"
-                  value={form.fechaFin}
-                  onChange={(e) =>
-                    setForm({ ...form, fechaFin: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded px-2 py-1"
-                />
-              </div>
-            </div>
-
-            {/* ESTATUS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle
-                label="Registrados"
-                checked={form.registrados}
-                onChange={() => handleToggle("registrados")}
+              <input
+                type="date"
+                value={form.fechaInicio}
+                onChange={(e) =>
+                  setForm({ ...form, fechaInicio: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded px-2 py-1"
               />
 
-              <Toggle
-                label="Autorizados y turnados"
-                checked={form.autorizadosTurnados}
-                onChange={() => handleToggle("autorizadosTurnados")}
-              />
-
-              <Toggle
-                label="Recibidos en ejecución"
-                checked={form.recibidosEjecucion}
-                onChange={() => handleToggle("recibidosEjecucion")}
+              <input
+                type="date"
+                value={form.fechaFin}
+                onChange={(e) =>
+                  setForm({ ...form, fechaFin: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded px-2 py-1"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle
-                label="Con atención concluida"
-                checked={form.atencionConcluida}
-                onChange={() => handleToggle("atencionConcluida")}
-              />
+              <Toggle label="Registrados" checked={form.registrados} onChange={() => handleToggle('registrados')} />
+              <Toggle label="Autorizados y turnados" checked={form.autorizadosTurnados} onChange={() => handleToggle('autorizadosTurnados')} />
+              <Toggle label="Recibidos en ejecución" checked={form.recibidosEjecucion} onChange={() => handleToggle('recibidosEjecucion')} />
+            </div>
 
-              <Toggle
-                label="Con atención validada"
-                checked={form.atencionValidada}
-                onChange={() => handleToggle("atencionValidada")}
-              />
-
-              <Toggle
-                label="Cerrados"
-                checked={form.cerrados}
-                onChange={() => handleToggle("cerrados")}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+              <Toggle label="Con atención concluida" checked={form.atencionConcluida} onChange={() => handleToggle('atencionConcluida')} />
+              <Toggle label="Con atención validada" checked={form.atencionValidada} onChange={() => handleToggle('atencionValidada')} />
+              <Toggle label="Cerrados" checked={form.cerrados} onChange={() => handleToggle('cerrados')} />
             </div>
 
           </div>
         </div>
 
-        {/* BOTÓN */}
         <div className="flex flex-col sm:flex-row justify-center pt-6">
           <button
             onClick={() => {
@@ -284,6 +239,95 @@ export function ReporteAsuntos() {
           >
             Generar
           </button>
+
+          {mostrarReporte && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+              <div className="w-[95%] max-w-6xl bg-white rounded shadow-xl overflow-hidden">
+
+                <div className="bg-gray-600 text-white flex items-center justify-between px-4 py-2 text-xs">
+                  <div className="flex gap-2">
+                    <button onClick={exportarPDF} className="bg-red-600 px-2 py-1 rounded">PDF</button>
+                    <button onClick={exportarExcel} className="bg-green-600 px-2 py-1 rounded">Excel</button>
+                  </div>
+
+                  <div className="font-semibold">Página 1 de 1</div>
+
+                  <button
+                    onClick={() => setMostrarReporte(false)}
+                    className="bg-[#8B1538] w-6 h-6 rounded-full flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="p-8 bg-gray-100 overflow-y-auto max-h-[80vh]">
+                  <div className="bg-white p-8 shadow">
+
+                    <div className="text-center space-y-1 mb-6 text-xs">
+                      <h2 className="font-semibold">
+                        Sistema Automatizado de Gestión y Archivo de la Secretaría de Salud SAGASE
+                      </h2>
+                      <p>Reporte de Asuntos</p>
+                      <p>Dirección de Desarrollo Archivístico Nacional</p>
+                      <p className="font-semibold">
+                        Del NO ESPECIFICADO al NO ESPECIFICADO
+                      </p>
+                    </div>
+
+                    <div className="text-[11px] mb-4 space-y-1">
+                      <p><strong>Origen del Turno:</strong> {form.origen ? form.origen.toUpperCase() : "NO ESPECIFICADO"}</p>
+
+                      <p>
+                        <strong>Estatus:</strong>{" "}
+                        {[
+                          form.registrados && "Registrados",
+                          form.autorizadosTurnados && "Autorizados y turnados",
+                          form.recibidosEjecucion && "Recibidos en ejecución",
+                          form.atencionConcluida && "Con atención concluida",
+                          form.atencionValidada && "Con atención validada",
+                          form.cerrados && "Cerrados"
+                        ].filter(Boolean).join(", ") || "NO ESPECIFICADO"}
+                      </p>
+                    </div>
+
+                    <table className="w-full text-[11px] border border-[#8B1538]">
+                      <thead className="bg-[#8B1538] text-white">
+                        <tr>
+                          <th className="px-2 py-2 border">FOLIO</th>
+                          <th className="px-2 py-2 border">N° DE DOCUMENTO</th>
+                          <th className="px-2 py-2 border">ORIGEN DE TURNO</th>
+                          <th className="px-2 py-2 border">TURNADO A</th>
+                          <th className="px-2 py-2 border">ASUNTO</th>
+                          <th className="px-2 py-2 border">FECHA COMPROMISO</th>
+                          <th className="px-2 py-2 border">INSTRUCCIÓN</th>
+                          <th className="px-2 py-2 border">ESTATUS</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {resultados.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-2 py-2 border">{item.folio}</td>
+                            <td className="px-2 py-2 border">{item.numeroDocumento}</td>
+                            <td className="px-2 py-2 border">{item.origenTurno}</td>
+                            <td className="px-2 py-2 border">{item.areaTurnada}</td>
+                            <td className="px-2 py-2 border">{item.asunto}</td>
+                            <td className="px-2 py-2 border">{item.fechaCompromiso}</td>
+                            <td className="px-2 py-2 border">{item.instruccion}</td>
+                            <td className="px-2 py-2 border">{item.estatus}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
 
       </div>

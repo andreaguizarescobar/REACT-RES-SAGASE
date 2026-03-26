@@ -1,3 +1,4 @@
+import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -47,7 +48,12 @@ export function GeneracionOficios() {
     };
 
     console.log("Datos del documento:", data);
+
+    // 👇 ABRE EL OFICIO
+    setMostrarOficio(true);
   };
+
+  const [mostrarOficio, setMostrarOficio] = useState(false);
 
   return (
     <div className="flex-1 w-full p-6 bg-gray-100 overflow-y-auto">
@@ -185,8 +191,107 @@ export function GeneracionOficios() {
               </div>
             </>
           )}
+          <AnimatePresence>
+            {mostrarOficio && (
+              <motion.div
+                className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                
+                {/* CONTENEDOR */}
+                <motion.div
+                  initial={{ scale: 0.9, y: 40, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.9, y: 40, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="w-full max-w-4xl bg-white rounded shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+                >
+
+                  {/* BARRA SUPERIOR */}
+                  <div className="bg-gray-700 text-white flex items-center justify-between px-4 py-2 text-xs">
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => window.print()}
+                        className="bg-red-600 px-2 py-1 rounded"
+                      >
+                        PDF
+                      </button>
+
+                      <button className="bg-gray-400 px-2 py-1 rounded">
+                        Imprimir
+                      </button>
+                    </div>
+
+                    <div className="font-semibold">
+                      Página 1 de 1
+                    </div>
+
+                    <button
+                      onClick={() => setMostrarOficio(false)}
+                      className="bg-[#8B1538] w-6 h-6 rounded-full flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* CONTENIDO */}
+                  <div className="bg-gray-800 flex justify-center p-4 overflow-y-auto">
+
+                    {/* HOJA */}
+                    <div className="bg-white w-full max-w-[650px] min-h-[750px] p-10 text-xs shadow">
+
+                      {/* ENCABEZADO */}
+                      <div className="mb-6">
+                        <p className="font-semibold">Gobierno de México</p>
+                        <p className="text-right">{area || "Área no especificada"}</p>
+                        <p className="text-right">{fechaHora}</p>
+                        <p className="text-right font-semibold">{numeroOficio}</p>
+                      </div>
+
+                      {/* DESTINATARIO */}
+                      <div className="mb-6">
+                        <p className="font-semibold uppercase">
+                          {destinatario || "DESTINATARIO"}
+                        </p>
+                        <p>PRESENTE</p>
+                      </div>
+
+                      {/* ASUNTO */}
+                      <div className="mb-4">
+                        <p>
+                          <strong>Asunto:</strong> {asunto || "SIN ASUNTO"}
+                        </p>
+                      </div>
+
+                      {/* CONTENIDO */}
+                      <div className="mb-10 text-justify whitespace-pre-line">
+                        {contenido || "Contenido del oficio..."}
+                      </div>
+
+                      {/* DESPEDIDA */}
+                      <div className="mt-16">
+                        <p>ATENTAMENTE</p>
+                        <br />
+                        <br />
+                        <p className="font-semibold">
+                          {area || "Nombre del área"}
+                        </p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
         </div>
       </div>
     </div>
+    
   );
 }
