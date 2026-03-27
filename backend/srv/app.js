@@ -8,6 +8,7 @@ import temaPrincipalRoutes from './routes/temaPrincipal.route.js';
 import remitentesRoutes from './routes/remitente.route.js';
 import rolRoutes from './routes/rol.route.js';
 import documentoRoutes from './routes/documento.route.js';
+import adicionalRoutes from './routes/adicional.route.js';
 await import('./config/db.js');
 const app = express();
 app.set('port', config.PORT);
@@ -22,6 +23,7 @@ app.use(`${api}/temaPrincipal`, temaPrincipalRoutes);
 app.use(`${api}/remitentes`, remitentesRoutes);
 app.use(`${api}/roles`, rolRoutes);
 app.use(`${api}/documentos`, documentoRoutes);
+app.use(`${api}/adicional`, adicionalRoutes);
 console.log(`API URL: ${api}` + `, PORT: ${config.PORT}`);
 
 export default app;

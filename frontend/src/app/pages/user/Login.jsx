@@ -4,6 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import nayaritLogo from "../../assets/nayaritLogo.png";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { loginRequest, cambiarPasswordRequest } from "../../services/auth.service";
 
 export function Login() {
   const [username, setUsername] = useState("");
@@ -14,61 +15,53 @@ export function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
-
-  const usersMock = [
-    {
-      username: "AGN-AVGE",
-      password: "1234",
-      password_temporal: true,
-    },
-    {
-      username: "AGN-LPS",
-      password: "User1!",
-      password_temporal: false,
-    },
-    {
-      username: "Administracion_SAGA",
-      password: "4dministraci0n_S4g4",
-      password_temporal: false,
-    },
-  ];
+  const [user, setUser] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const user = usersMock.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (!user) {
+    try {
+      const response = await loginRequest({ username: username, password });
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
+        if (data.user.firstLogin) {
+          setShowModal(true);
+        } else {
+          const isAdmin = data.user.roles && data.user.roles.some(role => role.rol === 'ADMIN');
+          if (isAdmin) {
+            navigate("/admin-dashboard");
+          } else {
+            navigate("/dashboard");
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: errorData.message || "Credenciales incorrectas",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      }
+    } catch (error) {
       Swal.fire({
         toast: true,
         position: "top-end",
         icon: "error",
-        title: "Credenciales incorrectas",
+        title: "Error de conexión",
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
       });
-      return;
-    }
-
-
-    // 🔥 PRIMER INGRESO
-    if (user.password_temporal) {
-      setShowModal(true);
-      return;
-    }
-
-    // ADMIN
-    if (username === "Administracion_SAGA") {
-      navigate("/admin-dashboard");
-    } else {
-      navigate("/dashboard");
     }
   };
 
@@ -79,7 +72,7 @@ export function Login() {
     return regex.test(pass);
   };
 
-  const handleGuardarPassword = () => {
+  const handleGuardarPassword = async () => {
     if (newPassword !== confirmPassword) {
       Swal.fire({
         icon: "warning",
@@ -90,7 +83,7 @@ export function Login() {
       return;
     }
 
-   if (!validarPassword(newPassword)) {
+    if (!validarPassword(newPassword)) {
       Swal.fire({
         icon: "info",
         title: "Contraseña inválida",
@@ -100,22 +93,45 @@ export function Login() {
       return;
     }
 
-    // 👉 aquí iría API real
-    Swal.fire({
-      icon: "success",
-      title: "¡Contraseña actualizada!",
-      text: "Ahora puedes continuar",
-      confirmButtonText: "Continuar",
-      confirmButtonColor: "#8B1538",
-      timer: 3000,
-      background: "#fff",
-      customClass: {
-        popup: "rounded-xl",
-      },
-    });
-
-    setShowModal(false);
-    navigate("/dashboard");
+    try {
+      const response = await cambiarPasswordRequest(user.userId, { newPassword: newPassword, currentPassword: password });
+      if (response.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "¡Contraseña actualizada!",
+          text: "Ahora puedes continuar",
+          confirmButtonText: "Continuar",
+          confirmButtonColor: "#8B1538",
+          timer: 3000,
+          background: "#fff",
+          customClass: {
+            popup: "rounded-xl",
+          },
+        });
+        setShowModal(false);
+        const isAdmin = user.roles && user.roles.some(role => role.rol === 'ADMIN');
+        if (isAdmin) {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        const errorData = await response.json();
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: errorData.message || "Error al cambiar la contraseña",
+          confirmButtonColor: "#8B1538",
+        });
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo cambiar la contraseña",
+        confirmButtonColor: "#8B1538",
+      });
+    }
   };
 
   const isPasswordValid =

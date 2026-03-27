@@ -2,6 +2,10 @@ import { Minus, Search } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { getTipoDocument, createTipoDocument } from "../../services/tipoDocumento.service";
+import { getTemaPrincipal, getAdicional } from "../../services/catalogos.service";
+import { getRemitentes, createRemitente } from "../../services/remitente.service";
+import { getDocuments, createDocument } from "../../services/document.service";
 
 export function RegistrarDocumento() {
 
@@ -18,14 +22,74 @@ export function RegistrarDocumento() {
     remitenteExterno: "",
     tipoDocumento: "",
     temaPrincipal: "",
+    temaSecundario: "",
     sintesis: "",
     faltaInformacion: false,
     documentoInterno: false,
     altaTipoDocumento: false,
     relacionadoCon: false,
+    relacionados: [],
     otroFuncionario: false,
     materialAdicional: "",
   });
+
+  const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [temasPrincipales, setTemasPrincipales] = useState([]);
+  const [adicionales, setAdicionales] = useState([]);
+  const [remitentes, setRemitentes] = useState([]);
+  const [documentos, setDocumentos] = useState([]);
+  const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
+  const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
+  const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
+
+  const documentosFiltrados = documentos.filter((d) =>
+    d.label.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
+  );
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const tiposRes = await getTipoDocument();
+        if (tiposRes.ok) {
+          const tipos = await tiposRes.json();
+          setTiposDocumento(tipos.map(t => ({ value: t._id, label: t.tipo })));
+        }
+        const temasRes = await getTemaPrincipal();
+        if (temasRes.ok) {
+          const temas = await temasRes.json();
+          setTemasPrincipales(temas.map(t => ({ value: t._id, label: t.descripcion })));
+        }
+        const adicsRes = await getAdicional();
+        if (adicsRes.ok) {
+          const adics = await adicsRes.json();
+          setAdicionales(adics.map(a => ({ value: a._id, label: a.descripcion })));
+        }
+        const remsRes = await getRemitentes();
+        if (remsRes.ok) {
+          const rems = await remsRes.json();
+          setRemitentes(rems.map((r) => {
+            const tipoNormalizado = (r.tipo || "").toString().trim().toLowerCase();
+            return {
+              value: r._id,
+              label: `${r.name} - ${r.cargo} - ${r.area}`,
+              tipo: tipoNormalizado === "interno" ? "interno" : "externo",
+              name: r.name,
+              cargo: r.cargo,
+              area: r.area,
+            };
+          }));
+        }
+        const docsRes = await getDocuments();
+        if (docsRes.ok) {
+          const docs = await docsRes.json();
+          setDocumentos(docs.map(d => ({ value: d._id, label: d.folio })));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    loadData();
+  }, []);
 
   const validarFormulario = () => {
     const nuevosErrores = {};
@@ -74,16 +138,6 @@ export function RegistrarDocumento() {
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
-  const [tiposDocumento, setTiposDocumento] = useState([
-    { value: "correo_electronico", label: "Correo electrónico" },
-    { value: "escrito", label: "Escrito" },
-    { value: "informe", label: "Informe" },
-    { value: "invitacion", label: "Invitación" },
-    { value: "libro", label: "Libro" },
-    { value: "nota_informativa", label: "Nota informativa" },
-    { value: "oficio", label: "Oficio" },
-  ]);
-
   const tiposFiltrados = tiposDocumento.filter((tipo) =>
     tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
   );
@@ -103,10 +157,18 @@ export function RegistrarDocumento() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setForm({
+    const nuevoForm = {
       ...form,
       [name]: value,
-    });
+    };
+
+    if (name === "tipoRemitente") {
+      nuevoForm.remitenteInterno = "";
+      nuevoForm.remitenteExterno = "";
+      setBusquedaRemitenteExt("");
+    }
+
+    setForm(nuevoForm);
 
     // 🔥 quitar error al escribir
     if (errores[name]) {
@@ -115,7 +177,7 @@ export function RegistrarDocumento() {
         [name]: false,
       });
     }
-};
+  };
 
 
   const Toggle = ({ checked, onChange }) => (
@@ -218,19 +280,49 @@ export function RegistrarDocumento() {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#8B1538",
       cancelButtonColor: "#6B7280",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        // ✅ AQUÍ YA GUARDA
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Documento guardado correctamente",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-
-        // aquí puedes agregar lógica real de guardado (API, etc.)
+        try {
+          const data = {
+            folio: `Folio ${Math.floor(Math.random() * 900) + 100}-${new Date().getFullYear()}`,
+            docId: form.noDocumento,
+            ejercicio: form.ejercicio,
+            fechaDoc: form.fechaDocumento,
+            acuse: form.fechaAcuse,
+            registro: form.fechaRegistro,
+            remitente: form.tipoRemitente === "interno" ? form.remitenteInterno : form.remitenteExterno,
+            tipo: form.tipoDocumento,
+            tema: form.temaPrincipal,
+            secundario: form.temaSecundario,
+            observaciones: form.sintesis,
+            relacionados: form.relacionados,
+            // otros campos si es necesario
+          };
+          const response = await createDocument(data);
+          if (response.ok) {
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "Documento guardado correctamente",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "No se pudo guardar el documento",
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire({
+            icon: "error",
+            title: "Error de conexión",
+            text: "No se pudo guardar el documento",
+          });
+        }
       }
     });
   };
@@ -238,16 +330,36 @@ export function RegistrarDocumento() {
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
-  const remitentesExternos = [
-    { id: 1, nombre: "Gobierno del Estado de Nayarit" },
-    { id: 2, nombre: "Empresa XYZ S.A. de C.V." },
-    { id: 3, nombre: "Universidad Autónoma de Nayarit" },
-    { id: 4, nombre: "Secretaría de Educación" },
-    { id: 5, nombre: "Juan López Martínez" },
-  ];
+  const remitentesInternos = remitentes.filter(
+    (r) => (r.tipo || "").toLowerCase() === "interno"
+  );
+  const remitentesExternos = remitentes.filter(
+    (r) => (r.tipo || "").toLowerCase() === "externo"
+  );
 
   const remitentesFiltrados = remitentesExternos.filter((r) =>
-    r.nombre.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
+    r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
+  );
+
+  const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
+  const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
+
+  const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
+  const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
+
+  const [busquedaAdicional, setBusquedaAdicional] = useState("");
+  const [mostrarOpcionesAdicional, setMostrarOpcionesAdicional] = useState(false);
+
+  const temasFiltradosPrincipal = temasPrincipales.filter((tema) =>
+    tema.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
+  );
+
+  const temasFiltradosSecundario = temasPrincipales.filter((tema) =>
+    tema.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
+  );
+
+  const adicionalesFiltrados = adicionales.filter((adic) =>
+    adic.label.toLowerCase().includes(busquedaAdicional.toLowerCase())
   );
 
 const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
@@ -258,6 +370,7 @@ const refMaterial = useRef(null);
 const refAsunto = useRef(null);
 const refTemaPrincipal = useRef(null);
 const refTemaSecundario = useRef(null);
+const refAdicional = useRef(null);
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -282,7 +395,11 @@ useEffect(() => {
     }
 
     if (refTemaSecundario.current && !refTemaSecundario.current.contains(event.target)) {
-      setMostrarOpcionesTemaSecundario(false);
+      setMostrarOpcionesAdicional(false);
+    }
+
+    if (refAdicional.current && !refAdicional.current.contains(event.target)) {
+      setMostrarOpcionesAdicional(false);
     }
   };
 
@@ -292,28 +409,6 @@ useEffect(() => {
     document.removeEventListener("mousedown", handleClickOutside);
   };
 }, []);
-
-const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
-const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
-
-const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
-const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
-
-const temas = [
-  { value: "administrativo", label: "Administrativo" },
-  { value: "juridico", label: "Jurídico" },
-  { value: "finanzas", label: "Finanzas" },
-  { value: "recursos_humanos", label: "Recursos Humanos" },
-  { value: "agradecimiento", label: "Agradecimiento" },
-  { value: "solicitud", label: "Solicitud" },
-];
-const temasFiltradosPrincipal = temas.filter((t) =>
-  t.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
-);
-
-const temasFiltradosSecundario = temas.filter((t) =>
-  t.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
-);
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
@@ -514,9 +609,9 @@ const temasFiltradosSecundario = temas.filter((t) =>
                       }`}
                     >
                       <option value="">Seleccionar</option>
-                      {usuariosInstitucion.map((u) => (
-                        <option key={u.id} value={u.nombre}>
-                          {u.nombre}
+                      {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map(u => ({ value:u.nombre, label:u.nombre }))).map((r) => (
+                        <option key={r.value} value={r.value}>
+                          {r.label}
                         </option>
                       ))}
                     </select>
@@ -563,15 +658,15 @@ const temasFiltradosSecundario = temas.filter((t) =>
                             {remitentesFiltrados.length > 0 ? (
                               remitentesFiltrados.map((r) => (
                                 <div
-                                  key={r.id}
+                                  key={r.value}
                                   onClick={() => {
-                                    setForm({ ...form, remitenteExterno: r.nombre });
-                                    setBusquedaRemitenteExt(r.nombre);
+                                    setForm({ ...form, remitenteExterno: r.value });
+                                    setBusquedaRemitenteExt(r.label);
                                     setMostrarOpcionesRemitenteExt(false);
                                   }}
                                   className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                                 >
-                                  {r.nombre}
+                                  {r.label}
                                 </div>
                               ))
                             ) : (
@@ -803,7 +898,7 @@ const temasFiltradosSecundario = temas.filter((t) =>
                 )}
               </div>
 
-              <div ref={refMaterial}className="relative">
+              <div ref={refAdicional} className="relative">
                 <label className="text-xs text-gray-500">
                   Selecciona material adicional
                 </label>
@@ -811,37 +906,35 @@ const temasFiltradosSecundario = temas.filter((t) =>
                 <div className="flex items-center border rounded px-2">
                   <Search size={16} className="text-gray-400" />
                   <input
-                    value={busquedaMaterial}
+                    value={busquedaAdicional}
                     onChange={(e) => {
-                      setBusquedaMaterial(e.target.value);
-                      setMostrarOpcionesMaterial(true);
+                      setBusquedaAdicional(e.target.value);
+                      setMostrarOpcionesAdicional(true);
                     }}
-                    onFocus={() => setMostrarOpcionesMaterial(true)}
+                    onFocus={() => setMostrarOpcionesAdicional(true)}
                     className="w-full px-2 py-1 outline-none"
                     placeholder="Buscar y seleccionar opción"
                   />
                 </div>
 
-                {mostrarOpcionesMaterial && (
+                {mostrarOpcionesAdicional && (
                   <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                    {materialesFiltrados.length > 0 ? (
-                      materialesFiltrados.map((m) => (
+                    {adicionalesFiltrados.length > 0 ? (
+                      adicionalesFiltrados.map((a) => (
                         <div
-                          key={m.value}
+                          key={a.value}
                           onClick={() => {
-                            setForm({ ...form, materialAdicional: m.value });
-                            setBusquedaMaterial(m.label);
-                            setMostrarOpcionesMaterial(false);
+                            setForm({ ...form, materialAdicional: a.value });
+                            setBusquedaAdicional(a.label);
+                            setMostrarOpcionesAdicional(false);
                           }}
                           className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                         >
-                          {m.label}
+                          {a.label}
                         </div>
                       ))
                     ) : (
-                      <div className="px-2 py-1 text-gray-400">
-                        Sin resultados
-                      </div>
+                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
                     )}
                   </div>
                 )}
@@ -969,22 +1062,51 @@ const temasFiltradosSecundario = temas.filter((t) =>
               {/* FOOTER */}
               <div className="flex justify-end p-4">
                 <button
-                  onClick={() => {
-                    setForm({
-                      ...form,
-                      remitenteExterno: nuevoRemitente.nombreCompleto,
-                    });
-                    setBusquedaRemitenteExt(nuevoRemitente.nombreCompleto);
-                    setMostrarModalRemitente(false);
+                  onClick={async () => {
+                    try {
+                      const data = {
+                        name: nuevoRemitente.nombreCompleto,
+                        cargo: nuevoRemitente.cargo,
+                        dependencia: nuevoRemitente.dependencia,
+                        tipo: "externo", // asumiendo externo
+                        area: nuevoRemitente.dependencia, // o algo
+                      };
+                      const response = await createRemitente(data);
+                      if (response.ok) {
+                        const nuevoRem = await response.json();
+                        setRemitentes([...remitentes, { value: nuevoRem._id, label: `${nuevoRem.name} - ${nuevoRem.cargo} - ${nuevoRem.area}` }]);
 
-                    Swal.fire({
-                      toast: true,
-                      position: "top-end",
-                      icon: "success",
-                      title: "Remitente agregado",
-                      showConfirmButton: false,
-                      timer: 2000,
-                    });
+                        // Seleccionarlo automáticamente
+                        setForm({
+                          ...form,
+                          remitenteExterno: nuevoRem._id,
+                        });
+                        setBusquedaRemitenteExt(`${nuevoRem.name} - ${nuevoRem.cargo} - ${nuevoRem.area}`);
+                        setMostrarModalRemitente(false);
+
+                        Swal.fire({
+                          toast: true,
+                          position: "top-end",
+                          icon: "success",
+                          title: "Remitente agregado",
+                          showConfirmButton: false,
+                          timer: 2000,
+                        });
+                      } else {
+                        Swal.fire({
+                          icon: "error",
+                          title: "Error",
+                          text: "No se pudo agregar el remitente",
+                        });
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      Swal.fire({
+                        icon: "error",
+                        title: "Error de conexión",
+                        text: "No se pudo agregar el remitente",
+                      });
+                    }
                   }}
                   className="bg-red-600 text-white px-6 py-2 rounded"
                 >
@@ -1047,31 +1169,45 @@ const temasFiltradosSecundario = temas.filter((t) =>
               {/* FOOTER */}
               <div className="flex justify-end p-4">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!nuevoTipoDocumento.trim()) return;
 
-                    const nuevo = {
-                      value: nuevoTipoDocumento.toLowerCase().replace(/\s+/g, "_"),
-                      label: nuevoTipoDocumento,
-                    };
+                    try {
+                      const response = await createTipoDocument({ tipo: nuevoTipoDocumento });
+                      if (response.ok) {  
+                        const nuevoTipo = await response.json();
+                        setTiposDocumento([...tiposDocumento, { value: nuevoTipo._id, label: nuevoTipo.tipo }]);
 
-                    setTiposDocumento([...tiposDocumento, nuevo]);
+                        // Seleccionarlo automáticamente
+                        setForm({ ...form, tipoDocumento: nuevoTipo._id });
+                        setBusquedaTipoDoc(nuevoTipo.tipo);
 
-                    // Seleccionarlo automáticamente
-                    setForm({ ...form, tipoDocumento: nuevo.value });
-                    setBusquedaTipoDoc(nuevo.label);
+                        setNuevoTipoDocumento("");
+                        setMostrarModalTipoDocumento(false);
 
-                    setNuevoTipoDocumento("");
-                    setMostrarModalTipoDocumento(false);
-
-                    Swal.fire({
-                      toast: true,
-                      position: "top-end",
-                      icon: "success",
-                      title: "Tipo de documento agregado",
-                      showConfirmButton: false,
-                      timer: 2000,
-                    });
+                        Swal.fire({
+                          toast: true,
+                          position: "top-end",
+                          icon: "success",
+                          title: "Tipo de documento agregado",
+                          showConfirmButton: false,
+                          timer: 2000,
+                        });
+                      } else {
+                        Swal.fire({
+                          icon: "error",
+                          title: "Error",
+                          text: "No se pudo agregar el tipo de documento",
+                        });
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      Swal.fire({
+                        icon: "error",
+                        title: "Error de conexión",
+                        text: "No se pudo agregar el tipo de documento",
+                      });
+                    }
                   }}
                   className="bg-[#8B1538] text-white px-6 py-2 rounded"
                 >
@@ -1102,7 +1238,7 @@ const temasFiltradosSecundario = temas.filter((t) =>
               
               {/* HEADER */}
               <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
-                <span className="text-white text-sm">Asuntos</span>
+                <span className="text-white text-sm">Documentos relacionados</span>
 
                 <button
                   onClick={() => {
@@ -1119,41 +1255,42 @@ const temasFiltradosSecundario = temas.filter((t) =>
               <div className="p-6 space-y-4">
 
                 {/* Buscador */}
-                <div ref={refAsunto} className="relative">
+                <div className="relative">
                   <label className="text-xs text-gray-500">
-                    Buscar asunto:
+                    Buscar documento:
                   </label>
 
                   <div className="flex items-center border rounded px-2">
                     <Search size={16} className="text-gray-400" />
                     <input
-                      value={busquedaAsunto}
+                      value={busquedaDocumentoRelacionado}
                       onChange={(e) => {
-                        setBusquedaAsunto(e.target.value);
-                        setMostrarOpcionesAsunto(true);
+                        setBusquedaDocumentoRelacionado(e.target.value);
+                        setMostrarOpcionesDocumento(true);
                       }}
-                      onFocus={() => setMostrarOpcionesAsunto(true)}
+                      onFocus={() => setMostrarOpcionesDocumento(true)}
                       className="w-full px-2 py-1 outline-none"
-                      placeholder="Buscar por número, descripción o fecha"
+                      placeholder="Buscar por folio"
                     />
                   </div>
 
                   {/* DROPDOWN */}
-                  {mostrarOpcionesAsunto && (
+                  {mostrarOpcionesDocumento && (
                     <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                      {asuntosFiltrados.length > 0 ? (
-                        asuntosFiltrados.map((a, i) => (
+                      {documentosFiltrados.length > 0 ? (
+                        documentosFiltrados.map((d) => (
                           <div
-                            key={i}
+                            key={d.value}
                             onClick={() => {
-                              setAsuntoSeleccionado(a);
-                              setBusquedaAsunto(a.descripcion || a.numero);
-                              setMostrarOpcionesAsunto(false);
+                              if (!documentosSeleccionados.includes(d.value)) {
+                                setDocumentosSeleccionados([...documentosSeleccionados, d.value]);
+                              }
+                              setBusquedaDocumentoRelacionado("");
+                              setMostrarOpcionesDocumento(false);
                             }}
                             className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
                           >
-                            <div className="font-medium">{a.numero}</div>
-                            <div className="text-gray-500 text-xs">{a.descripcion}</div>
+                            {d.label}
                           </div>
                         ))
                       ) : (
@@ -1165,48 +1302,44 @@ const temasFiltradosSecundario = temas.filter((t) =>
                   )}
                 </div>
 
-                {/* Tabla */}
-                <div className="border rounded overflow-hidden">
-                  <div className="bg-[#8B1538] text-white text-xs grid grid-cols-3 px-2 py-2">
-                    <span>Número</span>
-                    <span>Fecha de registro</span>
-                    <span>Descripción del asunto</span>
-                  </div>
-
-                  <div className="max-h-60 overflow-y-auto">
-                    {asuntos.length > 0 ? (
-                      asuntos.map((a, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setAsuntoSeleccionado(a);
-                            setMostrarModalRelacionado(false);
-                          }}
-                          className="grid grid-cols-3 px-2 py-2 text-sm border-b hover:bg-gray-100 cursor-pointer"
-                        >
-                          <span>{a.numero}</span>
-                          <span>{a.fecha}</span>
-                          <span>{a.descripcion}</span>
-                        </div>
-                      ))
+                {/* Lista seleccionados */}
+                <div>
+                  <label className="text-xs text-gray-500">Seleccionados:</label>
+                  <div className="border rounded p-2 max-h-32 overflow-y-auto">
+                    {documentosSeleccionados.length > 0 ? (
+                      documentosSeleccionados.map((id) => {
+                        const doc = documentos.find(d => d.value === id);
+                        return (
+                          <div key={id} className="flex justify-between items-center py-1">
+                            <span className="text-sm">{doc ? doc.label : id}</span>
+                            <button
+                              onClick={() => setDocumentosSeleccionados(documentosSeleccionados.filter(sel => sel !== id))}
+                              className="text-red-500 text-xs"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })
                     ) : (
-                      <div className="text-center text-gray-400 text-sm py-6">
-                        Sin datos en la tabla.
-                      </div>
+                      <div className="text-gray-400 text-sm">Ninguno seleccionado</div>
                     )}
                   </div>
                 </div>
 
-                {/* Botón alta */}
-                <div>
-                  <button
-                    onClick={() => setMostrarModalAltaAsunto(true)}
-                    className="bg-[#8B1538] text-white px-4 py-2 rounded"
-                  >
-                    Alta de Asunto general
-                  </button>
-                </div>
+              </div>
 
+              {/* FOOTER */}
+              <div className="flex justify-end p-4">
+                <button
+                  onClick={() => {
+                    setForm({ ...form, relacionados: documentosSeleccionados });
+                    setMostrarModalRelacionado(false);
+                  }}
+                  className="bg-[#8B1538] text-white px-6 py-2 rounded"
+                >
+                  Guardar
+                </button>
               </div>
             </motion.div>
           </motion.div>

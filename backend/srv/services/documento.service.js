@@ -9,6 +9,30 @@ const getById = async (docId) => {
 };
 
 const create = async (documentoData) => {
+    // Verificar si ya existe un documento con el mismo docId
+    const existingDocumento = await documentoModel.findOne({ docId: documentoData.docId });
+    if (existingDocumento) {
+        throw new Error('Ya existe un documento con este número');
+    }
+
+    // Verificar si ya existe un documento con el mismo folio
+    let existingFolio = await documentoModel.findOne({ folio: documentoData.folio });
+    if (existingFolio) {
+        // Generar un nuevo folio si ya existe
+        documentoData.folio = `Folio ${Math.floor(Math.random() * 9000) + 1000}-${new Date().getFullYear()}-${Date.now()}`;
+    }
+
+    // Asegurar que las fechas sean objetos Date válidos
+    if (documentoData.fechaDoc) {
+        documentoData.fechaDoc = new Date(documentoData.fechaDoc);
+    }
+    if (documentoData.acuse) {
+        documentoData.acuse = new Date(documentoData.acuse);
+    }
+    if (documentoData.registro) {
+        documentoData.registro = new Date(documentoData.registro);
+    }
+
     const newDocumento = new documentoModel(documentoData);
     return await newDocumento.save();
 };

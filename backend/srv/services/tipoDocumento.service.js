@@ -9,14 +9,38 @@ const getTipoDocumento = async (tipo) => {
 }; 
 
 const postTipoDocumento = async (data) => {
-  const tipoDocumentoExists = await tipoDocumentoModel.findOne({
-    tipo: data.tipo
-  });
-    if (tipoDocumentoExists && data != null) {
-    throw new Error("El tipo de documento ya existe");
+  try {
+    // Validate input data
+    if (!data || !data.tipo || typeof data.tipo !== 'string' || data.tipo.trim() === '') {
+      throw new Error("El campo 'tipo' es requerido y debe ser una cadena no vacía");
+    }
+
+    const tipoDocumentoExists = await tipoDocumentoModel.findOne({
+      tipo: data.tipo.trim()
+    });
+      if (tipoDocumentoExists) {
+      throw new Error("El tipo de documento ya existe");
+    }
+      const tipoDocumento = await tipoDocumentoModel.create({ tipo: data.tipo.trim() });
+      return tipoDocumento;
+  } catch (error) {
+    // Handle MongoDB duplicate key error for null _id
+    if (error.code === 11000 && error.message.includes('ID_1') && error.message.includes('null')) {
+      console.log('Detected corrupted data with null _id. Attempting to clean up...');
+      try {
+        // Remove documents with null _id
+        await tipoDocumentoModel.collection.deleteMany({ _id: null });
+        console.log('Cleaned up corrupted documents. Retrying creation...');
+        // Retry the creation
+        const tipoDocumento = await tipoDocumentoModel.create({ tipo: data.tipo.trim() });
+        return tipoDocumento;
+      } catch (cleanupError) {
+        console.error('Failed to clean up corrupted data:', cleanupError);
+        throw new Error("Error en la base de datos. Contacte al administrador.");
+      }
+    }
+    throw error;
   }
-    const tipoDocumento = await tipoDocumentoModel.create(data);
-    return tipoDocumento;
 };
 
 const putTipoDocumento = async (tipo, data) => {

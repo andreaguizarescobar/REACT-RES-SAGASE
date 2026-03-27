@@ -1,20 +1,20 @@
 import { fetchAPI } from "./api";
 
 export const getTipoDocument = () => {
-    return fetchAPI('/tipoDocument/getAll', {
+    return fetchAPI('/tipoDocumento/getAll', {
         method: 'GET',
     });
 }
 
 export const createTipoDocument = (data) => {
-    return fetchAPI('/tipoDocument/create', {
+    return fetchAPI('/tipoDocumento/create', {
         method: 'POST',
         body: JSON.stringify(data)
     });
 }
 
 export const updateTipoDocument = (id, data) => {
-    return fetchAPI(`/tipoDocument/update/${id}`, {
+    return fetchAPI(`/tipoDocumento/update/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     });
