@@ -19,5 +19,7 @@ router.post('/reset-password', userController.reset);
 router.patch('/update/:userId', verifyToken, userController.patchUser);
 // user/delete/:userId
 router.delete('/delete/:userId', verifyToken, authorizeRole('ADMIN'), userController.deleteUser);
+// user/cambiar-password/:userId
+router.post('/cambiar-password/:userId', verifyToken, userController.cambiarPassword);
 
 export default router;

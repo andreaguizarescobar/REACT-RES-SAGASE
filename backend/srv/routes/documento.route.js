@@ -3,13 +3,13 @@ import * as documentoController from "../controllers/documento.controller.js";
 const router = Router();
 
 // documento/getAll
-router.get('/', documentoController.getAll);
+router.get('/getAll', documentoController.getAll);
 // documento/:docId
 router.get('/:docId', documentoController.getById);
 // documento/create
-router.post('/create/', documentoController.create);
+router.post('/create', documentoController.create);
 // documento/update/:docId
-router.put('/:docId', documentoController.putDocumento);
+router.put('/update/:docId', documentoController.putDocumento);
 // patch documento/:docId/turnado
 router.patch('/:docId/turnado', documentoController.patchTurnadoDocumento);
 // patch documento/:docId/bitacora

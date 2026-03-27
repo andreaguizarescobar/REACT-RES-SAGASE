@@ -103,6 +103,17 @@ export const reset = async (req, res) => {
   }
 };
 
+export const cambiarPassword = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { currentPassword, newPassword } = req.body;
+    const result = await userService.cambioPassword(userId, currentPassword, newPassword);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export default {
   register,
   login,
@@ -111,5 +122,6 @@ export default {
   getUser,
   getAllUsers,
   deleteUser,
-  patchUser
+  patchUser,
+  cambiarPassword
 };

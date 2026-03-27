@@ -19,7 +19,7 @@ const putDocumento = async (docId, documentoData) => {
 const patchTurnadoDocumento = async (docId, turnadoData) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $push: { turnado: turnadoData } },
+        { $push: { turnados: turnadoData } },
         { new: true }
     );
 };
@@ -35,7 +35,7 @@ const patchBitacoraDocumento = async (docId, bitacoraData) => {
 const patchCopiaDocumento = async (docId, copiaData) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $push: { copia: copiaData } },
+        { $push: { copias: copiaData } },
         { new: true }
     );
 };
@@ -43,7 +43,7 @@ const patchCopiaDocumento = async (docId, copiaData) => {
 const patchAnexoDocumento = async (docId, anexoData) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $push: { anexo: anexoData } },
+        { $push: { anexos: anexoData } },
         { new: true }
     );
 };
@@ -51,7 +51,7 @@ const patchAnexoDocumento = async (docId, anexoData) => {
 const patchRemoverAnexoDocumento = async (docId, anexoId) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $pull: { anexo: { anexoId } } },
+        { $pull: { anexos: { anexoId } } },
         { new: true }
     );
 };
@@ -67,7 +67,7 @@ const patchStatusDocumento = async (docId, statusData) => {
 const patchRelacionadoDocumento = async (docId, relacionadoData) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $push: { relacionado: relacionadoData } },
+        { $push: { relacionados: relacionadoData.relacionado } },
         { new: true }
     );
 };
@@ -75,7 +75,7 @@ const patchRelacionadoDocumento = async (docId, relacionadoData) => {
 const patchRemoverRelacionadoDocumento = async (docId, relacionadoId) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
-        { $pull: { relacionado: { relacionadoId } } },
+        { $pull: { relacionados: { relacionadoId } } },
         { new: true }
     );
 };

@@ -84,6 +84,22 @@ export const resetPassword = async (token, newPassword) => {
   return "Contraseña actualizada";
 };
 
+export const cambioPassword = async (userId, currentPassword, newPassword) => {
+  const user = await userModel.findOne({ userId });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  const validPassword = await compare(currentPassword, user.password);
+  if (!validPassword) {
+    throw new Error("Contraseña actual incorrecta");
+  }
+  const hashedPassword = await hash(newPassword, 10);
+  user.password = hashedPassword;
+  user.firstLogin = false;
+  await user.save();
+  return "Contraseña actualizada";
+};
+
 export default {
   registerUser,
   loginUser,
@@ -92,5 +108,6 @@ export default {
   getUser,
   getAllUsers,
   deleteUser,
-  patchUser
+  patchUser,
+  cambioPassword
 };
