@@ -395,7 +395,7 @@ useEffect(() => {
     }
 
     if (refTemaSecundario.current && !refTemaSecundario.current.contains(event.target)) {
-      setMostrarOpcionesAdicional(false);
+      setMostrarOpcionesTemaSecundario(false);
     }
 
     if (refAdicional.current && !refAdicional.current.contains(event.target)) {
@@ -410,13 +410,26 @@ useEffect(() => {
   };
 }, []);
 
+useEffect(() => {
+  const now = new Date();
+
+  const pad = (n) => n.toString().padStart(2, "0");
+
+  const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  setForm((prev) => ({
+    ...prev,
+    fechaRegistro: formatted,
+  }));
+}, []);
+
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
       <div className="max-w-6xl mx-auto bg-white rounded shadow">
 
         {/* HEADER */}
         <div className="flex justify-between items-center bg-gray-200 px-4 py-2 rounded-t">
-          <h1 className="font-semibold text-gray-700">Registro de documento</h1>
+          <h1 className="text-sm font-semibold text-gray-800">Registro de documento</h1>
           <button className="bg-[#8B1538] text-white p-2 rounded-full">
             <Minus size={16} />
           </button>
@@ -515,7 +528,7 @@ useEffect(() => {
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">Fecha de acuse *</label>
+                <label className="text-xs text-gray-500">Fecha de recibido *</label>
                 <input
                   type="date"
                   name="fechaAcuse"
@@ -533,10 +546,8 @@ useEffect(() => {
                   type="datetime-local"
                   name="fechaRegistro"
                   value={form.fechaRegistro}
-                  onChange={handleChange}
-                  className={`w-full border rounded px-2 py-1 ${
-                    errores.fechaRegistro ? "border-red-500 bg-red-50" : ""
-                  }`}
+                  readOnly
+                  className="w-full border rounded px-2 py-1 bg-gray-100"
                 />
               </div>
 
@@ -625,7 +636,7 @@ useEffect(() => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="col-span-2"
+                    className="col-span-3"
                   >
                     <label className="text-xs text-gray-500">
                       Selecciona remitente externo *
@@ -795,8 +806,8 @@ useEffect(() => {
                 </div>
 
                 {/* Asunto */}
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-500">Asunto</label>
+                <div className="col-span-2 self-start">
+                  <label className="text-xs text-gray-500">Anexos</label>
                   <textarea
                     value={asuntoSeleccionado?.descripcion || ""}
                     disabled
@@ -806,14 +817,14 @@ useEffect(() => {
 
               </div>
 
-              <div className="grid grid-cols-4 gap-4 mt-4">
+              <div className="grid grid-cols-3 gap-4 mt-4">
 
               {/* Tema */}
               <div>
           
                 <div ref={refTemaPrincipal} className="relative">
                   <label className="text-xs text-gray-500">
-                    Selecciona tema principal *
+                    Selecciona asunto *
                   </label>
 
                   <div className={`flex items-center border rounded px-2 ${
@@ -1284,6 +1295,11 @@ useEffect(() => {
                             onClick={() => {
                               if (!documentosSeleccionados.includes(d.value)) {
                                 setDocumentosSeleccionados([...documentosSeleccionados, d.value]);
+
+                                //  AQUÍ asigna lo que quieres mostrar en Anexos
+                                setAsuntoSeleccionado({
+                                  descripcion: d.label // o aquí puedes usar otra propiedad si tienes más info
+                                });
                               }
                               setBusquedaDocumentoRelacionado("");
                               setMostrarOpcionesDocumento(false);

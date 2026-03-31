@@ -1,12 +1,13 @@
 import { useState } from "react";
+import bgSidebar from "../assets/images/fondogob.jpg";
 
 const generalTasks = [
-  { label: "Proyectos", color: "text-[#8B1538]", view: "proyectos-admin" },
-  { label: "Usuarios", color: "text-gray-600", view: "usuarios-admin" },
-  { label: "Roles", color: "text-[#8B1538]", view: "roles-admin" },
-  { label: "Roles de Sistema", color: "text-gray-600", view: "roles-sistema-admin" },
-  { label: "Alta de Usuarios", color: "text-[#8B1538]", view: "alta-usuarios-admin" },
-  { label: "Asignación de Roles", color: "text-gray-600", view: "asignacion-roles-admin" }
+  { label: "Proyectos", color: "text-[#79142A]", view: "proyectos-admin" },
+  { label: "Usuarios", color: "text-[#60595D]", view: "usuarios-admin" },
+  { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
+  { label: "Roles de Sistema", color: "text-[#60595D]", view: "roles-sistema-admin" },
+  { label: "Alta de Usuarios", color: "text-[#79142A]", view: "alta-usuarios-admin" },
+  { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
 ];
 
 export function SidebarAdmin({ isOpen, onSelectView }) {
@@ -14,7 +15,12 @@ export function SidebarAdmin({ isOpen, onSelectView }) {
 
   return (
     <aside
-      className={`bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 ${
+      style={{
+        backgroundImage: `url(${bgSidebar})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+      className={`border-r flex flex-col transition-all duration-300 ${
         isOpen ? "w-64" : "w-0 overflow-hidden"
       }`}
     >

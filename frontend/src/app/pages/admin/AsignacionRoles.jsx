@@ -342,7 +342,7 @@ const roles = [
                         `${modalRol.modo === "editar" ? "Editado" : "Asignado"} correctamente`
                       )
                     }
-                    className="bg-[#8B1538] text-white px-12 py-2 rounded hover:opacity-90"
+                    className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
                   >
                     Guardar
                   </button>

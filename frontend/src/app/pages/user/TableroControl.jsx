@@ -125,7 +125,7 @@ function DonutChart({
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-6">
-      <h3 className="text-base font-semibold text-gray-700 mb-4">
+      <h3 className="text-base font-semibold text-[#60595D] mb-4">
         {title}
       </h3>
 
@@ -310,12 +310,12 @@ export function TableroControl() {
     
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
-      <h1 className="text-3xl font-bold text-[#8B1538] mb-6">
+      <h1 className="text-3xl font-bold text-[#79142A] mb-6">
         Tablero de Control
       </h1>
 
       {/* GRID DE GRÁFICAS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 ">
         {/* PRIMERA INTERACTIVA */}
         <DonutChart
           title="Fichas de Gestión"
@@ -1232,8 +1232,8 @@ export function TableroControl() {
                                         key={index}
                                         className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
                                         ${esPrincipal
-                                          ? "bg-[#8B1538] text-white"
-                                          : "bg-[#E6D2A2] text-gray-800"
+                                          ? "bg-[#79142A] text-white"
+                                          : "bg-[#CDB19C] text-gray-800"
                                         }`}
                                       >
                                         <div>

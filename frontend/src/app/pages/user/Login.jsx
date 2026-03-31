@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import nayaritLogo from "../../assets/nayaritLogo.png";
+import nayaritLogo from "../../assets/images/nayaritLogo.png";
+import bgNayarit from "../../assets/images/personajenayarit.jpg";
+
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import { loginRequest, cambiarPasswordRequest } from "../../services/auth.service";
@@ -143,27 +145,110 @@ export function Login() {
   const coincide = newPassword === confirmPassword && confirmPassword.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg max-w-5xl w-full overflow-hidden">
-        <div className="flex flex-col md:flex-row">
+    
+    <div className="min-h-screen flex">
 
-          {/* Left side */}
-          <div className="flex-1 p-12 flex flex-col justify-center bg-gradient-to-br from-gray-50 to-white">
-            <div className="mb-8">
-              <img
-                src={nayaritLogo}
-                alt="Nayarit Secretaría de Educación"
-                className="h-16 mb-6"
+      {/* IZQUIERDA (LOGIN) */}
+      <div className="w-full md:w-[35%] bg-gray-100 flex items-center justify-center p-8">
+        <div className="w-full max-w-sm">
+
+          <div className="mb-8 text-center">
+            <img
+              src={nayaritLogo}
+              alt="Nayarit Secretaría de Educación"
+              className="h-16 mx-auto mb-4"
+            />
+            <h2 className="text-3xl text-[#8B1538] tracking-wide">
+              SAGASE
+            </h2>
+          </div>
+
+          <h2 className="text-2xl mb-2 text-gray-800 text-center">
+            Iniciar Sesión
+          </h2>
+
+          <p className="text-sm text-gray-500 mb-8 text-center">
+            ¿No tiene una cuenta?{" "}
+            <a href="#" className="text-[#8B1538] hover:underline">
+              Contacte al administrador
+            </a>
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Usuario */}
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Nombre de usuario"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+              required
+            />
+
+            {/* Contraseña */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Contraseña"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                required
               />
-              <h2 className="text-4xl text-[#8B1538] tracking-wide text-center">
-                SAGASE
-              </h2>
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
-            <h1 className="text-2xl mb-2 text-gray-800">
-              Bienvenido a
-              <br />
-              SAGASE
+            <div className="text-right">
+              <a href="#" className="text-sm text-[#8B1538] hover:underline">
+                ¿Olvidó su contraseña?
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#8B1538] text-white py-3 rounded-lg hover:bg-[#6B0F2A] transition-colors"
+            >
+              Iniciar Sesión
+            </button>
+
+            <div className="relative my-2">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+
+            <p className="text-xs text-center text-gray-400 mt-6">
+              Sujeto a la Política de Privacidad y Términos de Servicio.
+            </p>
+
+          </form>
+        </div>
+      </div>
+
+      {/* DERECHA (FONDO + CARD CON TU TEXTO) */}
+      <div
+        className="hidden md:block md:w-[65%] relative"
+        style={{
+          backgroundImage: `url(${bgNayarit})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-[#8B1538]/40"></div>
+
+        {/* CARD FLOTANTE CON TU CONTENIDO ORIGINAL */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-white w-[470px] p-10 rounded-2xl shadow-xl">
+
+            <h1 className="text-3xl mb-3 text-gray-800">
+              Bienvenido a <br /> SAGASE
             </h1>
 
             <p className="text-gray-500 leading-relaxed">
@@ -172,81 +257,11 @@ export function Login() {
               registro, seguimiento, validación y administración de documentos
               institucionales de manera digital, segura y organizada.
             </p>
+
           </div>
-
-          {/* Right side */}
-          <div className="flex-1 p-12 flex flex-col justify-center">
-            <div className="max-w-sm mx-auto w-full">
-
-              <h2 className="text-2xl mb-2 text-gray-800 text-center">
-                Iniciar Sesión
-              </h2>
-
-              <p className="text-sm text-gray-500 mb-8">
-                ¿No tiene una cuenta?{" "}
-                <a href="#" className="text-[#8B1538] hover:underline">
-                  Contacte al administrador
-                </a>
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-                {/* Usuario */}
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Nombre de usuario"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
-                  required
-                />
-
-                {/* Contraseña */}
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Contraseña"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
-                    required
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                <div className="text-right">
-                  <a href="#" className="text-sm text-[#8B1538] hover:underline">
-                    ¿Olvidó su contraseña?
-                  </a>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#8B1538] text-white py-3 rounded-lg hover:bg-[#6B0F2A] transition-colors"
-                >
-                  Iniciar Sesión
-                </button>
-
-                <div className="relative my-2">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-
-                <p className="text-xs text-center text-gray-400 mt-6">
-                  Sujeto a la Política de Privacidad y Términos de Servicio.
-                </p>
-
-              </form>
-            </div>
-          </div>
-
         </div>
+      </div>
+
         <AnimatePresence>
           {showModal && (
             <motion.div
@@ -364,6 +379,5 @@ export function Login() {
 
 
       </div>
-    </div>
   );
 }

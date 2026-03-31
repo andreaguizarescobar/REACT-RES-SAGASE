@@ -5,10 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 export function SistemRoles() {
   const [roles, setRoles] = useState([
     { id: 1, nombre: "Administracion_SAGA", estatus: "Activo" },
-    { id: 5, nombre: "Supervisor", estatus: "Activo" },
-    { id: 3, nombre: "Usuario", estatus: "Inactivo" },
-    { id: 8, nombre: "Auditor", estatus: "Activo" },
-    { id: 2, nombre: "Invitado", estatus: "Inactivo" },
+    { id: 2, nombre: "Registrador", estatus: "Activo" },
+    { id: 3, nombre: "Ejecutor", estatus: "Inactivo" },
+    { id: 4, nombre: "Validador", estatus: "Activo" },
   ]);
 
     const [rolesSistema, setRolesSistema] = useState([
@@ -92,7 +91,7 @@ export function SistemRoles() {
         <div className="relative group">
             <button
                 onClick={handleCrear}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:scale-105 transition"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-[#79142A] text-white hover:scale-105 transition"
             >
                 <Plus size={16} />
             </button>
@@ -119,7 +118,7 @@ export function SistemRoles() {
             placeholder="Buscar..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-7 pr-3 py-2 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+            className="w-full pl-7 pr-3 py-2 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-[#79142A]"
             />
         </div>
 
@@ -132,7 +131,7 @@ export function SistemRoles() {
       >
         <table className="w-full text-xs">
           {/* HEADER */}
-          <thead className="bg-[#8B1538] text-white">
+          <thead className="bg-[#79142A] text-white">
             <tr>
               <th className="px-4 py-2 text-left">
                 <div

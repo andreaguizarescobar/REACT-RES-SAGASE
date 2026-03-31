@@ -167,7 +167,7 @@ export function ConsultaSalidaCorrespondencia() {
             className="overflow-x-auto border rounded"
           >
             <table className="min-w-full text-xs">
-              <thead className="bg-[#8B1538] text-white">
+              <thead className="bg-[#79142A] text-white">
                 <tr>
                   <th className="px-3 py-2 text-left">Folio</th>
                   <th className="px-3 py-2 text-left">Fecha</th>

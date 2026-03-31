@@ -1,6 +1,6 @@
 @custom-variant dark (&:is(.dark *));
 
-:root {
+/* :root {
   --font-size: 16px;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
@@ -39,6 +39,47 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+} */
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: #60595D; /* texto principal */
+  --card: #ffffff;
+  --card-foreground: #60595D;
+  --popover: #ffffff;
+  --popover-foreground: #60595D;
+  --primary: #79142A; /* color institucional (maroon) */
+  --primary-foreground: #ffffff;
+  --secondary: #60595D; /* gris oscuro */
+  --secondary-foreground: #ffffff;
+  --muted: #DACEC0; /* claro */
+  --muted-foreground: #60595D;
+  --accent: #C5B099; /* acento */
+  --accent-foreground: #60595D;
+  --destructive: #79142A; /* usar maroon para acciones destructivas opcional */
+  --destructive-foreground: #ffffff;
+  --border: rgba(96,89,93,0.12); /* borde sutil basado en 60595D */
+  --input: transparent;
+  --input-background: #F6F3EE; /* tono neutro derivado */
+  --switch-background: #CDB19C;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #79142A;
+  --chart-1: #79142A;
+  --chart-2: #60595D;
+  --chart-3: #C5B099;
+  --chart-4: #CDB19C;
+  --chart-5: #DACEC0;
+  --radius: 0.625rem;
+  --sidebar: #F6F3EE;
+  --sidebar-foreground: #60595D;
+  --sidebar-primary: #79142A;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #C5B099;
+  --sidebar-accent-foreground: #60595D;
+  --sidebar-border: rgba(96,89,93,0.12);
+  --sidebar-ring: #79142A;
 }
 
 .dark {

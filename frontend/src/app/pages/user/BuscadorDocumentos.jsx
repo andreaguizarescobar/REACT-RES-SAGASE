@@ -83,7 +83,7 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
   // Simple render so the page shows in MainContent
   return (
     <main className="flex-1 p-4 bg-white">
-      <h1 className="text-lg font-medium text-gray-800 mb-4">Buscador de documentos</h1>
+      <h1 className="text-lg font-medium text-[#60595D]-800 mb-4">Buscador de documentos</h1>
 
       <div className="flex gap-2 mb-4">
         <input
@@ -99,7 +99,7 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
         <table className="min-w-full text-xs">
           
           {/* HEADER */}
-          <thead className="bg-[#8B1538] text-white">
+          <thead className="bg-[#79142A] text-white">
             <tr>
               <th className="px-4 py-3 text-left font-medium">Folio</th>
               <th className="px-4 py-3 text-left font-medium">Número</th>
@@ -114,7 +114,7 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
           <tbody>
             {resultadosPaginados.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center py-6 text-gray-500">
+                <td colSpan="6" className="text-center py-6 text-[#60595D]">
                   Sin resultados
                 </td>
               </tr>
@@ -125,7 +125,7 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
                 key={doc.folio}
                 onContextMenu={(e) => handleRightClick(e, doc)}
                 className={`border-t cursor-context-menu transition ${
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  index % 2 === 0 ? "bg-white" : "bg-[#60595D]-50"
                 } hover:bg-gray-100`}
               >
                 <td className="px-4 py-2 font-medium text-gray-700">

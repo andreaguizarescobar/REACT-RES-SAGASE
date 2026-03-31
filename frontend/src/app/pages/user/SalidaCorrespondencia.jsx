@@ -1,6 +1,7 @@
 import { Minus } from "lucide-react";
 import { useState } from "react";
 import Swal from "sweetalert2";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function SalidaCorrespondencia() {
   const [form, setForm] = useState({
@@ -151,14 +152,14 @@ export function SalidaCorrespondencia() {
       <div className="bg-white p-6 rounded-b-md shadow-sm space-y-8 text-xs">
         
         {/* FILA 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <label>Año*</label>
             <select
               name="anio"
               value={form.anio}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-1 ${
+              className={`w-full border rounded px-2 py-2 ${
                 errores.anio ? "border-red-500 bg-red-50" : ""
               }`}
             >
@@ -170,7 +171,7 @@ export function SalidaCorrespondencia() {
         </div>
 
         {/* FILA 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label>Folio de salida*</label>
             <input
@@ -198,20 +199,21 @@ export function SalidaCorrespondencia() {
         </div>
 
         {/* NIVEL IMPORTANCIA */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label>Nivel de importancia*</label>
             <select
               name="nivelImportancia"
               value={form.nivelImportancia}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-1 ${
+              className={`w-full border rounded px-2 py-2 ${
                 errores.nivelImportancia ? "border-red-500 bg-red-50" : ""
               }`}
             >
               <option value="">Selecciona opción</option>
               <option value="normal">Normal</option>
               <option value="urgente">Urgente</option>
+              <option value="termino">Con término</option>
             </select>
           </div>
 
@@ -221,7 +223,7 @@ export function SalidaCorrespondencia() {
               name="soporte"
               value={form.soporte}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-1 ${
+              className={`w-full border rounded px-2 py-2 ${
                 errores.soporte ? "border-red-500 bg-red-50" : ""
               }`}
             >
@@ -233,10 +235,27 @@ export function SalidaCorrespondencia() {
         </div>
 
         {/* CAMPOS URGENTE */}
-        {form.nivelImportancia === "urgente" && (
+        <AnimatePresence>
+          {(form.nivelImportancia === "urgente" || form.nivelImportancia === "termino") && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.98 }}
+              transition={{ duration: 0.25 }}
+              className={`grid grid-cols-1 md:grid-cols-1 gap-6 p-4 rounded ${
+                form.nivelImportancia === "urgente"
+                  ? "bg-yellow-50"
+                  : "bg-red-50"
+              }`}
+            >
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-red-50 p-4 rounded">
             <div>
-              <label>Fecha máxima de entrega*</label>
+              <label>
+                {form.nivelImportancia === "urgente"
+                  ? "Fecha máxima de entrega*"
+                  : "Fecha de término*"}
+              </label>
               <input
                 type="date"
                 name="fechaLimite"
@@ -267,7 +286,10 @@ export function SalidaCorrespondencia() {
               />
             </div>
           </div>
+
+          </motion.div>
         )}
+      </AnimatePresence>
 
         {/* DATOS IDENTIFICADORES */}
         <div>
@@ -282,7 +304,7 @@ export function SalidaCorrespondencia() {
                 name="areaTramitadora"
                 value={form.areaTramitadora}
                 onChange={handleChange}
-                className={`w-full border rounded px-2 py-1 ${
+                className={`w-full border rounded px-2 py-2 ${
                   errores.areaTramitadora ? "border-red-500 bg-red-50" : ""
                 }`}
               >
@@ -358,7 +380,7 @@ export function SalidaCorrespondencia() {
             Datos del remitente
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label>Nombre y cargo*</label>
               <input

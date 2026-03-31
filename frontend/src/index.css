@@ -4,6 +4,108 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Montserrat desde Google */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+/* =========================
+   GOTHAM ROUNDED (LOCAL)
+   ========================= */
+
+/* Light */
+@font-face {
+  font-family: 'Gotham Rounded';
+  src: url('src/styles/fonts/GothamRounded-Light.woff2') format('woff2'),
+       url('src/styles/fonts/GothamRounded-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Book / Regular */
+@font-face {
+  font-family: 'Gotham Rounded';
+  src: url('src/styles/fonts/GothamRounded-Book.woff2') format('woff2'),
+       url('src/styles/fonts/GothamRounded-Book.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium */
+@font-face {
+  font-family: 'Gotham Rounded';
+  src: url('src/styles/fonts/GothamRounded-Medium.woff2') format('woff2'),
+       url('src/styles/fonts/GothamRounded-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold */
+@font-face {
+  font-family: 'Gotham Rounded';
+  src: url('src/styles/fonts/GothamRounded-Bold.woff2') format('woff2'),
+       url('src/styles/fonts/GothamRounded-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =========================
+   VARIABLES TIPOGRÁFICAS
+   ========================= */
+:root {
+  --font-primary: 'Gotham Rounded', sans-serif;
+  --font-secondary: 'Montserrat', sans-serif;
+}
+
+/* =========================
+   BASE: TEXTOS LARGOS
+   ========================= */
+body {
+  font-family: var(--font-secondary);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================
+   TÍTULOS Y UI (GOTHAM)
+   ========================= */
+h1, h2, h3, h4, h5, h6,
+.titulo,
+.btn,
+.label {
+  font-family: var(--font-primary);
+  font-weight: 500;
+}
+
+/* =========================
+   AJUSTES FINOS (OPCIONAL)
+   ========================= */
+
+/* Títulos más fuertes */
+h1, h2 {
+  font-weight: 700;
+}
+
+/* Subtítulos */
+h3, h4 {
+  font-weight: 500;
+}
+
+/* Botones */
+.btn {
+  font-weight: 500;
+}
+
+/* Texto ligero opcional */
+.text-light {
+  font-family: var(--font-primary);
+  font-weight: 300;
+}
+
+
 @media print {
   /* Configuración general de página - VERTICAL */
   @page {

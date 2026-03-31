@@ -63,11 +63,11 @@ export function Projects() {
           value={nuevo}
           onChange={(e) => setNuevo(e.target.value)}
           placeholder="Nuevo proyecto"
-          className="border px-3 py-2 rounded w-full text-sm"
+          className="border px-3 py-2 rounded w-100 text-sm"
         />
         <button
           onClick={agregarProyecto}
-          className="bg-[#8B1538] text-white px-4 rounded text-sm hover:opacity-90"
+          className="bg-[#79142A] text-white px-4 rounded text-sm hover:opacity-90"
         >
           Agregar
         </button>

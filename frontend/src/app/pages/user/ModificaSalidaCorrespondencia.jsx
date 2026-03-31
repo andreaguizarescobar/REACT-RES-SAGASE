@@ -139,18 +139,18 @@ export function ModificaSalidaCorrespondencia() {
    const handleChange = (e) => {
     const { name, value } = e.target;
 
-      setformEditar({
-        ...formEditar,
-        [name]: value,
-      });
+    const nuevoValor = value.trim(); // 👈 importante
 
-      // 🔥 quitar error al escribir
-      if (errores[name]) {
-        setErrores({
-          ...errores,
-          [name]: false,
-        });
-      }
+    setformEditar({
+      ...formEditar,
+      [name]: value,
+    });
+
+    // Validación en tiempo real
+    setErrores((prev) => ({
+      ...prev,
+      [name]: !nuevoValor, // true si está vacío
+    }));
   };
 
   const [errores, setErrores] = useState({});
@@ -308,7 +308,6 @@ export function ModificaSalidaCorrespondencia() {
   const validarFormulario = () => {
     const nuevosErrores = {};
 
-    if (!formEditar.noDocumento) nuevosErrores.noDocumento = true;
     if (!formEditar.tipoDocumento) nuevosErrores.tipoDocumento = true;
     if (!formEditar.temaPrincipal) nuevosErrores.temaPrincipal = true;
     if (!formEditar.sintesis) nuevosErrores.sintesis = true;
@@ -317,7 +316,6 @@ export function ModificaSalidaCorrespondencia() {
 
     return Object.keys(nuevosErrores).length === 0;
   };
-
 
   const handleSave = () => {
       if (!validarFormulario()) {
@@ -408,7 +406,7 @@ export function ModificaSalidaCorrespondencia() {
               className="overflow-x-auto border rounded"
             >
               <table className="min-w-full text-xs">
-                <thead className="bg-[#8B1538] text-white">
+                <thead className="bg-[#79142A] text-white">
                   <tr>
                     <th className="px-3 py-2 text-left">Folio de salida</th>
                     <th className="px-3 py-2 text-left">
@@ -508,7 +506,7 @@ export function ModificaSalidaCorrespondencia() {
               </div>
 
               {/* BODY */}
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
 
           {/* EJERCICIO */}
           <div className="flex items-center gap-4 mb-4">
@@ -764,11 +762,20 @@ export function ModificaSalidaCorrespondencia() {
                     <input
                       value={busquedaTipoDoc}
                       onChange={(e) => {
-                        setBusquedaTipoDoc(e.target.value);
+                        const value = e.target.value;
+                        setBusquedaTipoDoc(value);
+                        setMostrarOpcionesTipoDoc(true);
 
-                        if (errores.tipoDocumento) {
-                          setErrores({ ...errores, tipoDocumento: false });
-                        }
+                        // 🔥 SI BORRA O MODIFICA → INVALIDA SELECCIÓN
+                        setformEditar((prev) => ({
+                          ...prev,
+                          tipoDocumento: "",
+                        }));
+
+                        setErrores((prev) => ({
+                          ...prev,
+                          tipoDocumento: !value.trim(),
+                        }));
                       }}
                       onFocus={() => setMostrarOpcionesTipoDoc(true)}
                       className="w-full px-2 py-1 outline-none"
@@ -787,6 +794,10 @@ export function ModificaSalidaCorrespondencia() {
                             setBusquedaTipoDoc(t.label);
                             setMostrarOpcionesTipoDoc(false);
 
+                            setErrores((prev) => ({
+                              ...prev,
+                              tipoDocumento: !t.value,
+                            }));
                           }}
                           className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                         >
@@ -861,8 +872,19 @@ export function ModificaSalidaCorrespondencia() {
                     <input
                       value={busquedaTemaPrincipal}
                       onChange={(e) => {
-                        setBusquedaTemaPrincipal(e.target.value);
+                        const value = e.target.value;
+                        setBusquedaTemaPrincipal(value);
                         setMostrarOpcionesTemaPrincipal(true);
+
+                        setformEditar((prev) => ({
+                          ...prev,
+                          temaPrincipal: "",
+                        }));
+
+                        setErrores((prev) => ({
+                          ...prev,
+                          temaPrincipal: !value.trim(),
+                        }));
                       }}
                       onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
                       className="w-full px-2 py-1 outline-none"
@@ -880,6 +902,11 @@ export function ModificaSalidaCorrespondencia() {
                               setformEditar({ ...formEditar, temaPrincipal: t.value });
                               setBusquedaTemaPrincipal(t.label);
                               setMostrarOpcionesTemaPrincipal(false);
+
+                              setErrores((prev) => ({
+                                ...prev,
+                                temaPrincipal: !t.value,
+                              }));
                             }}
                             className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                           >
@@ -1007,7 +1034,7 @@ export function ModificaSalidaCorrespondencia() {
             <div className="flex justify-end">
               <button
                 onClick={handleSave}
-                className="bg-[#8B1538] text-white px-6 py-2 rounded"
+                className="bg-[#79142A] text-white px-6 py-2 rounded"
               >
                 Guardar
               </button>

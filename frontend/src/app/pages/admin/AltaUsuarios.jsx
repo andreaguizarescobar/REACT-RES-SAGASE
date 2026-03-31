@@ -116,7 +116,7 @@ export function AltaUsuarios() {
             name="nombre"
             value={form.nombre}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-2 ${
+            className={`w-full border rounded px-2 py-1 ${
                 errors.nombre ? "border-red-500 bg-red-50" : ""
             }`}
             />
@@ -128,7 +128,7 @@ export function AltaUsuarios() {
             name="iniciales"
             value={form.iniciales}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-2 ${
+            className={`w-full border rounded px-2 py-1 ${
             errors.iniciales ? "border-red-500 bg-red-50" : ""
             }`}
             />
@@ -148,6 +148,7 @@ export function AltaUsuarios() {
             <option value="">Seleccionar</option>
             <option>Femenino</option>
             <option>Masculino</option>
+            <option>Otro</option>
             </select>
         </div>
         </div>
@@ -175,26 +176,26 @@ export function AltaUsuarios() {
         </div>
 
         {/* FILA 5 */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-6 gap-4">
         <div className="col-span-2">
-            <label className="block mb-1">Teléfono *:</label>
+            <label className="block mb-0">Teléfono institucional *:</label>
             <input
             name="telefono"
             value={form.telefono}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-2 ${
+            className={`w-full border rounded px-2 py-1 ${
             errors.telefono ? "border-red-500 bg-red-50" : ""
             }`}
             />
         </div>
 
         <div className="col-span-1">
-            <label className="block mb-1">Ext:</label>
+            <label className="block mb-0">Ext:</label>
             <input
             name="ext"
             value={form.ext}
             onChange={handleChange}
-            className="w-full border rounded px-2 py-2"
+            className="w-full border rounded px-2 py-1"
             />
         </div>
         </div>
@@ -202,12 +203,12 @@ export function AltaUsuarios() {
         {/* FILA 6 */}
         <div className="grid grid-cols-2 gap-4 items-center">
           <div>
-            <label className="block mb-1">Correo *:</label>
+            <label className="block mb-1">Correo institucional *:</label>
             <input
               name="correo"
               value={form.correo}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-2 ${
+              className={`w-full border rounded px-2 py-1 ${
                 errors.correo ? "border-red-500 bg-red-50" : ""
                 }`}
             />
@@ -230,7 +231,7 @@ export function AltaUsuarios() {
           <button
             type="button"
             onClick={handleGuardar}
-            className="bg-red-600 text-white px-16 py-2 rounded hover:opacity-90"
+            className="bg-[#79142A] text-white px-16 py-2 rounded hover:opacity-90"
             >
             Guardar
             </button>

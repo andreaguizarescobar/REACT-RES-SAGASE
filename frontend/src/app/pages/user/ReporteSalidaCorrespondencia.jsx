@@ -125,7 +125,7 @@ export function ReporteSalidaCorrespondencia() {
           <div className="flex justify-center md:justify-start">
             <button
               onClick={handleConsultar}
-              className="bg-red-600 text-white px-10 py-2 rounded hover:opacity-90"
+              className="bg-[#79142A] text-white px-10 py-1 rounded hover:opacity-90"
             >
               Consultar
             </button>

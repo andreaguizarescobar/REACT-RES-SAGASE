@@ -67,7 +67,7 @@ export function Users() {
             value={criterio}
             onChange={(e) => setCriterio(e.target.value)}
             className="w-full border rounded px-2 py-2"
-            placeholder="Buscar por nombre, iniciales, área o correo..."
+            placeholder="Buscar por nombre, iniciales, área, correo..."
           />
         </div>
 

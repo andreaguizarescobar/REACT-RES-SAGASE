@@ -2,7 +2,7 @@ import { User, Menu, LogOut, Bell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import nayaritLogo from "/src/app/assets/nayaritLogo.png";
+import nayaritLogo from "../assets/images/nayaritLogo.png";
 
 export function Header({ onToggleSidebar, onGoHome }) {
   const navigate = useNavigate();
@@ -48,14 +48,16 @@ export function Header({ onToggleSidebar, onGoHome }) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
+    <header className="bg-white border-b border-[#60595D]-200 flex flex-col">
+      <div className="h-16 flex items-center justify-between px-6">
+
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleSidebar}
-          className="p-2 hover:bg-gray-100 rounded transition-colors"
+          className="p-2 hover:bg-[#60595D]-100 rounded transition-colors"
           aria-label="Toggle sidebar"
         >
-          <Menu size={20} className="text-gray-700" />
+          <Menu size={20} className="text-[#60595D]-700" />
         </button>
 
         <button onClick={onGoHome} className="hover:opacity-80 transition">
@@ -66,21 +68,21 @@ export function Header({ onToggleSidebar, onGoHome }) {
           />
         </button>
 
-        <h1 className="text-lg text-gray-800">
+        <h1 className="text-lg text-[#60595D]-800">
           {isAdmin ? "Administración" : "Escritorio Virtual"}
         </h1>
       </div>
 
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600 capitalize">{currentDate}</span>
+        <span className="text-sm text-[#60595D]-600 capitalize">{currentDate}</span>
 
         {/* Notificaciones */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 hover:bg-gray-100 rounded transition-colors"
+            className="relative p-2 hover:bg-[#60595D]-100 rounded transition-colors"
           >
-            <Bell size={20} className="text-gray-700" />
+            <Bell size={20} className="text-[#60595D]-700" />
 
             {notifications.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
@@ -96,8 +98,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
                 onClick={() => setShowNotifications(false)}
               />
 
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                <div className="px-4 py-3 border-b text-sm font-semibold text-gray-700">
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-[#60595D]-200 rounded-lg shadow-lg z-20">
+                <div className="px-4 py-3 border-b text-sm font-semibold text-[#79142A]">
                   Notificaciones
                 </div>
 
@@ -110,7 +112,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                       <p className="text-sm font-medium text-gray-800">
                         {notif.title}
                       </p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-[#60595D]-600">
                         {notif.description}
                       </p>
                       <p className="text-[11px] text-gray-400 mt-1">
@@ -174,6 +176,17 @@ export function Header({ onToggleSidebar, onGoHome }) {
 
         </div>
       </div>
+
+    </div>
+    {/* 🎨 FRANJA DECORATIVA */}
+      <div className="w-full h-[90px] overflow-hidden">
+        <img
+          src="src/app/assets/images/personajenayarit2.jpg" 
+          alt="Decoración Nayarit"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      
     </header>
   );
 }
