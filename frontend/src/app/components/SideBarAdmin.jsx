@@ -13,6 +13,8 @@ const generalTasks = [
 export function SidebarAdmin({ isOpen, onSelectView }) {
   const [selectedTask, setSelectedTask] = useState(null);
 
+    const user = JSON.parse(localStorage.getItem("user"));
+
   return (
     <aside
       style={{
@@ -24,19 +26,9 @@ export function SidebarAdmin({ isOpen, onSelectView }) {
         isOpen ? "w-64" : "w-0 overflow-hidden"
       }`}
     >
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-sm text-gray-700 mb-3">Roles Disponibles</h2>
 
-        <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent">
-          <option>Archivos General de la Nación</option>
-          <option>Administrador General</option>
-          <option>Usuario Estándar</option>
-          <option>Supervisor</option>
-        </select>
-      </div>
-
-      <div className="p-4 flex-1 flex flex-col">
-        <h3 className="text-sm text-gray-700 mb-2">
+      <div className="p-4 flex flex-col">
+        <h3 className="text-sm text-[#60595D]-700 mb-2">
           Tareas del Administrador
         </h3>
 
@@ -65,6 +57,17 @@ export function SidebarAdmin({ isOpen, onSelectView }) {
           </div>
         </div>
       </div>
+
+      <div className="p-4 border-t border-gray-200">
+        <h2 className="text-sm text-[#60595D]-700 mb-2">Rol de su usuario</h2>
+
+        <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
+          {user?.roles && user.roles.length > 0
+            ? user.roles.map((r) => r.rol).join(", ")
+            : "Sin rol asignado"}
+        </div>
+      </div>
+
     </aside>
   );
 }

@@ -42,15 +42,15 @@ export function ModificaSalidaCorrespondencia() {
   ];
 
   const resultadosFiltrados = dataMock.filter((item) => {
-  const texto = criterio.toLowerCase();
+    const texto = criterio.toLowerCase();
 
-  return (
-    item.folioSalida.toLowerCase().includes(texto) ||
-    item.folioSAGA.toLowerCase().includes(texto) ||
-    item.destinatario.toLowerCase().includes(texto) ||
-    item.nivelImportancia.toLowerCase().includes(texto)
-  );
-});
+    return (
+      item.folioSalida.toLowerCase().includes(texto) ||
+      item.folioSAGA.toLowerCase().includes(texto) ||
+      item.destinatario.toLowerCase().includes(texto) ||
+      item.nivelImportancia.toLowerCase().includes(texto)
+    );
+  });
 
   const handleRightClick = (e, registro) => {
     e.preventDefault();

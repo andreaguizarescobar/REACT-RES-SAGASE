@@ -477,7 +477,7 @@ useEffect(() => {
           {/* EJERCICIO */}
           <div className="flex items-center gap-4 mb-4">
             <div className="w-80">
-              <label className="text-xs text-gray-500">Ejercicio</label>
+              <h1 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h1>
               <select
                 name="ejercicio"
                 value={form.ejercicio}
