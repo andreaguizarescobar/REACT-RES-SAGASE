@@ -11,3 +11,9 @@ export const getAdicional = () => {
         method: 'GET',
     });
 }
+
+export const getAreas = () => {
+    return fetchAPI('/areas/getAll', {
+        method: 'GET',
+    });
+}

@@ -1,15 +1,11 @@
 import { fetchAPI } from "./api";
 
-export const getUsers = () => {
+export const getUsers = (token) => {
     return fetchAPI('/users/getAll', {
         method: 'GET',
-    });
-}
-
-export const createUser = (data) => {
-    return fetchAPI('/users/create', {
-        method: 'POST',
-        body: JSON.stringify(data)
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
     });
 }
 

@@ -35,7 +35,7 @@ export function Login() {
         if (data.user.firstLogin) {
           setShowModal(true);
         } else {
-          const isAdmin = data.user.roles && data.user.roles.some(role => role.rol === 'ADMIN');
+          const isAdmin = data.user.roles.some(role => role.rol === 'ADMIN');
           if (isAdmin) {
             navigate("/admin-dashboard");
           } else {

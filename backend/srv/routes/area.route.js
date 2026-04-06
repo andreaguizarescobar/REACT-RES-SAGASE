@@ -3,7 +3,7 @@ import * as areaController from '../controllers/area.controller.js';
 const router = Router();
 
 // area/getAll
-router.get('/getAll', areaController.getAllAreas);
+router.get('/getAll', areaController.getAll);
 // area/create
 router.post('/create', areaController.createArea);
 // area/update/:id

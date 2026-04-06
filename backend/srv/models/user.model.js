@@ -9,8 +9,11 @@ const UserSchema = new Schema({
   cargo: String,
   area: String,
   telefono: String,
+  ext: String,
   email: String,
   status: String,
+  sexo: String,
+  copia: Boolean,
   roles: [{rol: { type: String }}],
   // Campos para recuperación de contraseña
   resetToken: String,

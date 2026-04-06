@@ -1,4 +1,4 @@
-import areaModel from "../models/area.model";
+import areaModel from "../models/area.model.js";
 
 const getAll = async () => {
     return await areaModel.find();

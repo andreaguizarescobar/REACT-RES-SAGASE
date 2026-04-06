@@ -1,7 +1,7 @@
 import documentoModel from '../models/documento.model.js';
 
 const getAll = async () => {
-    return await documentoModel.find();
+    return await documentoModel.find().populate('remitente');
 };
 
 const getById = async (docId) => {

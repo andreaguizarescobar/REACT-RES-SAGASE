@@ -8,10 +8,14 @@ export const loginRequest = (data) => {
   });   
 };
 
-export const registerRequest = (data) => {
+export const registerRequest = (data, token) => {
+    console.log('Register data:', data, 'Token:', token); // Agrega este log para verificar los datos enviados
     return fetchAPI('/users/register', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
     });
 }
 

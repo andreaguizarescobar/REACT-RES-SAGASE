@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 
 const AnexoSchema = new Schema({
-  registrador: String,
+  registrador: {type: Schema.Types.ObjectId, ref: 'User'},
   mensaje: String,
   ruta: String,
   nombre: String,
@@ -13,13 +13,13 @@ const AnexoSchema = new Schema({
 }, { _id: true });
 
 const CopiaSchema = new Schema({
-  funcionario: String,
+  funcionario: {type: Schema.Types.ObjectId, ref: 'User'},
   status: String,
   fecha: { type: Date, default: Date.now }
 }, { _id: true });
 
 const BitacoraSchema = new Schema({
-  user: String,
+  user: {type: Schema.Types.ObjectId, ref: 'User'},
   descripcion: String,
   importancia: String,
   fecha: { type: Date, default: Date.now }
@@ -34,8 +34,8 @@ const RespuestaSchema = new Schema({
 
 const TurnadoSchema = new Schema({
   instruccion: String,
-  remitente: String,
-  areaDestino: String,
+  remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
+  areaDestino: {type: Schema.Types.ObjectId, ref: 'Area'},
   dirigido: String,
   prioridad: String,
   fechaTurnado: { type: Date, default: Date.now },
@@ -60,15 +60,17 @@ const DocumentoSchema = new Schema({
   interno: { type: Boolean, default: false },
   status: String,
 
-  remitente: String,
-  tipo: String,
-  tema: String,
-  secundario: String,
-  adicional: String,
+  remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
+  tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
+  tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
+  secundario: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
+  adicional: {type: Schema.Types.ObjectId, ref: 'Adicinal'},
   asunto: String,
   observaciones: String,
 
-  relacionados: [String],
+  relacionados: [{type: Schema.Types.ObjectId, ref: 'Oficio'},
+    {type: Schema.Types.ObjectId, ref: 'Documento'},
+  ],
 
   anexos: [AnexoSchema],
   turnados: [TurnadoSchema],

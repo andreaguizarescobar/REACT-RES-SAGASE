@@ -1,6 +1,9 @@
 import { Minus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAreas } from "../../services/catalogos.service.js";
+import { registerRequest } from "../../services/auth.service.js";
+import Swal from "sweetalert2";
 
 export function AltaUsuarios() {
   const [form, setForm] = useState({
@@ -77,20 +80,81 @@ export function AltaUsuarios() {
     setShowModal(true);
     };
 
-    const [errors, setErrors] = useState({});
 
-    const areas = [
-    "Dirección General",
-    "Recursos Humanos",
-    "Finanzas",
-    "Tecnologías de la Información",
-    "Jurídico",
-    "Compras",
-    "Almacén",
-    "Atención al Cliente",
-    "Planeación",
-    "Operaciones",
-    ];
+    const handleRegistrar = async () => {
+    const nuevoUsuario = {
+        userId: `user-${form.iniciales}-${Date.now()}`,
+        nombre: form.nombre,
+        iniciales: form.iniciales,
+        sexo: form.sexo,
+        cargo: form.cargo,
+        area: form.area,
+        telefono: form.telefono,
+        ext: form.ext,
+        email: form.correo,
+        copia: form.copia,
+        username: credenciales.usuario,
+        password: credenciales.password,
+    };
+
+    console.log("Datos del nuevo usuario:", nuevoUsuario, "token", localStorage.getItem("token")); // Verificar datos antes de enviar
+    const response = await registerRequest(nuevoUsuario, localStorage.getItem("token"));
+    if (response.ok) {
+        Swal.fire({
+        icon: "success",
+        title: "Usuario creado",
+        text: `El usuario ${credenciales.usuario} ha sido creado exitosamente.`,
+        });
+    } else {
+        Swal.fire({
+            icon: "error",
+            title: "Error al crear usuario",
+            text: response.error || "Ocurrió un error al crear el usuario. Por favor, intenta de nuevo.",
+        });
+        setShowModal(false);
+        return;
+    }
+    
+    setShowModal(false);
+    // Limpiar formulario
+    setForm({
+        nombre: "",
+        iniciales: "",
+        sexo: "",
+        cargo: "",
+        otroCargo: false,
+        area: "",
+        telefono: "",
+        ext: "",
+        correo: "",
+        copia: false,
+    });
+    };
+
+    const [errors, setErrors] = useState({});
+    const [areas, setAreas] = useState([]);
+    const [loadingAreas, setLoadingAreas] = useState(false);
+
+    useEffect(() => {
+        const cargarAreas = async () => {
+            try {
+                setLoadingAreas(true);
+                const response = await getAreas();
+                if (response.ok) {
+                    const data = await response.json();
+                    setAreas(data);
+                } else {
+                    console.error("Error cargando áreas:", response.status);
+                }
+            } catch (error) {
+                console.error("Error cargando áreas:", error);
+            } finally {
+                setLoadingAreas(false);
+            }
+        };
+
+        cargarAreas();
+    }, []);
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
@@ -161,14 +225,15 @@ export function AltaUsuarios() {
             name="area"
             value={form.area}
             onChange={handleChange}
+            disabled={loadingAreas}
             className={`w-full border rounded px-2 py-2 ${
             errors.area ? "border-red-500 bg-red-50" : ""
-            }`}
+            } ${loadingAreas ? "bg-gray-100 cursor-not-allowed" : ""}`}
             >
-            <option value="">Seleccionar</option>
+            <option value="">{loadingAreas ? "Cargando áreas..." : "Seleccionar"}</option>
             {areas.map((area) => (
-            <option key={area} value={area}>
-                {area}
+            <option key={area.nombre} value={area.nombre}>
+                {area.nombre}
             </option>
             ))}
             </select>
@@ -306,7 +371,7 @@ export function AltaUsuarios() {
                 {/* BOTÓN */}
                 <div className="flex justify-center pt-2">
                     <button
-                    onClick={() => setShowModal(false)}
+                    onClick={handleRegistrar}
                     className="bg-[#8B1538] text-white px-10 py-2 rounded hover:opacity-90"
                     >
                     Aceptar

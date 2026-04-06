@@ -16,7 +16,7 @@ router.post('/forgot-password', userController.forgot);
 // user/reset-password
 router.post('/reset-password', userController.reset);
 // user/update/:userId
-router.patch('/update/:userId', verifyToken, userController.patchUser);
+router.patch('/update/:userId', verifyToken, authorizeRole('ADMIN'), userController.patchUser);
 // user/delete/:userId
 router.delete('/delete/:userId', verifyToken, authorizeRole('ADMIN'), userController.deleteUser);
 // user/cambiar-password/:userId
