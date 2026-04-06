@@ -1,43 +1,51 @@
 import { Minus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getUsers } from "../../services/user.service.js";
 
 export function Users() {
   const [criterio, setCriterio] = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // MOCK de usuarios
-  const dataMock = [
-    {
-      nombre: "Andrea Vianney Guizar Escobar",
-      iniciales: "AVGE",
-      sexo: "Femenino",
-      area: "Tecnologías de la Información",
-      telefono: "3111234567",
-      ext: "101",
-      correo: "andrea@email.com",
-      copia: true,
-    },
-    {
-      nombre: "Luis Pérez Sánchez",
-      iniciales: "LPS",
-      sexo: "Masculino",
-      area: "Finanzas",
-      telefono: "3119876543",
-      ext: "202",
-      correo: "luis@email.com",
-      copia: false,
-    },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await getUsers(token);
+
+        if (!response.ok) {
+          setError("No se pudieron cargar los usuarios.");
+          console.error("Error cargando usuarios:", response.status, response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        setUsers(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        setError("Error de red al cargar los usuarios.");
+        console.error("Error cargando usuarios:", fetchError);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   // 🔍 FILTRO EN TIEMPO REAL
-  const filteredUsers = dataMock.filter((user) => {
+  const filteredUsers = users.filter((user) => {
     const texto = criterio.toLowerCase();
-
     return (
-      user.nombre.toLowerCase().includes(texto) ||
-      user.iniciales.toLowerCase().includes(texto) ||
-      user.area.toLowerCase().includes(texto) ||
-      user.correo.toLowerCase().includes(texto)
+      (user.nombre?.toLowerCase().includes(texto) ||
+      user.iniciales?.toLowerCase().includes(texto) ||
+      user.area?.toLowerCase().includes(texto) ||
+      (user.email || user.correo)?.toLowerCase().includes(texto)) &&
+      !user.roles?.some(r => r.rol.includes('ADMIN'))
     );
   });
 
@@ -96,30 +104,34 @@ export function Users() {
               </thead>
 
               <tbody>
-                {filteredUsers.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-4 text-gray-500">
+                      Cargando usuarios...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-4 text-red-500">
+                      {error}
+                    </td>
+                  </tr>
+                ) : filteredUsers.length > 0 ? (
                   filteredUsers.map((user, index) => (
-                    <tr
-                      key={index}
-                      className="border-t hover:bg-gray-100"
-                    >
+                    <tr key={user.userId || index} className="border-t hover:bg-gray-100">
                       <td className="px-3 py-2">{user.nombre}</td>
                       <td className="px-3 py-2">{user.iniciales}</td>
                       <td className="px-3 py-2">{user.sexo}</td>
                       <td className="px-3 py-2">{user.area}</td>
                       <td className="px-3 py-2">{user.telefono}</td>
                       <td className="px-3 py-2">{user.ext || "-"}</td>
-                      <td className="px-3 py-2">{user.correo}</td>
-                      <td className="px-3 py-2">
-                        {user.copia ? "Sí" : "No"}
-                      </td>
+                      <td className="px-3 py-2">{user.email || user.correo}</td>
+                      <td className="px-3 py-2">{user.copia ? "Sí" : "No"}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="text-center py-4 text-gray-500"
-                    >
+                    <td colSpan="8" className="text-center py-4 text-gray-500">
                       No hay resultados
                     </td>
                   </tr>

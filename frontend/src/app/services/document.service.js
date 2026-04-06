@@ -1,8 +1,11 @@
 import { fetchAPI } from './api';
 
-export const getDocuments = () => {
+export const getDocuments = (token) => {
     return fetchAPI('/documentos/getAll', {
         method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
     });
 };
 

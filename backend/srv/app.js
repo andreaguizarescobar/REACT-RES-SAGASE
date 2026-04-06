@@ -9,6 +9,7 @@ import remitentesRoutes from './routes/remitente.route.js';
 import rolRoutes from './routes/rol.route.js';
 import documentoRoutes from './routes/documento.route.js';
 import adicionalRoutes from './routes/adicional.route.js';
+import areaRoutes from './routes/area.route.js';
 await import('./config/db.js');
 const app = express();
 app.set('port', config.PORT);
@@ -24,6 +25,7 @@ app.use(`${api}/remitentes`, remitentesRoutes);
 app.use(`${api}/roles`, rolRoutes);
 app.use(`${api}/documentos`, documentoRoutes);
 app.use(`${api}/adicional`, adicionalRoutes);
+app.use(`${api}/areas`, areaRoutes);
 console.log(`API URL: ${api}` + `, PORT: ${config.PORT}`);
 
 export default app;

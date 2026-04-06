@@ -37,7 +37,9 @@ const OficioSchema = new Schema({
   dirigido: String,
   generado: String,
 
-  relacionados: [String],
+  relacionados: [{type: Schema.Types.ObjectId, ref: 'Oficio'},
+    {type: Schema.Types.ObjectId, ref: 'Documento'},
+  ],
 
   turnados: [TurnadoSchema],
   copias: [CopiaSchema],

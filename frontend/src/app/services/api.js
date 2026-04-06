@@ -7,6 +7,7 @@ export const fetchAPI = async (endpoint, options = {}) => {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
+                ...(options.headers || {})
             },
         });
         return response;

@@ -1,38 +1,45 @@
-import { useState } from "react";
-
-const documentosMock = [
-  {
-    folio: "20220000058",
-    numeroDocumento: "OFI-IMAGO-2022",
-    fecha: "2022-08-09",
-    sintesis: "Agradecimiento",
-    remitenteInterno: "Manuel Emilio Galván Martínez",
-    remitenteExterno: "Gerente de Administración",
-    estatus: "Documento con instrucción turnada",
-    documentoInterno: "No",
-  },
-  {
-    folio: "20220000059",
-    numeroDocumento: "OFI-002-2022",
-    fecha: "2022-08-10",
-    sintesis: "Solicitud",
-    remitenteInterno: "Luis Pérez Sánchez",
-    remitenteExterno: "Gerente de Finanzas",
-    estatus: "Documento con gestión cerrada",
-    documentoInterno: "No",
-  },
-];
-
+import { useState, useEffect } from "react";
+import { getDocuments } from "../../services/document.service.js";
 
 export default function BuscadorDocumentos() {
   const [criterio, setCriterio] = useState("");
   const [paginaActual, setPaginaActual] = useState(1);
   const filasPorPagina = 10;
 
-  const [resultados, setResultados] = useState([]);
+  const [documentos, setDocumentos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [menuContextual, setMenuContextual] = useState(null);
 
-  const resultadosFiltrados = documentosMock.filter((doc) =>
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await getDocuments(token);
+
+        if (!response.ok) {
+          setError("No se pudieron cargar los documentos.");
+          console.error("Error cargando documentos:", response.status, response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        setDocumentos(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        setError("Error de red al cargar los documentos.");
+        console.error("Error cargando documentos:", fetchError);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, []);
+
+  const resultadosFiltrados = documentos.filter((doc) =>
     Object.values(doc)
       .join(" ")
       .toLowerCase()
@@ -45,7 +52,7 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
   const indiceFinal = indiceInicial + filasPorPagina;
 
   const resultadosPaginados = resultadosFiltrados.slice(indiceInicial, indiceFinal);
-
+  console.log("Documentos cargados:", documentos);
   const handleRightClick = (e, documento) => {
     e.preventDefault();
     setMenuContextual({
@@ -72,11 +79,11 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
   const guardarCambios = () => {
     if (!documentoEditando) return;
 
-    const nuevosResultados = resultados.map((doc) =>
-      doc.folio === documentoEditando.folio ? documentoEditando : doc
+    const nuevosDocumentos = documentos.map((doc) =>
+      doc.docId === documentoEditando.docId ? documentoEditando : doc
     );
 
-    setResultados(nuevosResultados);
+    setDocumentos(nuevosDocumentos);
     setModalEditarAbierto(false);
   };
 
@@ -112,38 +119,52 @@ const totalPaginas = Math.ceil(resultadosFiltrados.length / filasPorPagina);
 
           {/* BODY */}
           <tbody>
-            {resultadosPaginados.length === 0 && (
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-gray-500">
+                  Cargando documentos...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-red-500">
+                  {error}
+                </td>
+              </tr>
+            ) : resultadosPaginados.length === 0 ? (
               <tr>
                 <td colSpan="6" className="text-center py-6 text-[#60595D]">
                   Sin resultados
                 </td>
               </tr>
+            ) : (
+              resultadosPaginados.map((doc, index) => (
+                <tr
+                  key={doc.docId || doc._id}
+                  onContextMenu={(e) => handleRightClick(e, doc)}
+                  className={`border-t cursor-context-menu transition ${
+                    index % 2 === 0 ? "bg-white" : "bg-[#60595D]-50"
+                  } hover:bg-gray-100`}
+                >
+                  <td className="px-4 py-2 font-medium text-gray-700">
+                    {doc.folio}
+                  </td>
+                  <td className="px-4 py-2">{doc.docId}</td>
+                  <td className="px-4 py-2">
+                    {doc.fechaDoc ? new Date(doc.fechaDoc).toLocaleDateString() : ''}
+                  </td>
+                  <td className="px-4 py-2">{doc.asunto}</td>
+                  <td className="px-4 py-2">
+                    {doc.remitente?.name || doc.remitente || 'N/A'}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">
+                      {doc.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
             )}
-
-            {resultadosPaginados.map((doc, index) => (
-              <tr
-                key={doc.folio}
-                onContextMenu={(e) => handleRightClick(e, doc)}
-                className={`border-t cursor-context-menu transition ${
-                  index % 2 === 0 ? "bg-white" : "bg-[#60595D]-50"
-                } hover:bg-gray-100`}
-              >
-                <td className="px-4 py-2 font-medium text-gray-700">
-                  {doc.folio}
-                </td>
-                <td className="px-4 py-2">{doc.numeroDocumento}</td>
-                <td className="px-4 py-2">{doc.fecha}</td>
-                <td className="px-4 py-2">{doc.sintesis}</td>
-                <td className="px-4 py-2">
-                  {doc.remitenteInterno || doc.remitenteExterno}
-                </td>
-                <td className="px-4 py-2">
-                  <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">
-                    {doc.estatus}
-                  </span>
-                </td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>

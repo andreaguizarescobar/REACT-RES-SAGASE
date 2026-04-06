@@ -35,7 +35,7 @@ const loginUser = async (username, password) => {
       userId: user.userId,
       username: user.username,
       nombre: user.nombre,
-      rol: user.rol,
+      roles: user.roles,
       area: user.area,
       firstLogin: user.firstLogin
     }
