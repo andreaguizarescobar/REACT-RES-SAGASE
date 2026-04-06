@@ -67,6 +67,27 @@ const copiasConocimiento = [
 const documentosInternos = 18;
 
 /* ============================
+   ANEXOS SIMULADOS
+============================ */
+const anexos = [
+  {
+    folio: "2025000001",
+    registrador: "Víctor Manuel Enríquez Paniagua",
+    nombre: "GUARDIA NACIONAL.pdf",
+  },
+  {
+    folio: "2025000001",
+    registrador: "María Verónica Leal Camarena",
+    nombre: "Ficha de Gestión.pdf",
+  },
+  {
+    folio: "2025000002",
+    registrador: "Juan Pérez",
+    nombre: "Solicitud.pdf",
+  },
+];
+
+/* ============================
    DOCUMENTOS SIMULADOS
 ============================ */
 
@@ -80,6 +101,7 @@ const documentos = [
     remitenteExterno: "Secretaría General",
     estatus: "Con instrucción turnada",
     motivo: "Turnado a área técnica",
+    materialAdicional: true,
   },
   {
     folio: "2025000001",
@@ -90,6 +112,7 @@ const documentos = [
     remitenteExterno: "Secretaría General",
     estatus: "Con instrucción turnada",
     motivo: "Turnado a área técnica",
+    materialAdicional: false,
   },
   {
     folio: "2025000002",
@@ -100,6 +123,7 @@ const documentos = [
     remitenteExterno: "Dependencia Estatal",
     estatus: "Sin instrucciones",
     motivo: "Pendiente de asignación",
+    materialAdicional: false,
   },
   {
     folio: "2025000003",
@@ -110,6 +134,7 @@ const documentos = [
     remitenteExterno: "Órgano Interno",
     estatus: "Con gestión cerrada",
     motivo: "Gestión finalizada",
+    materialAdicional: true,
   },
 ];
 
@@ -210,6 +235,10 @@ export function TableroControl() {
 
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
 
+  const anexosRelacionados = anexos.filter(
+    (a) => a.folio === documentoSeleccionado?.folio
+  );
+
   const [tabActiva, setTabActiva] = useState("datosAsunto");
 
  const [menuContextual, setMenuContextual] = useState(null);
@@ -263,8 +292,8 @@ export function TableroControl() {
   ];
 
   const imprimirDoc = () => {
-  window.print();
-};
+    window.print();
+  };
 
 
   const exportarExcelModal = () => {
@@ -307,7 +336,43 @@ export function TableroControl() {
     link.download = `Documentos_${estatusSeleccionado}.csv`;
     link.click();
   };
-    
+
+  const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
+
+  const turnosVerTodos = [
+    {
+      instruccion:
+        "Atender el tema y dar respuesta al interesado, marcando copia a esta oficina",
+      funcionario: "María Verónica Leal Camarena",
+      areaDestino: "Dirección de Administración",
+      prioridad: "Trámite Extra-urgente",
+      fecha: "2022-10-13",
+      areaTurna:
+        "Dirección de Desarrollo Archivístico Nacional",
+      quienTurna: "María Verónica Leal Camarena",
+      estatus: "Autorizados y turnados",
+    },
+    {
+      instruccion: "Distribuir los materiales",
+      funcionario: "Guillermo Bonilla Tenorio",
+      areaDestino:
+        "Dirección de Desarrollo Archivístico Nacional",
+      prioridad: "Trámite Extra-urgente",
+      fecha: "2022-10-13",
+      areaTurna:
+        "Dirección de Desarrollo Archivístico Nacional",
+      quienTurna: "Víctor Manuel Enríquez Paniagua",
+      estatus: "Concluido",
+    },
+  ];
+
+  const turnosVerFiltrados = turnosVerTodos.filter((item) =>
+    Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaVerTurnos.toLowerCase())
+  );
+
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
       <h1 className="text-3xl font-bold text-[#79142A] mb-6">
@@ -525,15 +590,6 @@ export function TableroControl() {
                     Ver documento
                   </button>
                   
-                  <button
-                    className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                    onClick={() => {
-                      setDocumentoEditar(menuContextual.documento);
-                      setMenuContextual(null);
-                    }}
-                  >
-                    Modificar registro
-                  </button>
 
                 </div>
               )}
@@ -622,14 +678,16 @@ export function TableroControl() {
                     {[
                       {
                         id: "datosAsunto",
-                        label: "Datos del curso",
+                        label: "Datos del registro",
                       },
                       {
-                        id: "relacionado",
-                        label: "Relacionado con",
+                        id: "anexo",
+                        label: "Anexos",
                       },
-                      { id: "asunto", label: "Asunto" },
-                      { id: "turnar", label: "Turnar asunto" },
+                      {
+                        id: "materialAdicional",
+                        label: "Material adicional",
+                      },
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
@@ -660,13 +718,26 @@ export function TableroControl() {
                       <div className="space-y-6">
                         {/* DATOS GENERALES */}
                         <div>
+
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-80">
+                            <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
+                            <select name="ejercicio"className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
+                              <option value="">Seleccionar</option>
+                              <option value="2024">2024</option>
+                              <option value="2025">2025</option>
+                              <option value="2026">2026</option>
+                            </select>
+                          </div>
+                        </div>
+
                           <h3 className="text-sm font-semibold text-gray-800 mb-3">
                             Datos generales
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Folio de documento*
+                                No. de documento*
                               </label>
                               <input
                                 value={
@@ -694,7 +765,7 @@ export function TableroControl() {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Fecha de acuse*
+                                Fecha de recibido*
                               </label>
                               <input
                                 type="date"
@@ -709,7 +780,7 @@ export function TableroControl() {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Fecha informado*
+                                Fecha registro*
                               </label>
                               <input
                                 type="date"
@@ -757,33 +828,6 @@ export function TableroControl() {
                               />
                             </div>
 
-                            <div className="md:col-span-2">
-                              <label className="block text-gray-500 mb-1">
-                                Remitente externo*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.remitenteExterno
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={
-                                  documentoSeleccionado.otroFuncionario ||
-                                  false
-                                }
-                                disabled
-                                className="w-4 h-4"
-                              />
-                              <label className="text-gray-700">
-                                Otro funcionario ó ciudadano
-                              </label>
-                            </div>
                           </div>
                         </div>
 
@@ -824,11 +868,27 @@ export function TableroControl() {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Tema principal*
+                                Anexos
                               </label>
                               <input
                                 value={
-                                  documentoSeleccionado.temaPrincipal ||
+                                  documentoSeleccionado.anexo ||
+                                  "No"
+                                
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
+                            
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Asunto*
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.asunto ||
                                   "Administrativo"
                                 }
                                 disabled
@@ -852,47 +912,18 @@ export function TableroControl() {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Evento*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.evento ||
-                                  ""
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Fecha y hora del evento*
-                              </label>
-                              <input
-                                type="datetime-local"
-                                value={
-                                  documentoSeleccionado.fechaEvento ||
-                                  ""
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div className="md:col-span-3">
-                              <label className="block text-gray-500 mb-1">
                                 Material adicional
                               </label>
                               <input
                                 value={
-                                  documentoSeleccionado.materialAdicional ||
-                                  ""
+                                  documentoSeleccionado.materialAdicional ? "Sí" : "No"
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
                             </div>
 
+                    
                             <div className="md:col-span-3">
                               <label className="block text-gray-500 mb-1">
                                 Síntesis del asunto*
@@ -906,12 +937,27 @@ export function TableroControl() {
                                 className="w-full border border-gray-300 rounded px-2 py-2 bg-gray-50 text-gray-700 resize-none"
                               />
                             </div>
+
+                            <div className="md:col-span-3">
+                              <label className="block text-gray-500 mb-1">
+                                Observaciones
+                              </label>
+                              <input
+                                value={
+                                  documentoSeleccionado.observaciones ||
+                                  ""
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
+
                           </div>
                         </div>
                       </div>
                     )}
                    
-                    {tabActiva === "asunto" && (
+                    {tabActiva === "anexo" && (
                       <div className="space-y-4">
                         {/* Tabla de anexos */}
                         <div className="overflow-x-auto">
@@ -992,16 +1038,66 @@ export function TableroControl() {
                       </div>
                     )}
 
-                    {tabActiva === "turnar" && (
-                      <div className="text-sm text-gray-600">
-                        Aquí se podrá realizar el turnado del
-                        documento.
+                    {tabActiva === "materialAdicional" && (
+                      <div className="space-y-4">
+                        
+                        {/* Tabla */}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border border-gray-200">
+                            <thead className="bg-[#8B1538] text-white">
+                              <tr>
+                                <th className="px-4 py-2 text-left">
+                                  Tipo de material
+                                </th>
+                                <th className="px-4 py-2 text-left">
+                                  Descripción
+                                </th>
+                                <th className="px-4 py-2 text-left">
+                                  Registrador
+                                </th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {/* Solo un material por registro */}
+                              <tr className="border-t hover:bg-gray-50">
+                                <td className="px-4 py-2 text-gray-700">
+                                  {documentoSeleccionado?.materialAdicionalTipo || "CD"}
+                                </td>
+
+                                <td className="px-4 py-2 text-gray-700">
+                                  {documentoSeleccionado?.materialAdicionalDescripcion || "Contiene información digital del asunto"}
+                                </td>
+
+                                <td className="px-4 py-2 text-gray-700">
+                                  {documentoSeleccionado?.registradorMaterial || "Víctor Manuel Enríquez Paniagua"}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mensaje cuando no hay material */}
+                        {!documentoSeleccionado?.materialAdicional && (
+                          <div className="text-center text-gray-500 text-sm py-4">
+                            Este documento no cuenta con material adicional.
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {tabActiva === "verTurnos" && (
                       <div className="space-y-4">
                         <div className="overflow-x-auto">
+                          <div className="mb-3">
+                            <input
+                              type="text"
+                              placeholder="Buscar en turnos..."
+                              value={busquedaVerTurnos}
+                              onChange={(e) => setBusquedaVerTurnos(e.target.value)}
+                              className="w-full md:w-1/3 border border-gray-300 rounded px-3 py-2 text-sm"
+                            />
+                          </div>
                           <table className="min-w-[1200px] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
@@ -1033,71 +1129,34 @@ export function TableroControl() {
                             </thead>
 
                             <tbody>
-                              {[
-                                {
-                                  instruccion:
-                                    "Atender el tema y dar respuesta al interesado, marcando copia a esta oficina",
-                                  funcionario:
-                                    "María Verónica Leal Camarena",
-                                  areaDestino:
-                                    "Dirección de Administración",
-                                  prioridad:
-                                    "Trámite Extra-urgente",
-                                  fecha: "2022-10-13",
-                                  areaTurna:
-                                    "Dirección de Desarrollo Archivístico Nacional",
-                                  quienTurna:
-                                    "María Verónica Leal Camarena",
-                                  estatus:
-                                    "Autorizados y turnados",
-                                },
-                                {
-                                  instruccion:
-                                    "Distribuir los materiales",
-                                  funcionario:
-                                    "Guillermo Bonilla Tenorio",
-                                  areaDestino:
-                                    "Dirección de Desarrollo Archivístico Nacional",
-                                  prioridad:
-                                    "Trámite Extra-urgente",
-                                  fecha: "2022-10-13",
-                                  areaTurna:
-                                    "Dirección de Desarrollo Archivístico Nacional",
-                                  quienTurna:
-                                    "Víctor Manuel Enríquez Paniagua",
-                                  estatus: "Concluido",
-                                },
-                              ].map((turno, index) => (
-                                <tr
-                                  key={index}
-                                  className="border-t hover:bg-gray-50"
-                                >
-                                  <td className="px-3 py-2">
-                                    {turno.instruccion}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.funcionario}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.areaDestino}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.prioridad}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.fecha}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.areaTurna}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    {turno.quienTurna}
-                                  </td>
-                                  <td className="px-3 py-2 font-medium">
-                                    {turno.estatus}
+                              {turnosVerFiltrados.length > 0 ? (
+                                turnosVerFiltrados.map((turno, index) => (
+                                  <tr
+                                    key={index}
+                                    className="border-t hover:bg-gray-50"
+                                  >
+                                    <td className="px-3 py-2">{turno.instruccion}</td>
+                                    <td className="px-3 py-2">{turno.funcionario}</td>
+                                    <td className="px-3 py-2">{turno.areaDestino}</td>
+                                    <td className="px-3 py-2">{turno.prioridad}</td>
+                                    <td className="px-3 py-2">{turno.fecha}</td>
+                                    <td className="px-3 py-2">{turno.areaTurna}</td>
+                                    <td className="px-3 py-2">{turno.quienTurna}</td>
+                                    <td className="px-3 py-2 font-medium">
+                                      {turno.estatus}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td
+                                    colSpan={8}
+                                    className="text-center py-4 text-gray-400"
+                                  >
+                                    Sin datos en la tabla.
                                   </td>
                                 </tr>
-                              ))}
+                              )}
                             </tbody>
                           </table>
                         </div>

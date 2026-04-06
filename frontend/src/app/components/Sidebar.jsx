@@ -17,21 +17,71 @@ const generalTasks = [
   { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
 ];
 
+const tareasPorRol = {
+  VALIDADOR: [
+    { label: "Visualiza documento", view: "visualiza-documento" },
+    { label: "Validar respuesta", view: "validar-respuesta" },
+    { label: "Tablero de control", view: "tablero-control" },
+    { label: "Generación de oficios", view: "generacion-oficios" },
+    { label: "Control de oficios", view: "control-oficios" }
+  ],
+
+  REGISTRADOR: [
+    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
+    { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
+    { label: "Registra documento y genera notas de atención", color: "text-[#79142A]", view: "registra-documento" },
+    { label: "Reporte de asuntos", color: "text-[#60595D]", view: "reporte-asuntos" },
+    { label: "Reporte de acuerdos", color: "text-[#79142A]", view: "reporte-acuerdos" },
+    { label: "Generación de Oficios", color: "text-[#60595D]", view: "generacion-oficios" },
+    { label: "Control de Oficios", color: "text-[#79142A]", view: "control-oficios" },
+    { label: "Registro Salida de Correspondencia", color: "text-[#60595D]", view: "salida-correspondencia" },
+    { label: "Modifica Salida de Correspondencia", color: "text-[#79142A]", view: "modificaS-correspondencia" },
+    { label: "Consulta Salida de Correspondencia", color: "text-[#60595D]", view: "consultaS-correspondencia" },
+    { label: "Reporte Salida de Correspondencia", color: "text-[#79142A]", view: "reporteS-correspondencia" },
+    { label: "Tablero de control Salida de Correspondencia", color: "text-[#60595D]", view: "tableroS-correspondencia" },
+    { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+  ],
+
+  EJECUTOR: [
+    { label: "Visualiza documento", view: "visualiza-documento" },
+    { label: "Atiende asunto", view: "atiende-asunto" },
+    { label: "Tablero de control", view: "tablero-control" },
+    { label: "Buscador de documentos", view: "buscador-documento" },
+    { label: "Reporte de asuntos", view: "reporte-asuntos" },
+    { label: "Reporte de acuerdos", view: "reporte-acuerdos" }
+  ]
+};
+
+const nombreRoles = {
+  VALIDADOR: "Validador",
+  REGISTRADOR: "Registrador Enrutador",
+  EJECUTOR: "Ejecutor"
+};
+
+
+
 export function Sidebar({ isOpen, onSelectView }) {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  const rol = user?.roles?.[0]?.rol || "REGISTRADOR";
+
+  const tareas = tareasPorRol[rol] || [];
+  
   const [paginaActual, setPaginaActual] = useState(1);
   const [selectedTask, setSelectedTask] = useState(null);
 
   const filasPorPagina = 6;
 
-  const totalPaginas = Math.ceil(generalTasks.length / filasPorPagina);
+  const totalPaginas = Math.ceil(tareas.length / filasPorPagina);
 
   const indiceInicio = (paginaActual - 1) * filasPorPagina;
 
-  const tareasPaginadas = generalTasks.slice(
+  const tareasPaginadas = tareas.slice(
     indiceInicio,
     indiceInicio + filasPorPagina
   );
-
+  
+  
   return (
     <aside
       style={{
@@ -43,19 +93,10 @@ export function Sidebar({ isOpen, onSelectView }) {
         isOpen ? "w-64" : "w-0 overflow-hidden"
       }`}
     >
-    <div className="p-4 border-b border-[60595D]-200">
-        <h2 className="text-sm text-[60595D]-700 mb-3">Roles Disponibles</h2>
+      
 
-        <select className="w-full px-3 py-2 text-sm border border-[60595D]-300 rounded bg-white text-[60595D]-700 focus:outline-none focus:ring-2 focus:ring-[#79142A] focus:border-transparent">
-          <option>Archivos General de la Nación</option>
-          <option>Administrador General</option>
-          <option>Usuario Estándar</option>
-          <option>Supervisor</option>
-        </select>
-      </div>
-
-      <div className="p-4 flex-1 flex flex-col">
-        <h3 className="text-sm text-[60595D]-700 mb-2">Tareas Generales</h3>
+      <div className="p-4 flex flex-col">
+        <h3 className="text-sm text-[#60595D]-700 mb-2">Tareas Generales</h3>
 
         <div className="bg-white border border-[#60595D]-200 rounded flex flex-col h-70">
 
@@ -86,7 +127,7 @@ export function Sidebar({ isOpen, onSelectView }) {
           </div>
 
           {/* Paginación */}
-          {generalTasks.length > 0 && totalPaginas > 1 && (
+          {tareas.length > 0 && totalPaginas > 1 && (
             <div className="border-t border-gray-200 py-1">
               <div className="flex items-center justify-center gap-1 text-[10px]">
 
@@ -150,6 +191,18 @@ export function Sidebar({ isOpen, onSelectView }) {
 
         </div>
       </div>
+
+      <div className="p-4 border-t border-gray-200">
+        <h2 className="text-sm text-[#60595D]-700 mb-2">Rol de su usuario</h2>
+
+        <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
+          {user?.roles && user.roles.length > 0
+            ? user.roles.map((r) => nombreRoles[r.rol] || r.rol).join(", ")
+            : "Sin rol asignado"}
+
+         </div>
+      </div>
+
     </aside>
   );
 }

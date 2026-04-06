@@ -241,7 +241,7 @@ export function Login() {
         }}
       >
         {/* Overlay */}
-        <div className="absolute inset-0 bg-[#8B1538]/40"></div>
+        <div className="absolute inset-0 bg-[#79142A]/40"></div>
 
         {/* CARD FLOTANTE CON TU CONTENIDO ORIGINAL */}
         <div className="absolute inset-0 flex items-center justify-center">
