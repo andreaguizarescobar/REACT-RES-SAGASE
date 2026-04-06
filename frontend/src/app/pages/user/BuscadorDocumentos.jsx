@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Minus, Trash2, Plus } from "lucide-react";
+import { Search, Minus, Trash2, Plus, Upload, X } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function BuscadorDocumentos() {
@@ -295,6 +295,7 @@ export default function BuscadorDocumentos() {
     { value: "engargolado", label: "Engargolado" },
     { value: "folleto", label: "Folleto" },
   ];
+  
   const materialesFiltrados = materialesAdicionales.filter((m) =>
     m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
   );
@@ -551,6 +552,125 @@ export default function BuscadorDocumentos() {
     )
   );
 
+  const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
+
+  const anexosSubidos = [
+    {
+      registrador: "Omar César Juárez",
+      mensaje: "Anexo 1",
+      folio: "A-001",
+      nombre: "Anexo 1 DG_DPPD_0811_2022.pdf",
+    },
+    {
+      registrador: "Andrea Guizar",
+      mensaje: "Solicitud",
+      folio: "A-002",
+      nombre: "Solicitud usuarios SAGA.pdf",
+    },
+    {
+      registrador: "Erik Moreno",
+      mensaje: "Materiales",
+      folio: "A-003",
+      nombre: "Distribución de materiales.pdf",
+    },
+    {
+      registrador: "Yves Portugal",
+      mensaje: "Respuesta",
+      folio: "A-004",
+      nombre: "Respuesta al interesado.pdf",
+    },
+  ];
+
+  const anexosSubirVerFiltrados = anexosSubidos.filter((item) =>
+    Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaSubirAnexo.toLowerCase())
+  );
+
+  const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
+  const [archivo, setArchivo] = useState(null);
+  const [dragActivo, setDragActivo] = useState(false);
+
+  const inputRef = useRef(null);
+
+  const eliminarArchivo = () => {
+    setArchivo(null);
+    if (inputRef.current) {
+      inputRef.current.value = ""; // reset input file
+    }
+  };
+
+  const [mensaje, setMensaje] = useState("");
+  const [nombreDoc, setNombreDoc] = useState("");
+  const [erroresAnexos, setErroresAnexos] = useState({});
+
+  const validarAgregarAnexo = () => {
+    let nuevosErrores = {};
+
+    if (!mensaje.trim()) {
+      nuevosErrores.mensaje = true;
+    }
+
+    if (!archivo) {
+      nuevosErrores.archivo = true;
+    }
+
+    if (!nombreDoc.trim()) {
+      nuevosErrores.nombreDoc = true;
+    }
+
+    setErroresAnexos(nuevosErrores);
+
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const [mostrarVisor, setMostrarVisor] = useState(false);
+  const [archivoVista, setArchivoVista] = useState(null);
+    
+  const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
+  const [anexosDisponibles, setAnexosDisponibles] = useState([
+    {
+      id: 1,
+      folio: "ANX-001",
+      nombre: "Contrato.pdf",
+      archivo: null,
+    },
+    {
+      id: 2,
+      folio: "ANX-002",
+      nombre: "Identificación.jpg",
+      archivo: null,
+    },
+  ]);
+
+  const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
+
+
+  const [materiales, setMateriales] = useState([
+    {
+      id: 1,
+      tipo: "CD",
+      descripcion: "Contiene información digital del asunto",
+      registrador: "Víctor Manuel Enríquez Paniagua",
+    },
+  ]);
+
+  const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
+
+  const materialesAdicionalesFiltrados = materiales.filter((m) =>
+    m.tipo.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
+    m.descripcion.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
+    m.registrador.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase())
+  );
+
+  const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
+
+  const [nuevoMaterial, setNuevoMaterial] = useState({
+    tipo: "",
+    descripcion: "",
+  });
+
   return (
     <main
       className="flex-1 p-4 bg-white"
@@ -559,7 +679,8 @@ export default function BuscadorDocumentos() {
         setMenuContextual((m) => ({ ...m, visible: false }))
       }
     >
-      <h1 className="text-lg font-medium text-[#60595D] mb-4">Buscador de documentos</h1>
+      <h1 className="text-lg font-medium text-[#60595D] mb-0">Buscador de documentos</h1>
+        <label className="text-xs text-gray-500">Busca registros por cualquiera de sus campos y modifica dando clic derecho.</label>
 
       <div className="flex gap-2 mb-4">
         <input
@@ -1162,18 +1283,118 @@ export default function BuscadorDocumentos() {
                   {tabActiva === "anexo" && (
                       <div className="space-y-4">
 
-                        <div className="flex items-center w-full max-w-xl rounded overflow-hidden shadow">
+                      <div className="flex items-center gap-2 mb-2">
 
-                          {/* 🔴 Botón */}
+                          {/* Botón */}
                           <button
-                            onClick={() => setMostrarModalTurno(true)}
-                            className="bg-[#8B1538] text-white px-4 py-2 flex items-center gap-2 hover:opacity-90"
+                            onClick={() => setMostrarModalSubirAnexo(true)}
+                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
-                            Añadir turno
+                            Subir anexo
                           </button>
 
                           {/* 🔍 Buscador */}
-                          <div className="flex items-center flex-1 border border-l-0 px-2 bg-white">
+                          <div className="flex-1 flex items-center border rounded px-2">
+                            <Search size={16} className="text-gray-400" />
+                           <input
+                              value={busquedaSubirAnexo}
+                              onChange={(e) => setBusquedaSubirAnexo(e.target.value)}
+                              className="w-full px-2 py-2 outline-none text-sm"
+                              placeholder="Buscar anexo..."
+                            />
+
+                          </div>
+
+                        </div>
+
+                        <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        Sube archivos de anexos.
+                      </h3>
+                      
+                       {/* Tabla de subir anexos */}                        
+                        <div className="overflow-x-auto">
+                          <table className="min-w-[900px] w-full text-xs border border-gray-200">
+
+                            {/* 🔴 HEADER */}
+                            <thead className="bg-[#8B1538] text-white">
+                              <tr>
+                                <th className="px-3 py-2 text-left">Eliminar</th>
+                                <th className="px-3 py-2 text-left">Registrador del anexo y mensaje</th>
+                                <th className="px-3 py-2 text-left">Mensaje</th>
+                                <th className="px-3 py-2 text-left">Documento anexo</th>
+                                <th className="px-3 py-2 text-left">Nombre del documento</th>
+                              </tr>
+                            </thead>
+
+                            {/* 🧾 BODY */}
+                            <tbody>
+                              {anexosSubirVerFiltrados.length > 0 ? (
+                                anexosSubirVerFiltrados.map((anexo, index) => (
+                                  <tr
+                                    key={index}
+                                    className="border-t hover:bg-gray-50"
+                                  >
+                                    {/* 🗑 ELIMINAR */}
+                                    <td className="px-3 py-2">
+                                      <button className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </td>
+
+                                    {/* 👤 REGISTRADOR */}
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {anexo.registrador || "Omar César Juárez"}
+                                    </td>
+
+                                    {/* 💬 MENSAJE */}
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {anexo.mensaje || "Anexo 1"}
+                                    </td>
+
+                                    {/* 📄 BOTÓN ARCHIVO */}
+                                    <td className="px-3 py-2">
+                                      <button
+                                        onClick={() => {
+                                          setArchivoVista(item.archivo); // o la ruta/url del archivo
+                                          setMostrarVisor(true);
+                                        }}
+                                        className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
+                                      >
+                                        Ver Archivo
+                                      </button>
+                                    </td>
+
+
+                                    {/* 📑 NOMBRE */}
+                                    <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
+                                      {anexo.nombre}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={5} className="text-center py-4 text-gray-400">
+                                    Sin resultados
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+
+                          </table>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+
+                          {/* Botón */}
+                          <button
+                            onClick={() => setMostrarModalAnexos(true)}
+                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
+                          >
+                            Añadir anexo
+                          </button>
+
+                          {/* 🔍 Buscador */}
+                          <div className="flex-1 flex items-center border rounded px-2">
                             <Search size={16} className="text-gray-400" />
                             <input
                               value={busquedaVerTurnos}
@@ -1185,7 +1406,9 @@ export default function BuscadorDocumentos() {
 
                         </div>
 
-
+                        <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        Añade archivos de anexos al registro para complementar la información del asunto.
+                      </h3>
                         {/* Tabla de anexos */}
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border border-gray-200">
@@ -1211,7 +1434,7 @@ export default function BuscadorDocumentos() {
                                     className="border-t hover:bg-gray-50"
                                   >
                                     <td className="px-4 py-2">
-                                      <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs">
+                                      <button className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90">
                                         Ver Archivo
                                       </button>
                                     </td>
@@ -1251,56 +1474,544 @@ export default function BuscadorDocumentos() {
                             </button>
                           </div>
                         </div>
+
+                      {/* MODAL SUBIR ANEXO */}
+                      <AnimatePresence>
+                        {mostrarModalSubirAnexo && (
+                          <motion.div
+                            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              className="bg-white w-[500px] rounded-lg shadow-lg p-6"
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0.8, opacity: 0 }}
+                            >
+                              {/* Header */}
+                              <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold">Agregar anexo</h2>
+
+                                <button
+                                  onClick={() => setMostrarModalSubirAnexo(false)}
+                                  className="bg-[#79142A]  text-white hover:bg-[#79142A]/80 rounded-full p-1 transition"
+                                >
+                                  <Minus size={18} />
+                                </button>
+                              </div>
+
+                              {/* Mensaje */}
+                              <div className="mb-4">
+                                <label className="block text-sm mb-1">Mensaje:</label>
+                                <textarea
+                                  value={mensaje}
+                                  onChange={(e) => setMensaje(e.target.value)}
+                                  className={`w-full border rounded p-2 ${
+                                    erroresAnexos.mensaje ? "border-red-500 bg-red-50" : ""
+                                  }`}
+                                  rows="3"
+                                />
+                              </div>
+
+                              {/* Documento */}
+                              <div className="mb-4">
+                                <label className="block text-sm mb-2 font-medium">
+                                  Documento anexo:
+                                </label>
+
+                                {/* Input oculto */}
+                                <input
+                                  ref={inputRef}
+                                  type="file"
+                                  id="fileUpload"
+                                  className="hidden"
+                                  onChange={(e) => setArchivo(e.target.files[0])}
+                                />
+
+                                {/* Zona Drag & Drop */}
+                                <label
+                                  htmlFor="fileUpload"
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setDragActivo(true);
+                                  }}
+                                  onDragLeave={() => setDragActivo(false)}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    setDragActivo(false);
+                                    const file = e.dataTransfer.files[0];
+                                    if (file) setArchivo(file);
+                                  }}
+                                  className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition  ${
+                                    erroresAnexos.archivo
+                                      ? "border-red-500 bg-red-50"
+                                      : dragActivo
+                                      ? "border-[#8B1538] bg-red-50"
+                                      : "border-gray-300 hover:border-[#8B1538] hover:bg-gray-50"
+                                  }`}
+                                >
+                                  {/* Botón eliminar */}
+                                  {archivo && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault(); // evita abrir el file picker
+                                        eliminarArchivo();
+                                      }}
+                                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  )}
+
+                                  <Upload size={28} className="text-[#8B1538]" />
+
+                                  <p className="text-sm text-gray-600">
+                                    {archivo ? archivo.name : "Haz clic o arrastra un archivo aquí"}
+                                  </p>
+
+                                  <span className="text-xs text-gray-400">
+                                    PDF, DOC, JPG (máx. 5MB)
+                                  </span>
+                                </label>
+                              </div>
+
+                              {/* Nombre */}
+                              <div className="mb-4">
+                                <label className="block text-sm mb-1">Nombre del documento:</label>
+                                <input
+                                  type="text"
+                                  value={nombreDoc}
+                                  onChange={(e) => setNombreDoc(e.target.value)}
+                                  className={`w-full border rounded p-2 ${
+                                    erroresAnexos.nombreDoc ? "border-red-500 bg-red-50" : ""
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Botones */}
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => setMostrarModalSubirAnexo(false)}
+                                  className="px-4 py-2 bg-gray-300 rounded"
+                                >
+                                  Cancelar
+                                </button>
+
+                                <button
+                                  onClick={async () => {
+                                    if (!validarAgregarAnexo()) {
+                                      Swal.fire({
+                                        toast: true,
+                                        position: "top-end",
+                                        icon: "error",
+                                        title: "Faltan campos obligatorios",
+                                        showConfirmButton: false,
+                                        timer: 2500,
+                                      });
+                                      return;
+                                    }
+
+                                    // Confirmación antes de guardar
+                                    const result = await Swal.fire({
+                                      title: "Confirmación",
+                                      text: "¿Seguro que desea continuar?, su información está correcta?",
+                                      icon: "question",
+                                      showCancelButton: true,
+                                      confirmButtonText: "OK",
+                                      cancelButtonText: "Cancelar",
+                                      confirmButtonColor: "#8B1538",
+                                      cancelButtonColor: "#6B7280",
+                                    });
+
+                                    if (result.isConfirmed) {
+                                      // Aquí guardas (API, etc)
+                                      console.log("Guardado con éxito:", { mensaje, nombreDoc, archivo });
+
+                                      Swal.fire({
+                                        toast: true,
+                                        position: "top-end",
+                                        icon: "success",
+                                        title: "Documento guardado correctamente",
+                                        showConfirmButton: false,
+                                        timer: 2000,
+                                      });
+
+                                      setMostrarModalSubirAnexo(false);
+                                      // Opcional: limpiar formulario
+                                      setMensaje("");
+                                      setNombreDoc("");
+                                      setArchivo(null);
+                                      setErrores({});
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-[#8B1538] text-white rounded"
+                                >
+                                  Guardar
+                                </button>
+
+                              </div>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <AnimatePresence>
+                        {mostrarModalAnexos && (
+                          <motion.div
+                            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              className="bg-white w-[600px] rounded-lg shadow-lg p-6"
+                              initial={{ scale: 0.8 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0.8 }}
+                            >
+                              {/* Header */}
+                              <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold">Seleccionar anexos</h2>
+
+                                <button
+                                  onClick={() => setMostrarModalAnexos(false)}
+                                  className="bg-[#8B1538] text-white rounded-full p-1"
+                                >
+                                   <Minus size={16} />
+                                </button>
+                              </div>
+
+                              {/* Lista */}
+                              <div className="max-h-[300px] overflow-y-auto border rounded">
+                                {anexosDisponibles.map((anexo) => (
+                                  <div
+                                    key={anexo.id}
+                                    className="flex items-center justify-between px-4 py-2 border-b hover:bg-gray-50"
+                                  >
+                                    <div>
+                                      <p className="text-sm font-medium">{anexo.nombre}</p>
+                                      <p className="text-xs text-gray-500">{anexo.folio}</p>
+                                    </div>
+
+                                    <button
+                                      onClick={() => {
+                                        // evitar duplicados
+                                        const existe = anexosSeleccionados.some(
+                                          (a) => a.id === anexo.id
+                                        );
+
+                                        if (!existe) {
+                                          setAnexosSeleccionados([
+                                            ...anexosSeleccionados,
+                                            anexo,
+                                          ]);
+                                        }
+                                      }}
+                                      className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs"
+                                    >
+                                      Añadir
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Footer */}
+                              <div className="flex justify-end mt-4">
+                                <button
+                                  onClick={() => setMostrarModalAnexos(false)}
+                                  className="bg-gray-300 px-4 py-2 rounded"
+                                >
+                                  Cerrar
+                                </button>
+                              </div>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                        {/* Modal ver archivo */}
+                      <AnimatePresence>
+                        {mostrarVisor && (
+                          <motion.div
+                            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+                              initial={{ scale: 0.8 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0.8 }}
+                            >
+                              {/* Botón cerrar */}
+                              <button
+                                onClick={() => setMostrarVisor(false)}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                              >
+                                ✕
+                              </button>
+
+                              {/* Contenido */}
+                            <div className="w-full h-full flex items-center justify-center">
+                              {typeof archivoVista === "string" ? (
+                                archivoVista.endsWith(".pdf") ? (
+                                  <iframe
+                                    src={archivoVista}
+                                    className="w-full h-full rounded"
+                                  />
+                                ) : (
+                                  <img
+                                    src={archivoVista}
+                                    alt="preview"
+                                    className="max-h-full rounded"
+                                  />
+                                )
+                              ) : archivoVista?.type?.includes("image") ? (
+                                <img
+                                  src={URL.createObjectURL(archivoVista)}
+                                  alt="preview"
+                                  className="max-h-full rounded"
+                                />
+                              ) : archivoVista?.type === "application/pdf" ? (
+                                <iframe
+                                  src={URL.createObjectURL(archivoVista)}
+                                  className="w-full h-full rounded"
+                                />
+                              ) : (
+                                <p className="text-gray-500">
+                                  No se puede previsualizar este archivo
+                                </p>
+                              )}
+                            </div>
+
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       </div>
+                      
                     )}
 
-{tabActiva === "materialAdicional" && (
-                      <div className="space-y-4">
-                        
-                        {/* Tabla */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">
-                                  Tipo de material
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Descripción
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Registrador
-                                </th>
-                              </tr>
-                            </thead>
+                    {tabActiva === "materialAdicional" && (
+                    <div className="space-y-4">
 
-                            <tbody>
-                              {/* Solo un material por registro */}
-                              <tr className="border-t hover:bg-gray-50">
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.materialAdicionalTipo || "CD"}
-                                </td>
+                      {/* 🔥 HEADER */}
+                      <div className="flex items-center gap-2 mb-2">
 
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.materialAdicionalDescripcion || "Contiene información digital del asunto"}
-                                </td>
+                        {/* Botón añadir */}
+                        <button
+                          onClick={() => setMostrarModalMaterial(true)}
+                          className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
+                        >
+                          Añadir material adicional
+                        </button>
 
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.registradorMaterial || "Víctor Manuel Enríquez Paniagua"}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        {/* 🔍 Buscador */}
+                        <div className="flex-1 flex items-center border rounded px-2">
+                          <Search size={16} className="text-gray-400" />
+                          <input
+                            value={busquedaMaterial}
+                            onChange={(e) => setBusquedaMaterial(e.target.value)}
+                            className="w-full px-2 py-2 outline-none text-sm"
+                            placeholder="Buscar material..."
+                          />
                         </div>
 
-                        {/* Mensaje cuando no hay material */}
-                        {!documentoSeleccionado?.materialAdicional && (
-                          <div className="text-center text-gray-500 text-sm py-4">
-                            Este documento no cuenta con material adicional.
-                          </div>
-                        )}
                       </div>
-                    )}
+
+                      {/* 🧾 TABLA */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border border-gray-200">
+
+                          <thead className="bg-[#8B1538] text-white">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Eliminar</th>
+                              <th className="px-4 py-2 text-left">Tipo de material</th>
+                              <th className="px-4 py-2 text-left">Descripción</th>
+                              <th className="px-4 py-2 text-left">Registrador</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {materialesAdicionalesFiltrados.length > 0 ? (
+                              materialesAdicionalesFiltrados.map((material) => (
+                                <tr key={material.id} className="border-t hover:bg-gray-50">
+
+                                  {/* 🗑 ELIMINAR */}
+                                  <td className="px-4 py-2">
+                                    <button
+                                      onClick={() => {
+                                        setMateriales((prev) =>
+                                          prev.filter((m) => m.id !== material.id)
+                                        );
+                                      }}
+                                      className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {material.tipo}
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {material.descripcion}
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {material.registrador}
+                                  </td>
+
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={4} className="text-center py-4 text-gray-400">
+                                  Sin materiales adicionales
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+
+                        </table>
+                      </div>
+
+                      <AnimatePresence>
+                        {mostrarModalMaterial && (
+                          <motion.div
+                            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              className="bg-white w-[400px] rounded-lg shadow-lg p-6"
+                              initial={{ scale: 0.8, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0.8, opacity: 0 }}
+                            >
+                              {/* Header */}
+                              <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold">
+                                  Agregar material adicional
+                                </h2>
+
+                                <button
+                                  onClick={() => setMostrarModalMaterial(false)}
+                                  className="bg-[#8B1538] text-white rounded-full p-1"
+                                >
+                                  <Minus size={16} />
+                                </button>
+                              </div>
+
+                              {/* Tipo */}
+                              <div className="mb-3">
+                                <label className="block text-sm mb-1">Tipo de material</label>
+                                <input
+                                  type="text"
+                                  value={nuevoMaterial.tipo}
+                                  onChange={(e) =>
+                                    setNuevoMaterial({ ...nuevoMaterial, tipo: e.target.value })
+                                  }
+                                  className="w-full border rounded p-2"
+                                  placeholder="Ej. USB, CD, Documento físico..."
+                                />
+                              </div>
+
+                              {/* Descripción */}
+                              <div className="mb-4">
+                                <label className="block text-sm mb-1">Descripción</label>
+                                <textarea
+                                  value={nuevoMaterial.descripcion}
+                                  onChange={(e) =>
+                                    setNuevoMaterial({
+                                      ...nuevoMaterial,
+                                      descripcion: e.target.value,
+                                    })
+                                  }
+                                  className="w-full border rounded p-2"
+                                  rows="3"
+                                />
+                              </div>
+
+                              {/* Botones */}
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => setMostrarModalMaterial(false)}
+                                  className="px-4 py-2 bg-gray-300 rounded"
+                                >
+                                  Cancelar
+                                </button>
+
+                                <button
+                                  onClick={async () => {
+                                    // Validación
+                                    if (!nuevoMaterial.tipo || !nuevoMaterial.descripcion) {
+                                      Swal.fire({
+                                        toast: true,
+                                        position: "top-end",
+                                        icon: "warning",
+                                        title: "Todos los campos son obligatorios",
+                                        showConfirmButton: false,
+                                        timer: 2500,
+                                      });
+                                      return;
+                                    }
+
+                                    // Confirmación
+                                    const result = await Swal.fire({
+                                      title: "¿Agregar material?",
+                                      text: "Se añadirá el material adicional al registro.",
+                                      icon: "question",
+                                      showCancelButton: true,
+                                      confirmButtonText: "Sí, agregar",
+                                      cancelButtonText: "Cancelar",
+                                      confirmButtonColor: "#8B1538",
+                                      cancelButtonColor: "#6B7280",
+                                    });
+
+                                    if (result.isConfirmed) {
+                                      const nuevo = {
+                                        id: Date.now(),
+                                        ...nuevoMaterial,
+                                        registrador: "Usuario actual",
+                                      };
+
+                                      setMateriales((prev) => [...prev, nuevo]);
+
+                                      // Éxito
+                                      await Swal.fire({
+                                        icon: "success",
+                                        title: "Material agregado",
+                                        text: "Se agregó correctamente.",
+                                        confirmButtonColor: "#8B1538",
+                                      });
+
+                                      // limpiar y cerrar
+                                      setNuevoMaterial({ tipo: "", descripcion: "" });
+                                      setMostrarModalMaterial(false);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-[#8B1538] text-white rounded"
+                                >
+                                  Guardar
+                                </button>
+
+                              </div>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                    </div>
+                  )}
+
                     
                   {tabActiva === "turnar" && (
                     <div className="space-y-4">
