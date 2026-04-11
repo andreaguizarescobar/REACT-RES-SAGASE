@@ -5,10 +5,10 @@ const getAll = async () => {
 };
 
 const getById = async (docId) => {
-    return await documentoModel.findOne({ docId });
+    return await documentoModel.findOne({ docId }).populate('remitente').populate('tipo').populate('tema').populate('secundario').populate('adicional');
 };
 
-const create = async (documentoData) => {
+const create = async (documentoData, user) => {
     // Verificar si ya existe un documento con el mismo docId
     const existingDocumento = await documentoModel.findOne({ docId: documentoData.docId });
     if (existingDocumento) {
@@ -33,14 +33,21 @@ const create = async (documentoData) => {
         documentoData.registro = new Date(documentoData.registro);
     }
 
+    documentoData.bitacora = [
+        {
+            descripcion: 'Registro del documento',
+            user: user,
+            fecha: new Date(),
+        }
+    ];
     const newDocumento = new documentoModel(documentoData);
     return await newDocumento.save();
 };
-const putDocumento = async (docId, documentoData) => {
-    return await documentoModel.findOneAndUpdate({ docId }, documentoData, { new: true });
+const putDocumento = async (docId, documentoData, user) => {
+    return await documentoModel.findOneAndUpdate({ docId }, { $set: documentoData }, { new: true });
 };
 
-const patchTurnadoDocumento = async (docId, turnadoData) => {
+const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { turnados: turnadoData } },
@@ -64,7 +71,7 @@ const patchCopiaDocumento = async (docId, copiaData) => {
     );
 };
 
-const patchAnexoDocumento = async (docId, anexoData) => {
+const patchAnexoDocumento = async (docId, anexoData, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { anexos: anexoData } },
@@ -72,7 +79,7 @@ const patchAnexoDocumento = async (docId, anexoData) => {
     );
 };
 
-const patchRemoverAnexoDocumento = async (docId, anexoId) => {
+const patchRemoverAnexoDocumento = async (docId, anexoId, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $pull: { anexos: { anexoId } } },
@@ -80,7 +87,7 @@ const patchRemoverAnexoDocumento = async (docId, anexoId) => {
     );
 };
 
-const patchStatusDocumento = async (docId, statusData) => {
+const patchStatusDocumento = async (docId, statusData, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $set: { status: statusData.status } },
@@ -88,7 +95,7 @@ const patchStatusDocumento = async (docId, statusData) => {
     );
 };
 
-const patchRelacionadoDocumento = async (docId, relacionadoData) => {
+const patchRelacionadoDocumento = async (docId, relacionadoData, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { relacionados: relacionadoData.relacionado } },
@@ -96,7 +103,7 @@ const patchRelacionadoDocumento = async (docId, relacionadoData) => {
     );
 };
 
-const patchRemoverRelacionadoDocumento = async (docId, relacionadoId) => {
+const patchRemoverRelacionadoDocumento = async (docId, relacionadoId, user) => {
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $pull: { relacionados: { relacionadoId } } },

@@ -36,6 +36,7 @@ export function Login() {
           setShowModal(true);
         } else {
           const isAdmin = data.user.roles.some(role => role.rol === 'ADMIN');
+          localStorage.setItem('user', JSON.stringify(data.user));
           if (isAdmin) {
             navigate("/admin-dashboard");
           } else {

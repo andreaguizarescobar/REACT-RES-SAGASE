@@ -30,8 +30,8 @@ export const deleteDocument = (id) => {
     });
 };
 
-export const getDocumentById = (id) => {
-    return fetchAPI(`/documentos/${id}`, {
+export const getDocumentById = (docId) => {
+    return fetchAPI(`/documentos/${docId}`, {
         method: 'GET',
     });
 };

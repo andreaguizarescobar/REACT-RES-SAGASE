@@ -33,14 +33,14 @@ const RespuestaSchema = new Schema({
 }, { _id: true });
 
 const TurnadoSchema = new Schema({
-  instruccion: String,
+  instruccion: {type: Schema.Types.ObjectId, ref: 'Instruccion'},
   remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
   areaDestino: {type: Schema.Types.ObjectId, ref: 'Area'},
-  dirigido: String,
+  dirigido: {type: Schema.Types.ObjectId, ref: 'User'},
   prioridad: String,
   fechaTurnado: { type: Date, default: Date.now },
   compromiso: Date,
-  turna: String,
+  turna: {type: Schema.Types.ObjectId, ref: 'User'},
   notas: String,
   status: String
 }, { _id: true });
@@ -64,7 +64,7 @@ const DocumentoSchema = new Schema({
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
   tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
   secundario: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
-  adicional: {type: Schema.Types.ObjectId, ref: 'Adicinal'},
+  adicional: {type: Schema.Types.ObjectId, ref: 'Adicional'},
   asunto: String,
   observaciones: String,
 

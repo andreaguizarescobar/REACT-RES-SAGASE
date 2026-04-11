@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Minus, Trash2, Plus } from "lucide-react";
 import Swal from "sweetalert2";
+import { getDocuments, getDocumentById, updateDocument } from "../../services/document.service.js";
+import { getTipoDocument } from "../../services/tipoDocumento.service.js";
+import { getTemaPrincipal, getAdicional } from "../../services/catalogos.service.js";
+import { getRemitentes } from "../../services/remitente.service.js";
 
 export default function BuscadorDocumentos() {
   const [criterio, setCriterio] = useState("");
@@ -23,6 +27,49 @@ export default function BuscadorDocumentos() {
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [folioGenerado, setFolioGenerado] = useState("");
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+  const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [temasPrincipales, setTemasPrincipales] = useState([]);
+  const [materialesAdicionales, setMaterialesAdicionales] = useState([]);
+  const [remitentes, setRemitentes] = useState([]);
+
+  useEffect(() => {
+    const loadCatalogos = async () => {
+      try {
+        const tiposRes = await getTipoDocument();
+        if (tiposRes.ok) {
+          const tipos = await tiposRes.json();
+          setTiposDocumento(tipos.map((t) => ({ value: t._id, label: t.tipo })));
+        }
+
+        const temasRes = await getTemaPrincipal();
+        if (temasRes.ok) {
+          const temas = await temasRes.json();
+          setTemasPrincipales(temas.map((t) => ({ value: t._id, label: t.descripcion })));
+        }
+
+        const adicsRes = await getAdicional();
+        if (adicsRes.ok) {
+          const adics = await adicsRes.json();
+          setMaterialesAdicionales(adics.map((a) => ({ value: a._id, label: a.descripcion })));
+        }
+
+        const remsRes = await getRemitentes();
+        if (remsRes.ok) {
+          const rems = await remsRes.json();
+          setRemitentes(rems.map((r) => ({
+            value: r._id,
+            label: `${r.name || r.nombre} - ${r.cargo || ""} - ${r.area || r.dependencia || ""}`.trim(),
+            tipo: (r.tipo || "").toString().trim().toLowerCase(),
+            name: r.name || r.nombre || "",
+          })));
+        }
+      } catch (error) {
+        console.error("Error cargando catálogos de documentos:", error);
+      }
+    };
+
+    loadCatalogos();
+  }, []);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -65,6 +112,29 @@ export default function BuscadorDocumentos() {
 
   const resultadosPaginados = resultadosFiltrados.slice(indiceInicial, indiceInicial + filasPorPagina);
 
+  const formatDateValue = (value, withTime = false) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toISOString().slice(0, 16) : date.toISOString().slice(0, 10);
+  };
+
+  const getReferenceLabel = (value) => {
+    if (!value) return "";
+    if (typeof value === "object") {
+      return (
+        value.label ||
+        value.value ||
+        value.name ||
+        value.nombre ||
+        value.tipo ||
+        value.descripcion ||
+        ""
+      );
+    }
+    return value;
+  };
+
   const handleRightClick = (e, documento) => {
     e.preventDefault();
     setMenuContextual({
@@ -99,25 +169,77 @@ export default function BuscadorDocumentos() {
 
   const [errores, setErrores] = useState({});
 
-  const handleModificar = () => {
+  const handleModificar = async () => {
     const doc = menuContextual.documento;
     if (!doc) return;
 
-    setFormEditar((prev) => ({
-      ...prev,
-      ejercicio: "2026",
-      noDocumento: doc.numeroDocumento || prev.noDocumento,
-      fechaDocumento: doc.fecha || prev.fechaDocumento,
-      fechaAcuse: doc.fecha || prev.fechaAcuse,
-      fechaRegistro: doc.fecha || prev.fechaRegistro,
-      tipoRemitente: "externo",
-      remitenteExterno: doc.remitenteInterno || doc.remitenteExterno || prev.remitenteExterno,
-      tipoDocumento: "oficio",
-      sintesis: doc.sintesis || prev.sintesis,
-    }));
+    const docId = doc.docId || doc.numeroDocumento || doc._id;
+    if (!docId) return;
 
-    setModalEditarAbierto(true);
-    setMenuContextual((m) => ({ ...m, visible: false }));
+    try {
+      const response = await getDocumentById(docId);
+      if (!response.ok) {
+        console.error("Error obteniendo documento por ID:", response.status, response.statusText);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo obtener el documento completo.",
+        });
+        return;
+      }
+
+      const fullDoc = await response.json();
+      const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
+      const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
+      const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
+      const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
+      const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
+      const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
+      const selectedSecundarioValue = fullDoc.secundario?._id || fullDoc.secundario || "";
+      const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
+      const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
+      const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
+      const tipoRemitente = fullDoc.interno ? "interno" : "externo";
+
+      setDocumentoEditar(fullDoc);
+      setFormEditar({
+        ejercicio: fullDoc.ejercicio || new Date().getFullYear().toString(),
+        noDocumento: fullDoc.docId || fullDoc.numeroDocumento || "",
+        fechaDocumento: formatDateValue(fullDoc.fechaDoc),
+        fechaAcuse: formatDateValue(fullDoc.acuse),
+        fechaRegistro: formatDateValue(fullDoc.registro, true),
+        tipoRemitente,
+        remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
+        remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
+        tipoDocumento: selectedTipoValue,
+        temaPrincipal: selectedTemaValue,
+        temaSecundario: selectedSecundarioValue,
+        sintesis: fullDoc.observaciones || fullDoc.sintesis || "",
+        documentoInterno: !!fullDoc.interno,
+        faltaInformacion: !!fullDoc.faltaInformacion,
+        otroFuncionario: !!fullDoc.otroFuncionario,
+        altaTipoDocumento: false,
+        relacionadoCon: !!fullDoc.relacionadoCon,
+        materialAdicional: selectedMaterialValue,
+      });
+
+      setBusquedaTipoDoc(selectedTipoLabel);
+      setBusquedaTemaPrincipal(selectedTemaLabel);
+      setBusquedaTemaSecundario(selectedSecundarioLabel);
+      setBusquedaMaterial(selectedMaterialLabel);
+      setBusquedaRemitenteExt(remitenteLabel);
+      setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
+
+      setModalEditarAbierto(true);
+      setMenuContextual((m) => ({ ...m, visible: false }));
+    } catch (fetchError) {
+      console.error("Error obteniendo documento por ID:", fetchError);
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo recuperar el documento completo.",
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -157,17 +279,69 @@ export default function BuscadorDocumentos() {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#8B1538",
       cancelButtonColor: "#6B7280",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        setModalEditarAbierto(false);
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Documento guardado correctamente",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        try {
+          const currentDocId = documentoEditar?.docId || documentoEditar?.numeroDocumento || documentoEditar?._id;
+          if (!currentDocId) {
+            throw new Error("Documento no válido para actualizar");
+          }
+
+          const payload = {
+            docId: formEditar.noDocumento,
+            ejercicio: formEditar.ejercicio,
+            fechaDoc: formEditar.fechaDocumento,
+            acuse: formEditar.fechaAcuse,
+            registro: formEditar.fechaRegistro,
+            interno: formEditar.documentoInterno,
+            faltaInformacion: formEditar.faltaInformacion,
+            remitente:
+              formEditar.tipoRemitente === "interno"
+                ? formEditar.remitenteInterno
+                : formEditar.remitenteExterno,
+            tipo: formEditar.tipoDocumento,
+            tema: formEditar.temaPrincipal,
+            secundario: formEditar.temaSecundario,
+            adicional: formEditar.materialAdicional,
+            observaciones: formEditar.sintesis,
+            asunto: asuntoSeleccionado?.descripcion || formEditar.sintesis,
+          };
+
+          const response = await updateDocument(currentDocId, payload);
+          if (response.ok) {
+            const updatedDocumento = await response.json();
+            setDocumentos((prev) =>
+              prev.map((doc) =>
+                doc.docId === currentDocId || doc.numeroDocumento === currentDocId
+                  ? { ...doc, ...updatedDocumento }
+                  : doc
+              )
+            );
+            setModalEditarAbierto(false);
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "Documento actualizado correctamente",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          } else {
+            const errorResponse = await response.json().catch(() => null);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: errorResponse?.error || "No se pudo actualizar el documento",
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire({
+            icon: "error",
+            title: "Error de conexión",
+            text: "No se pudo actualizar el documento",
+          });
+        }
       }
     });
   };
@@ -204,15 +378,10 @@ export default function BuscadorDocumentos() {
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
-  const remitentesExternos = [
-    { id: 1, nombre: "Gobierno del Estado de Nayarit" },
-    { id: 2, nombre: "Empresa XYZ S.A. de C.V." },
-    { id: 3, nombre: "Universidad Autónoma de Nayarit" },
-    { id: 4, nombre: "Secretaría de Educación" },
-    { id: 5, nombre: "Juan López Martínez" },
-  ];
+  const remitentesInternos = remitentes.filter((r) => r.tipo === "interno");
+  const remitentesExternos = remitentes.filter((r) => r.tipo === "externo");
   const remitentesFiltrados = remitentesExternos.filter((r) =>
-    r.nombre.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
+    r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
   );
 
   const usuariosInstitucion = [
@@ -224,15 +393,6 @@ export default function BuscadorDocumentos() {
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
-  const [tiposDocumento] = useState([
-    { value: "correo_electronico", label: "Correo electrónico" },
-    { value: "escrito", label: "Escrito" },
-    { value: "informe", label: "Informe" },
-    { value: "invitacion", label: "Invitación" },
-    { value: "libro", label: "Libro" },
-    { value: "nota_informativa", label: "Nota informativa" },
-    { value: "oficio", label: "Oficio" },
-  ]);
   const tiposFiltrados = tiposDocumento.filter((tipo) =>
     tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
   );
@@ -246,45 +406,24 @@ export default function BuscadorDocumentos() {
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
   const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
 
-  const [documentos, setDocumentos] = useState([]);
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
   const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
   const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
-  const documentosFiltrados = documentos.filter((d) =>
-    d.label.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
-  );
 
   const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
   const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
   const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
   const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
 
-  const temas = [
-    { value: "administrativo", label: "Administrativo" },
-    { value: "juridico", label: "Jurídico" },
-    { value: "finanzas", label: "Finanzas" },
-    { value: "recursos_humanos", label: "Recursos Humanos" },
-    { value: "agradecimiento", label: "Agradecimiento" },
-    { value: "solicitud", label: "Solicitud" },
-  ];
-  const temasFiltradosPrincipal = temas.filter((t) =>
+  const temasFiltradosPrincipal = temasPrincipales.filter((t) =>
     t.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
   );
-  const temasFiltradosSecundario = temas.filter((t) =>
+  const temasFiltradosSecundario = temasPrincipales.filter((t) =>
     t.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
   );
 
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
   const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
-  const materialesAdicionales = [
-    { value: "carpeta", label: "Carpeta" },
-    { value: "catalogo", label: "Catálogo" },
-    { value: "cd_dvd", label: "CD-DVD" },
-    { value: "copia", label: "Copia" },
-    { value: "curriculum_vitae", label: "Curriculum Vitae" },
-    { value: "engargolado", label: "Engargolado" },
-    { value: "folleto", label: "Folleto" },
-  ];
   const materialesFiltrados = materialesAdicionales.filter((m) =>
     m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
   );
@@ -806,8 +945,8 @@ export default function BuscadorDocumentos() {
                                 <label className="text-xs text-gray-500">Funcionario / Área *</label>
                                 <select name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 ${errores.remitenteInterno ? "border-red-500 bg-red-50" : ""}`}>
                                   <option value="">Seleccionar</option>
-                                  {usuariosInstitucion.map((u) => (
-                                    <option key={u.id} value={u.nombre}>{u.nombre}</option>
+                                  {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
+                                    <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
                                   ))}
                                 </select>
                               </div>
@@ -837,15 +976,15 @@ export default function BuscadorDocumentos() {
                                         {remitentesFiltrados.length > 0 ? (
                                           remitentesFiltrados.map((r) => (
                                             <div
-                                              key={r.id}
+                                              key={r.value}
                                               onClick={() => {
-                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.nombre }));
-                                                setBusquedaRemitenteExt(r.nombre);
+                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.value }));
+                                                setBusquedaRemitenteExt(r.label);
                                                 setMostrarOpcionesRemitenteExt(false);
                                               }}
                                               className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                                             >
-                                              {r.nombre}
+                                              {r.label}
                                             </div>
                                           ))
                                         ) : (

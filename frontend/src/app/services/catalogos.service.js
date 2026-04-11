@@ -17,3 +17,9 @@ export const getAreas = () => {
         method: 'GET',
     });
 }
+
+export const getInstrucciones = () => {
+    return fetchAPI('/instruccion/getAll', {
+        method: 'GET',
+    });
+}
