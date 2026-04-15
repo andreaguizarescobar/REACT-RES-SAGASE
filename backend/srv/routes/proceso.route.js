@@ -2,14 +2,14 @@ import { Router } from "express";
 import * as procesoController from "../controllers/proceso.controller.js";
 const router = Router();
 // proceso/getAll
-router.get('/', procesoController.getProcesoList);
+router.get('/getAll', procesoController.getProcesoList);
 // proceso/getItem/:id
 router.get('/:id', procesoController.getProcesoItem);
 // proceso/create
-router.post('/', procesoController.postProcesoItem);
+router.post('/create/', procesoController.postProcesoItem);
 // proceso/update/:id
-router.put('/:id', procesoController.putProcesoItem);
+router.put('/update/:id', procesoController.putProcesoItem);
 // proceso/delete/:id
-router.delete('/:id', procesoController.deleteProcesoItem);
+router.delete('/delete/:id', procesoController.deleteProcesoItem);
 
 export default router;

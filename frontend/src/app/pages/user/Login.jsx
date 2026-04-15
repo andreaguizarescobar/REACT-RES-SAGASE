@@ -31,6 +31,7 @@ export function Login() {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
         if (data.user.firstLogin) {
           setShowModal(true);

@@ -55,15 +55,14 @@ const tareasPorRol = {
 const nombreRoles = {
   VALIDADOR: "Validador",
   REGISTRADOR: "Registrador Enrutador",
-  EJECUTOR: "Ejecutor"
+  EJECUTOR: "Ejecutor",
+  ADMIN: "Administrador"
 };
-
-
 
 export function Sidebar({ isOpen, onSelectView }) {
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const rol = user?.roles?.[0]?.rol || "REGISTRADOR";
+  const rol = user?.roles?.length > 0 ? user.roles[0].rol : "REGISTRADOR";
 
   const tareas = tareasPorRol[rol] || [];
   
@@ -199,8 +198,8 @@ export function Sidebar({ isOpen, onSelectView }) {
           {user?.roles && user.roles.length > 0
             ? user.roles.map((r) => nombreRoles[r.rol] || r.rol).join(", ")
             : "Sin rol asignado"}
+        </div>
 
-         </div>
       </div>
 
     </aside>

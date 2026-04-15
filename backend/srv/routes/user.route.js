@@ -4,7 +4,7 @@ import { verifyToken } from "../middlewares/auth.middlewares.js";
 import authorizeRole from "../middlewares/role.middleware.js";
 const router = Router();
 // user/getAll
-router.get('/getAll', verifyToken, authorizeRole('ADMIN'), userController.getAllUsers);
+router.get('/getAll', verifyToken, userController.getAllUsers);
 // user/getUser/:userId
 router.get('/getUser/:userId', verifyToken, userController.getUser);
 // user/login
