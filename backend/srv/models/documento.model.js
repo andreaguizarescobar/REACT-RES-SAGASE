@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 
 const AnexoSchema = new Schema({
-  registrador: {type: Schema.Types.ObjectId, ref: 'User'},
+  registrador: {type: Schema.Types.ObjectId, ref: 'users'},
   mensaje: String,
   ruta: String,
   nombre: String,
@@ -13,13 +13,13 @@ const AnexoSchema = new Schema({
 }, { _id: true });
 
 const CopiaSchema = new Schema({
-  funcionario: {type: Schema.Types.ObjectId, ref: 'User'},
+  funcionario: {type: Schema.Types.ObjectId, ref: 'users'},
   status: String,
   fecha: { type: Date, default: Date.now }
 }, { _id: true });
 
 const BitacoraSchema = new Schema({
-  user: {type: Schema.Types.ObjectId, ref: 'User'},
+  user: {type: Schema.Types.ObjectId, ref: 'users'},
   descripcion: String,
   importancia: String,
   fecha: { type: Date, default: Date.now }
@@ -33,17 +33,23 @@ const RespuestaSchema = new Schema({
 }, { _id: true });
 
 const TurnadoSchema = new Schema({
-  instruccion: String,
+  instruccion: {type: Schema.Types.ObjectId, ref: 'Instruccion'},
   remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
   areaDestino: {type: Schema.Types.ObjectId, ref: 'Area'},
-  dirigido: String,
+  dirigido: {type: Schema.Types.ObjectId, ref: 'users'},
   prioridad: String,
   fechaTurnado: { type: Date, default: Date.now },
   compromiso: Date,
-  turna: String,
+  turna: {type: Schema.Types.ObjectId, ref: 'users'},
   notas: String,
   status: String
 }, { _id: true });
+
+const AdicionalSchema = new Schema({
+  tipo: String,
+  descripcion: String,
+  registrador: {type: Schema.Types.ObjectId, ref: 'users'},
+}, { timestamps: true });
 
 
 const DocumentoSchema = new Schema({
@@ -64,12 +70,23 @@ const DocumentoSchema = new Schema({
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
   tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
   secundario: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
-  adicional: {type: Schema.Types.ObjectId, ref: 'Adicinal'},
+  adicional: [AdicionalSchema],
   asunto: String,
   observaciones: String,
 
-  relacionados: [{type: Schema.Types.ObjectId, ref: 'Oficio'},
-    {type: Schema.Types.ObjectId, ref: 'Documento'},
+  relacionados: [
+    {
+      item: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        refPath: 'relacionados.modelo'
+      },
+      modelo: {
+        type: String,
+        required: true,
+        enum: ['Oficio', 'Documento']
+      }
+    }
   ],
 
   anexos: [AnexoSchema],

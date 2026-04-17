@@ -14,7 +14,9 @@ const UserSchema = new Schema({
   status: String,
   sexo: String,
   copia: Boolean,
-  roles: [{rol: { type: String }}],
+  roles: [{rol: { type: String },
+  proceso: { type: String }}
+  ],
   // Campos para recuperación de contraseña
   resetToken: String,
   resetTokenExpires: Date,

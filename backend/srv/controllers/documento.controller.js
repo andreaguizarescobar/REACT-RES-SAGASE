@@ -108,6 +108,34 @@ export const patchAnexoDocumento = async (req, res) => {
     }
 };
 
+export const uploadAnexoDocumento = async (req, res) => {
+    try {
+        const { docId } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ error: 'Archivo no enviado' });
+        }
+
+        const { mensaje, registrador, nombre } = req.body;
+        const ruta = `../uploads/anexos/${req.file.filename}`;
+        const anexoData = {
+            registrador: registrador || null,
+            mensaje: mensaje || '',
+            ruta,
+            nombre: nombre || req.file.originalname,
+            fecha: new Date(),
+        };
+
+        const updatedDocumento = await documentoService.patchAnexoDocumento(docId, anexoData);
+        if (updatedDocumento) {
+            res.status(200).json(updatedDocumento);
+        } else {
+            res.status(404).json({ error: 'Documento no encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const patchRemoverAnexoDocumento = async (req, res) => {
     try {
         const { docId } = req.params;
@@ -188,6 +216,7 @@ export default {
     putDocumento,
     patchCopiaDocumento,
     patchAnexoDocumento,
+    uploadAnexoDocumento,
     patchRemoverAnexoDocumento,
     patchStatusDocumento,
     patchRelacionadoDocumento,

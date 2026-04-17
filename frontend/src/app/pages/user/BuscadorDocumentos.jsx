@@ -2,6 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Minus, Trash2, Plus, Upload, X } from "lucide-react";
 import Swal from "sweetalert2";
+import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service.js";
+import { getTipoDocument } from "../../services/tipoDocumento.service.js";
+import { getTemaPrincipal, getAdicional, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
+import { getRemitentes } from "../../services/remitente.service.js";
+import { getUsers } from "../../services/user.service.js";
+
+const BaseURL = "http://localhost:3333/";
 
 export default function BuscadorDocumentos() {
   const [criterio, setCriterio] = useState("");
@@ -20,51 +27,119 @@ export default function BuscadorDocumentos() {
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [folioGenerado, setFolioGenerado] = useState("");
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+  const [documentoAnexos, setDocumentoAnexos] = useState([]);
+  const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
+  const [documentos, setDocumentos] = useState([]);
+  const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [temasPrincipales, setTemasPrincipales] = useState([]);
+  const [materialesAdicionales, setMaterialesAdicionales] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [instrucciones, setInstrucciones] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [remitentes, setRemitentes] = useState([]);
+  const [turnosDocumento, setTurnosDocumento] = useState([]);
+  const [copiasDocumento, setCopiasDocumento] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const documentosMock = [
-    {
-      folio: "20220000058",
-      numeroDocumento: "OFI-IMAGO-2022",
-      fecha: "2022-08-09",
-      sintesis: "Agradecimiento",
-      remitenteInterno: "Manuel Emilio Galván Martínez",
-      remitenteExterno: "Gerente de Administración",
-      estatus: "Documento con instrucción turnada",
-      documentoInterno: "No",
-    },
-    {
-      folio: "20220000059",
-      numeroDocumento: "OFI-002-2022",
-      fecha: "2022-08-10",
-      sintesis: "Solicitud",
-      remitenteInterno: "Luis Pérez Sánchez",
-      remitenteExterno: "Gerente de Finanzas",
-      estatus: "Documento con gestión cerrada",
-      documentoInterno: "No",
-    },
-    {
-      folio: "20220000059",
-      numeroDocumento: "OFI-002-2022",
-      fecha: "2022-08-10",
-      sintesis: "Solicitud",
-      remitenteInterno: "Luis Pérez Sánchez",
-      remitenteExterno: "Gerente de Finanzas",
-      estatus: "Documento con gestión cerrada",
-      documentoInterno: "No",
-    },
-    {
-      folio: "20220000059",
-      numeroDocumento: "OFI-002-2022",
-      fecha: "2022-08-10",
-      sintesis: "Solicitud",
-      remitenteInterno: "Luis Pérez Sánchez",
-      remitenteExterno: "Gerente de Finanzas",
-      estatus: "Documento con gestión cerrada",
-      documentoInterno: "No",
-    },
-  ];
+  useEffect(() => {
+    const loadCatalogos = async () => {
+      try {
+        const tiposRes = await getTipoDocument();
+        if (tiposRes.ok) {
+          const tipos = await tiposRes.json();
+          setTiposDocumento(tipos.map((t) => ({ value: t._id, label: t.tipo })));
+        }
 
-  const resultadosFiltrados = documentosMock.filter((doc) =>
+        const temasRes = await getTemaPrincipal();
+        if (temasRes.ok) {
+          const temas = await temasRes.json();
+          setTemasPrincipales(temas.map((t) => ({ value: t._id, label: t.descripcion })));
+        }
+
+        const adicsRes = await getAdicional();
+        if (adicsRes.ok) {
+          const adics = await adicsRes.json();
+          setMaterialesAdicionales(adics.map((a) => ({ value: a._id, label: a.descripcion })));
+        }
+
+        const remsRes = await getRemitentes();
+        if (remsRes.ok) {
+          const rems = await remsRes.json();
+          setRemitentes(rems.map((r) => ({
+            value: r._id,
+            label: `${r.name || r.nombre} - ${r.cargo || ""} - ${r.area || r.dependencia || ""}`.trim(),
+            tipo: (r.tipo || "").toString().trim().toLowerCase(),
+            name: r.name || r.nombre || "",
+          })));
+        }
+
+        const areasRes = await getAreas();
+        if (areasRes.ok) {
+          const areasData = await areasRes.json();
+          setAreas(areasData.map((a) => ({
+            value: a._id,
+            label: a.nombre || a.descripcion || "Área desconocida",
+          })));
+        }
+
+        const instruccionRes = await getInstrucciones();
+        if (instruccionRes.ok) {
+          const insts = await instruccionRes.json();
+          setInstrucciones(insts.map((i) => ({
+            value: i._id,
+            label: i.descripcion || i.nombre || "Instrucción",
+          })));
+        }
+
+        const token = localStorage.getItem("token");
+        if (token) {
+          const usersRes = await getUsers(token);
+          if (usersRes.ok) {
+            const users = await usersRes.json();
+            setUsuarios(users.map((u) => ({
+              value: u._id,
+              label: `${u.name || u.nombre || ""}`.trim(),
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Error cargando catálogos de documentos:", error);
+      }
+    };
+
+    loadCatalogos();
+  }, []);
+
+useEffect(() => {
+    const fetchDocuments = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await getDocuments(token);
+
+        if (!response.ok) {
+          setError("No se pudieron cargar los documentos.");
+          console.error("Error cargando documentos:", response.status, response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        setDocumentos(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        setError("Error de red al cargar los documentos.");
+        console.error("Error cargando documentos:", fetchError);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, []);
+
+  const resultadosFiltrados = documentos.filter((doc) =>
     Object.values(doc)
       .join(" ")
       .toLowerCase()
@@ -74,6 +149,31 @@ export default function BuscadorDocumentos() {
   const totalPaginas = Math.max(1, Math.ceil(resultadosFiltrados.length / filasPorPagina));
   const indiceInicial = (paginaActual - 1) * filasPorPagina;
   const resultadosPaginados = resultadosFiltrados.slice(indiceInicial, indiceInicial + filasPorPagina);
+
+
+
+  const formatDateValue = (value, withTime = false) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toISOString().slice(0, 16) : date.toISOString().slice(0, 10);
+  };
+
+  const getReferenceLabel = (value) => {
+    if (!value) return "";
+    if (typeof value === "object") {
+      return (
+        value.label ||
+        value.value ||
+        value.name ||
+        value.nombre ||
+        value.tipo ||
+        value.descripcion ||
+        ""
+      );
+    }
+    return value;
+  };
 
   const handleRightClick = (e, documento) => {
     e.preventDefault();
@@ -109,25 +209,102 @@ export default function BuscadorDocumentos() {
 
   const [errores, setErrores] = useState({});
 
-  const handleModificar = () => {
+  const handleModificar = async () => {
     const doc = menuContextual.documento;
     if (!doc) return;
 
-    setFormEditar((prev) => ({
-      ...prev,
-      ejercicio: "2026",
-      noDocumento: doc.numeroDocumento || prev.noDocumento,
-      fechaDocumento: doc.fecha || prev.fechaDocumento,
-      fechaAcuse: doc.fecha || prev.fechaAcuse,
-      fechaRegistro: doc.fecha || prev.fechaRegistro,
-      tipoRemitente: "externo",
-      remitenteExterno: doc.remitenteInterno || doc.remitenteExterno || prev.remitenteExterno,
-      tipoDocumento: "oficio",
-      sintesis: doc.sintesis || prev.sintesis,
-    }));
+    const docId = doc.docId || doc.numeroDocumento || doc._id;
+    if (!docId) return;
 
-    setModalEditarAbierto(true);
-    setMenuContextual((m) => ({ ...m, visible: false }));
+    try {
+      const response = await getDocumentById(docId);
+      if (!response.ok) {
+        console.error("Error obteniendo documento por ID:", response.status, response.statusText);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo obtener el documento completo.",
+        });
+        return;
+      }
+
+      const fullDoc = await response.json();
+      const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
+      const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
+      const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
+      const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
+      const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
+      const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
+      const selectedSecundarioValue = fullDoc.secundario?._id || fullDoc.secundario || "";
+      const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
+      const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
+      const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
+      const tipoRemitente = fullDoc.interno ? "interno" : "externo";
+
+      setDocumentoEditar(fullDoc);
+      setFormEditar({
+        ejercicio: fullDoc.ejercicio || new Date().getFullYear().toString(),
+        noDocumento: fullDoc.docId || fullDoc.numeroDocumento || "",
+        fechaDocumento: formatDateValue(fullDoc.fechaDoc),
+        fechaAcuse: formatDateValue(fullDoc.acuse),
+        fechaRegistro: formatDateValue(fullDoc.registro, true),
+        tipoRemitente,
+        remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
+        remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
+        tipoDocumento: selectedTipoValue,
+        temaPrincipal: selectedTemaValue,
+        temaSecundario: selectedSecundarioValue,
+        sintesis: fullDoc.observaciones || fullDoc.sintesis || "",
+        documentoInterno: !!fullDoc.interno,
+        faltaInformacion: !!fullDoc.faltaInformacion,
+        otroFuncionario: !!fullDoc.otroFuncionario,
+        altaTipoDocumento: false,
+        relacionadoCon: !!fullDoc.relacionadoCon,
+        materialAdicional: selectedMaterialValue,
+      });
+
+      setBusquedaTipoDoc(selectedTipoLabel);
+      setBusquedaTemaPrincipal(selectedTemaLabel);
+      setBusquedaTemaSecundario(selectedSecundarioLabel);
+      setBusquedaMaterial(selectedMaterialLabel);
+      setBusquedaRemitenteExt(remitenteLabel);
+      setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
+      setDocumentoAnexos(fullDoc.anexos || []);
+      setTurnosDocumento(fullDoc.turnados || []);
+      setCopiasDocumento(fullDoc.copias || []);
+      setRelacionadosDocumento(
+        (fullDoc.relacionados || [])
+          .map((rel) => {
+            if (!rel || !rel.item) return null;
+            const related = rel.item;
+            return {
+              relationId: rel._id,
+              value: related._id || related.value,
+              folio: related.folio || related.label || "",
+              docId: related.docId || "",
+              remitente: related.remitente ? (related.remitente.name || related.remitente) : "",
+              asunto: related.asunto || related.observaciones || "",
+            };
+          })
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (fullDoc.relacionados || []).map((rel) =>
+          rel?.item?._id || rel?.item || rel
+        )
+      );
+      setDocumentoSeleccionado(fullDoc);
+
+      setModalEditarAbierto(true);
+      setMenuContextual((m) => ({ ...m, visible: false }));
+    } catch (fetchError) {
+      console.error("Error obteniendo documento por ID:", fetchError);
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo recuperar el documento completo.",
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -167,17 +344,69 @@ export default function BuscadorDocumentos() {
       cancelButtonText: "Cancelar",
       confirmButtonColor: "#8B1538",
       cancelButtonColor: "#6B7280",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        setModalEditarAbierto(false);
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Documento guardado correctamente",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        try {
+          const currentDocId = documentoEditar?.docId || documentoEditar?.numeroDocumento || documentoEditar?._id;
+          if (!currentDocId) {
+            throw new Error("Documento no válido para actualizar");
+          }
+
+          const payload = {
+            docId: formEditar.noDocumento,
+            ejercicio: formEditar.ejercicio,
+            fechaDoc: formEditar.fechaDocumento,
+            acuse: formEditar.fechaAcuse,
+            registro: formEditar.fechaRegistro,
+            interno: formEditar.documentoInterno,
+            faltaInformacion: formEditar.faltaInformacion,
+            remitente:
+              formEditar.tipoRemitente === "interno"
+                ? formEditar.remitenteInterno
+                : formEditar.remitenteExterno,
+            tipo: formEditar.tipoDocumento,
+            tema: formEditar.temaPrincipal,
+            secundario: formEditar.temaSecundario,
+            adicional: formEditar.materialAdicional,
+            observaciones: formEditar.sintesis,
+            asunto: asuntoSeleccionado?.descripcion || formEditar.sintesis,
+          };
+
+          const response = await updateDocument(currentDocId, payload);
+          if (response.ok) {
+            const updatedDocumento = await response.json();
+            setDocumentos((prev) =>
+              prev.map((doc) =>
+                doc.docId === currentDocId || doc.numeroDocumento === currentDocId
+                  ? { ...doc, ...updatedDocumento, remitente: updatedDocumento.remitente || doc.remitente }
+                  : doc
+              )
+            );
+            setModalEditarAbierto(false);
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "Documento actualizado correctamente",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          } else {
+            const errorResponse = await response.json().catch(() => null);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: errorResponse?.error || "No se pudo actualizar el documento",
+            });
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire({
+            icon: "error",
+            title: "Error de conexión",
+            text: "No se pudo actualizar el documento",
+          });
+        }
       }
     });
   };
@@ -214,15 +443,10 @@ export default function BuscadorDocumentos() {
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
-  const remitentesExternos = [
-    { id: 1, nombre: "Gobierno del Estado de Nayarit" },
-    { id: 2, nombre: "Empresa XYZ S.A. de C.V." },
-    { id: 3, nombre: "Universidad Autónoma de Nayarit" },
-    { id: 4, nombre: "Secretaría de Educación" },
-    { id: 5, nombre: "Juan López Martínez" },
-  ];
+  const remitentesInternos = remitentes.filter((r) => r.tipo === "interno");
+  const remitentesExternos = remitentes.filter((r) => r.tipo === "externo");
   const remitentesFiltrados = remitentesExternos.filter((r) =>
-    r.nombre.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
+    r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
   );
 
   const usuariosInstitucion = [
@@ -234,15 +458,6 @@ export default function BuscadorDocumentos() {
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
-  const [tiposDocumento] = useState([
-    { value: "correo_electronico", label: "Correo electrónico" },
-    { value: "escrito", label: "Escrito" },
-    { value: "informe", label: "Informe" },
-    { value: "invitacion", label: "Invitación" },
-    { value: "libro", label: "Libro" },
-    { value: "nota_informativa", label: "Nota informativa" },
-    { value: "oficio", label: "Oficio" },
-  ]);
   const tiposFiltrados = tiposDocumento.filter((tipo) =>
     tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
   );
@@ -256,12 +471,14 @@ export default function BuscadorDocumentos() {
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
   const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
 
-  const [documentos, setDocumentos] = useState([]);
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
   const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
   const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
-  const documentosFiltrados = documentos.filter((d) =>
-    d.label.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
+
+const documentosFiltrados = documentos.filter((d) =>
+    d.folio.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()) ||
+    d.docId.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()) ||
+    (d.asunto && d.asunto.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()))
   );
 
   const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
@@ -269,33 +486,16 @@ export default function BuscadorDocumentos() {
   const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
   const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
 
-  const temas = [
-    { value: "administrativo", label: "Administrativo" },
-    { value: "juridico", label: "Jurídico" },
-    { value: "finanzas", label: "Finanzas" },
-    { value: "recursos_humanos", label: "Recursos Humanos" },
-    { value: "agradecimiento", label: "Agradecimiento" },
-    { value: "solicitud", label: "Solicitud" },
-  ];
-  const temasFiltradosPrincipal = temas.filter((t) =>
+  
+  const temasFiltradosPrincipal = temasPrincipales.filter((t) =>
     t.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
   );
-  const temasFiltradosSecundario = temas.filter((t) =>
+  const temasFiltradosSecundario = temasPrincipales.filter((t) =>
     t.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
   );
 
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
   const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
-  const materialesAdicionales = [
-    { value: "carpeta", label: "Carpeta" },
-    { value: "catalogo", label: "Catálogo" },
-    { value: "cd_dvd", label: "CD-DVD" },
-    { value: "copia", label: "Copia" },
-    { value: "curriculum_vitae", label: "Curriculum Vitae" },
-    { value: "engargolado", label: "Engargolado" },
-    { value: "folleto", label: "Folleto" },
-  ];
-  
   const materialesFiltrados = materialesAdicionales.filter((m) =>
     m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
   );
@@ -428,52 +628,30 @@ export default function BuscadorDocumentos() {
   const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
   const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
   const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
+  const [selectedCopiaUsuario, setSelectedCopiaUsuario] = useState(null);
 
-  const funcionarios = [
-    "Víctor Manuel Enríquez Paniagua",
-    "María Verónica Leal Camarena",
-    "Guillermo Bonilla Tenorio",
-    "Dirección de Administración",
-    "Unidad de Correspondencia",
-    "Órgano Interno de Control",
-  ];
 
-  const funcionariosFiltrados = funcionarios.filter(f =>
-    f.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
-    !copias.some(c => c.toLowerCase() === f.toLowerCase())
-  );
+
+  const funcionariosFiltrados = usuarios
+    .filter((u) =>
+      u.label.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
+      !copiasDocumento.some((copia) => (copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "").toLowerCase() === u.label.toLowerCase())
+    );
 
     const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
 
-  const turnosVerTodos = [
-    {
-      instruccion:
-        "Atender el tema y dar respuesta al interesado, marcando copia a esta oficina",
-      funcionario: "María Verónica Leal Camarena",
-      areaDestino: "Dirección de Administración",
-      prioridad: "Trámite Extra-urgente",
-      fecha: "2022-10-13",
-      areaTurna:
-        "Dirección de Desarrollo Archivístico Nacional",
-      quienTurna: "María Verónica Leal Camarena",
-      estatus: "Autorizados y turnados",
-    },
-    {
-      instruccion: "Distribuir los materiales",
-      funcionario: "Guillermo Bonilla Tenorio",
-      areaDestino:
-        "Dirección de Desarrollo Archivístico Nacional",
-      prioridad: "Trámite Extra-urgente",
-      fecha: "2022-10-13",
-      areaTurna:
-        "Dirección de Desarrollo Archivístico Nacional",
-      quienTurna: "Víctor Manuel Enríquez Paniagua",
-      estatus: "Concluido",
-    },
-  ];
-
-  const turnosVerFiltrados = turnosVerTodos.filter((item) =>
-    Object.values(item)
+  const turnosVerFiltrados = (turnosDocumento || []).filter((item) =>
+    [
+      item.instruccion?.descripcion || item.instruccion?.label || item.instruccion,
+      item.remitente?.nombre || item.remitente?.label || item.remitente,
+      item.areaDestino?.nombre || item.areaDestino?.label || item.areaDestino,
+      item.dirigido?.nombre || item.dirigido?.label || item.dirigido,
+      item.prioridad,
+      item.compromiso ? formatDateValue(item.compromiso) : item.fechaTurnado ? formatDateValue(item.fechaTurnado) : "",
+      item.turna?.nombre || item.turna?.label || item.turna,
+      item.status,
+    ]
+      .filter(Boolean)
       .join(" ")
       .toLowerCase()
       .includes(busquedaVerTurnos.toLowerCase())
@@ -483,11 +661,16 @@ export default function BuscadorDocumentos() {
 
   const [form, setForm] = useState({
     instruccion: "",
+    remitente: "",
     areaDestino: "",
+    dirigido: "",
     prioridad: "",
     fecha: "",
+    turna: "",
+    notas: "",
     autorizar: false,
   });
+  const [erroresTurno, setErroresTurno] = useState({});
 
   const validarFormularioAltaInstruccion = () => {
     let nuevosErrores = {};
@@ -497,14 +680,14 @@ export default function BuscadorDocumentos() {
     if (!form.prioridad) nuevosErrores.prioridad = true;
     if (!form.fecha) nuevosErrores.fecha = true;
 
-    setErrores(nuevosErrores);
+    setErroresTurno(nuevosErrores);
 
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  const handleGuardarAltaInstruccion = () => {
+  const handleGuardarAltaInstruccion = async () => {
     if (!validarFormularioAltaInstruccion()) {
-       Swal.fire({
+      Swal.fire({
         toast: true,
         position: "top-end",
         icon: "error",
@@ -515,81 +698,143 @@ export default function BuscadorDocumentos() {
       return;
     }
 
-    Swal.fire({
-      icon: "success",
-      title: "Guardado",
-      text: "Turno guardado correctamente",
-      confirmButtonColor: "#8B1538",
-    });
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de guardar el turno.",
+      });
+      return;
+    }
 
-    setMostrarModalTurno(false);
+    try {
+      const turnadoData = {
+        instruccion: form.instruccion,
+        remitente: form.remitente,
+        areaDestino: form.areaDestino,
+        dirigido: form.dirigido,
+        prioridad: form.prioridad,
+        compromiso: form.fecha,
+        turna: form.turna,
+        notas: form.notas,
+        status: form.autorizar ? "Autorizado" : "Pendiente",
+      };
+
+      const response = await addTurnado(currentDocId, turnadoData);
+      if (!response.ok) throw new Error("Error agregando el turno");
+
+      const updatedDocumento = await response.json();
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setTurnosDocumento(updatedDocumento.turnados || []);
+      setMostrarModalTurno(false);
+      setForm({
+        instruccion: "",
+        remitente: "",
+        areaDestino: "",
+        dirigido: "",
+        prioridad: "",
+        fecha: "",
+        turna: "",
+        notas: "",
+        autorizar: false,
+      });
+      setErroresTurno({});
+
+      Swal.fire({
+        icon: "success",
+        title: "Turno guardado",
+        text: "El turno se agregó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar el turno",
+        text: "No se pudo guardar el turno.",
+      });
+    }
+  };
+
+  const handleGuardarCopia = async () => {
+    if (!selectedCopiaUsuario) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Selecciona un funcionario",
+        showConfirmButton: false,
+        timer: 2500,
+      });
+      return;
+    }
+
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de guardar la copia.",
+      });
+      return;
+    }
+
+    try {
+      const copiaData = {
+        funcionario: selectedCopiaUsuario.value,
+      };
+
+      const response = await addCopia(currentDocId, copiaData);
+      if (!response.ok) throw new Error("Error agregando la copia");
+
+      const updatedDocumento = await response.json();
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setCopiasDocumento(updatedDocumento.copias || []);
+      setMostrarModalCopias(false);
+      setBusquedaFuncionario("");
+      setSelectedCopiaUsuario(null);
+
+      Swal.fire({
+        icon: "success",
+        title: "Copia guardada",
+        text: "La copia se agregó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar la copia",
+        text: "No se pudo guardar la copia.",
+      });
+    }
   };
 
   const [mostrarModalAnexo, setMostrarModalAnexo] = useState(false);
-
-  const anexos = [
-    {
-      folio: "12345",
-      nombre: "GUARDIA NACIONAL.pdf",
-    },
-    {
-      folio: "67890",
-      nombre: "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
-    },
-    {
-      folio: "54321",
-      nombre: "Ficha de Gestión Instrucción Distribuir los materiales.pdf",
-    },
-    {
-      folio: "67890",
-      nombre: "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
-    },
-  ];
-
-  const anexosFiltrados = anexos.filter((anexo) =>
-    Object.values(anexo).some((valor) =>
-      valor.toLowerCase().includes(busquedaVerTurnos.toLowerCase())
-    )
-  );
-
   const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
+  const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
+  const [archivo, setArchivo] = useState(null);
 
-  const anexosSubidos = [
-    {
-      registrador: "Omar César Juárez",
-      mensaje: "Anexo 1",
-      folio: "A-001",
-      nombre: "Anexo 1 DG_DPPD_0811_2022.pdf",
-    },
-    {
-      registrador: "Andrea Guizar",
-      mensaje: "Solicitud",
-      folio: "A-002",
-      nombre: "Solicitud usuarios SAGA.pdf",
-    },
-    {
-      registrador: "Erik Moreno",
-      mensaje: "Materiales",
-      folio: "A-003",
-      nombre: "Distribución de materiales.pdf",
-    },
-    {
-      registrador: "Yves Portugal",
-      mensaje: "Respuesta",
-      folio: "A-004",
-      nombre: "Respuesta al interesado.pdf",
-    },
-  ];
-
-  const anexosSubirVerFiltrados = anexosSubidos.filter((item) =>
-    Object.values(item)
+  const documentoAnexosFiltrados = documentoAnexos.filter((anexo) =>
+    [anexo.mensaje, anexo.nombre, anexo.ruta]
       .join(" ")
       .toLowerCase()
       .includes(busquedaSubirAnexo.toLowerCase())
+
+
   );
 
-  const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
-  const [archivo, setArchivo] = useState(null);
+  const relacionadosFiltrados = relacionadosDocumento.filter((doc) =>
+    [doc.folio, doc.docId, doc.remitente, doc.asunto]
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaVerTurnos.toLowerCase())
+  );
   const [dragActivo, setDragActivo] = useState(false);
 
   const inputRef = useRef(null);
@@ -623,6 +868,169 @@ export default function BuscadorDocumentos() {
     setErroresAnexos(nuevosErrores);
 
     return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const normalizeRelacionadoItem = (rel) => {
+    if (!rel) return null;
+    return {
+      relationId: rel._id || rel.relationId || null,
+      value: rel.item?._id || rel._id || rel.value || rel,
+      folio: rel.item?.folio || rel.folio || rel.label || "",
+      docId: rel.item?.docId || rel.docId || "",
+      remitente: rel.item?.remitente ? (rel.item.remitente.name || rel.item.remitente) : (rel.remitente ? (rel.remitente.name || rel.remitente) : ""),
+      asunto: rel.item?.asunto || rel.asunto || rel.observaciones || "",
+    };
+  };
+
+  const handleUploadAnexo = async () => {
+    if (!validarAgregarAnexo()) return;
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de subir anexos.",
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      const user = JSON.parse(localStorage.getItem("user"));
+      formData.append('registrador', user._id || "Desconocido");
+      formData.append('archivo', archivo);
+      formData.append('mensaje', mensaje);
+      formData.append('nombre', nombreDoc);
+
+      const response = await uploadAnexo(currentDocId, formData);
+      if (!response.ok) throw new Error('Error subiendo el anexo');
+
+      const updatedDocumento = await response.json();
+      setDocumentoAnexos(updatedDocumento.anexos || []);
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setMensaje("");
+      setNombreDoc("");
+      setArchivo(null);
+      setErroresAnexos({});
+      setMostrarModalSubirAnexo(false);
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Anexo subido correctamente',
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al subir el anexo',
+        text: 'No se pudo guardar el archivo en el servidor.',
+      });
+    }
+  };
+
+  const handleRemoveAnexo = async (anexoId) => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      const response = await removeAnexo(currentDocId, { anexoId });
+      if (!response.ok) throw new Error('Error eliminando anexo');
+
+      const updatedDocumento = await response.json();
+      setDocumentoAnexos(updatedDocumento.anexos || []);
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al eliminar el anexo',
+        text: 'No se pudo eliminar el archivo.',
+      });
+    }
+  };
+
+  const handleSaveRelacionados = async () => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      let updatedDocumento = documentoEditar;
+      const newIds = documentosSeleccionados.filter(
+        (id) => !relacionadosDocumento.some((doc) => doc.value === id)
+      );
+      for (const id of newIds) {
+        const doc = documentos.find(d => d.docId === id.docId);
+        const folio = doc ? doc.folio : id;
+        Swal.fire({
+          title: 'Guardando documento relacionado',
+          text: `Guardando folio: ${folio}`,
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        const response = await addRelacionado(currentDocId, { relacionado: { item: id, modelo: "Documento" } });
+        if (!response.ok) throw new Error('Error agregando documento relacionado');
+        updatedDocumento = await response.json();
+      }
+
+      setRelacionadosDocumento(
+        (updatedDocumento.relacionados || [])
+          .map(normalizeRelacionadoItem)
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (updatedDocumento.relacionados || []).map((rel) =>
+          typeof rel === 'object' ? (rel._id || rel.value) : rel
+        )
+      );
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setMostrarModalRelacionado(false);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al agregar documento relacionado',
+        text: 'No se pudo guardar la relación.',
+      });
+    }
+  };
+
+  const handleRemoveRelacionado = async (relatedId) => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      const response = await removeRelacionado(currentDocId, { relacionadoId: relatedId });
+      if (!response.ok) throw new Error('Error eliminando documento relacionado');
+
+      const updatedDocumento = await response.json();
+      setRelacionadosDocumento(
+        (updatedDocumento.relacionados || [])
+          .map(normalizeRelacionadoItem)
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (updatedDocumento.relacionados || []).map((rel) =>
+          typeof rel === 'object' ? (rel._id || rel.value) : rel
+        )
+      );
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al eliminar documento relacionado',
+        text: 'No se pudo remover la relación.',
+      });
+    }
   };
 
   const [mostrarVisor, setMostrarVisor] = useState(false);
@@ -718,10 +1126,22 @@ export default function BuscadorDocumentos() {
           </thead>
 
           <tbody>
-            {resultadosPaginados.length === 0 ? (
+            {loading ? (
               <tr>
                 <td colSpan="6" className="text-center py-6 text-[#60595D]">
-                  Sin resultados
+                  Cargando documentos...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-red-500">
+                  {error}
+                </td>
+              </tr>
+            ) : resultadosPaginados.length == 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-[#60595D]">
+                  No se encontraron documentos.
                 </td>
               </tr>
             ) : (
@@ -732,12 +1152,12 @@ export default function BuscadorDocumentos() {
                   className={`border-t cursor-context-menu transition ${index % 2 === 0 ? "bg-white" : "bg-white"} hover:bg-[#79142A]/10`}
                 >
                   <td className="px-4 py-2 font-medium text-gray-700">{doc.folio}</td>
-                  <td className="px-4 py-2">{doc.numeroDocumento}</td>
-                  <td className="px-4 py-2">{doc.fecha}</td>
-                  <td className="px-4 py-2">{doc.sintesis}</td>
-                  <td className="px-4 py-2">{doc.remitenteInterno || doc.remitenteExterno}</td>
+                  <td className="px-4 py-2">{doc.docId}</td>
+                  <td className="px-4 py-2">{formatDateValue(doc.fechaDoc)}</td>
+                  <td className="px-4 py-2">{doc.asunto || "Sin asunto"}</td>
+                  <td className="px-4 py-2">{doc.remitente.name}</td>
                   <td className="px-4 py-2">
-                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">{doc.estatus}</span>
+                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">{doc.status || "Recibido"}</span>
                   </td>
                 </tr>
               ))
@@ -915,8 +1335,8 @@ export default function BuscadorDocumentos() {
                                 <label className="text-xs text-gray-500">Funcionario / Área *</label>
                                 <select name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 ${errores.remitenteInterno ? "border-red-500 bg-red-50" : ""}`}>
                                   <option value="">Seleccionar</option>
-                                  {usuariosInstitucion.map((u) => (
-                                    <option key={u.id} value={u.nombre}>{u.nombre}</option>
+                                  {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
+                                    <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
                                   ))}
                                 </select>
                               </div>
@@ -946,15 +1366,15 @@ export default function BuscadorDocumentos() {
                                         {remitentesFiltrados.length > 0 ? (
                                           remitentesFiltrados.map((r) => (
                                             <div
-                                              key={r.id}
+                                              key={r.value}
                                               onClick={() => {
-                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.nombre }));
-                                                setBusquedaRemitenteExt(r.nombre);
+                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.value }));
+                                                setBusquedaRemitenteExt(r.label);
                                                 setMostrarOpcionesRemitenteExt(false);
                                               }}
                                               className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                                             >
-                                              {r.nombre}
+                                              {r.label}
                                             </div>
                                           ))
                                         ) : (
@@ -1319,43 +1739,46 @@ export default function BuscadorDocumentos() {
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
                                 <th className="px-3 py-2 text-left">Eliminar</th>
-                                <th className="px-3 py-2 text-left">Registrador del anexo y mensaje</th>
+                                <th className="px-3 py-2 text-left">Registrador</th>
                                 <th className="px-3 py-2 text-left">Mensaje</th>
-                                <th className="px-3 py-2 text-left">Documento anexo</th>
+                                <th className="px-3 py-2 text-left">Archivo</th>
                                 <th className="px-3 py-2 text-left">Nombre del documento</th>
                               </tr>
                             </thead>
 
                             {/* 🧾 BODY */}
                             <tbody>
-                              {anexosSubirVerFiltrados.length > 0 ? (
-                                anexosSubirVerFiltrados.map((anexo, index) => (
+                              {documentoAnexosFiltrados.length > 0 ? (
+                                documentoAnexosFiltrados.map((anexo) => (
                                   <tr
-                                    key={index}
+                                    key={anexo._id || anexo.nombre}
                                     className="border-t hover:bg-gray-50"
                                   >
                                     {/* 🗑 ELIMINAR */}
                                     <td className="px-3 py-2">
-                                      <button className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
+                                      <button
+                                        onClick={() => handleRemoveAnexo(anexo._id)}
+                                        className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
+                                      >
                                         <Trash2 size={14} />
                                       </button>
                                     </td>
 
                                     {/* 👤 REGISTRADOR */}
                                     <td className="px-3 py-2 text-gray-700">
-                                      {anexo.registrador || "Omar César Juárez"}
+                                      {anexo.registrador?.nombre ? anexo.registrador.nombre : "N/A"}
                                     </td>
 
                                     {/* 💬 MENSAJE */}
                                     <td className="px-3 py-2 text-gray-700">
-                                      {anexo.mensaje || "Anexo 1"}
+                                      {anexo.mensaje || "Sin mensaje"}
                                     </td>
 
                                     {/* 📄 BOTÓN ARCHIVO */}
                                     <td className="px-3 py-2">
                                       <button
                                         onClick={() => {
-                                          setArchivoVista(item.archivo); // o la ruta/url del archivo
+                                          setArchivoVista(`${BaseURL}${anexo.ruta}`);
                                           setMostrarVisor(true);
                                         }}
                                         className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
@@ -1367,7 +1790,7 @@ export default function BuscadorDocumentos() {
 
                                     {/* 📑 NOMBRE */}
                                     <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
-                                      {anexo.nombre}
+                                      {anexo.nombre || "Sin nombre"}
                                     </td>
                                   </tr>
                                 ))
@@ -1387,10 +1810,13 @@ export default function BuscadorDocumentos() {
 
                           {/* Botón */}
                           <button
-                            onClick={() => setMostrarModalAnexos(true)}
+                            onClick={() => {
+                              setDocumentosSeleccionados([]);
+                              setMostrarModalRelacionado(true);
+                            }}
                             className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
-                            Añadir anexo
+                            Añadir documento relacionado
                           </button>
 
                           {/* 🔍 Buscador */}
@@ -1400,58 +1826,52 @@ export default function BuscadorDocumentos() {
                               value={busquedaVerTurnos}
                               onChange={(e) => setBusquedaVerTurnos(e.target.value)}
                               className="w-full px-2 py-2 outline-none text-sm"
-                              placeholder="Buscar turno..."
+                              placeholder="Buscar documento relacionado..."
                             />
                           </div>
 
                         </div>
 
                         <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                        Añade archivos de anexos al registro para complementar la información del asunto.
+                        Documentos relacionados al registro.
                       </h3>
-                        {/* Tabla de anexos */}
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
-                                <th className="px-4 py-2 text-left">
-                                  Documento anexo
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Folio del anexo
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Nombre del documento
-                                </th>
+                                <th className="px-4 py-2 text-left">Folio</th>
+                                <th className="px-4 py-2 text-left">DocId</th>
+                                <th className="px-4 py-2 text-left">Remitente</th>
+                                <th className="px-4 py-2 text-left">Asunto</th>
+                                <th className="px-4 py-2 text-left">Eliminar</th>
                               </tr>
                             </thead>
 
                             <tbody>
-                              {anexosFiltrados.length > 0 ? (
-                                anexosFiltrados.map((anexo, index) => (
+                              {relacionadosFiltrados.length > 0 ? (
+                                relacionadosFiltrados.map((relacionado) => (
                                   <tr
-                                    key={index}
+                                    key={relacionado.value}
                                     className="border-t hover:bg-gray-50"
                                   >
+                                    <td className="px-4 py-2 text-gray-700">{relacionado.folio || 'Sin folio'}</td>
+                                    <td className="px-4 py-2 text-gray-700">{relacionado.docId || 'Sin docId'}</td>
+                                    <td className="px-4 py-2 text-gray-700">{relacionado.remitente || 'N/A'}</td>
+                                    <td className="px-4 py-2 text-gray-700">{relacionado.asunto || 'Sin asunto'}</td>
                                     <td className="px-4 py-2">
-                                      <button className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90">
-                                        Ver Archivo
+                                      <button
+                                        onClick={() => handleRemoveRelacionado(relacionado.value)}
+                                        className="text-red-500 hover:text-red-700 transition"
+                                      >
+                                        <Trash2 size={16} />
                                       </button>
-                                    </td>
-
-                                    <td className="px-4 py-2 text-gray-700">
-                                      {anexo.folio}
-                                    </td>
-
-                                    <td className="px-4 py-2 text-gray-700">
-                                      {anexo.nombre}
                                     </td>
                                   </tr>
                                 ))
                               ) : (
                                 <tr>
-                                  <td colSpan={3} className="text-center py-4 text-gray-400">
-                                    Sin resultados
+                                  <td colSpan={5} className="text-center py-4 text-gray-400">
+                                    Sin documentos relacionados
                                   </td>
                                 </tr>
                               )}
@@ -1601,52 +2021,7 @@ export default function BuscadorDocumentos() {
                                 </button>
 
                                 <button
-                                  onClick={async () => {
-                                    if (!validarAgregarAnexo()) {
-                                      Swal.fire({
-                                        toast: true,
-                                        position: "top-end",
-                                        icon: "error",
-                                        title: "Faltan campos obligatorios",
-                                        showConfirmButton: false,
-                                        timer: 2500,
-                                      });
-                                      return;
-                                    }
-
-                                    // Confirmación antes de guardar
-                                    const result = await Swal.fire({
-                                      title: "Confirmación",
-                                      text: "¿Seguro que desea continuar?, su información está correcta?",
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonText: "OK",
-                                      cancelButtonText: "Cancelar",
-                                      confirmButtonColor: "#8B1538",
-                                      cancelButtonColor: "#6B7280",
-                                    });
-
-                                    if (result.isConfirmed) {
-                                      // Aquí guardas (API, etc)
-                                      console.log("Guardado con éxito:", { mensaje, nombreDoc, archivo });
-
-                                      Swal.fire({
-                                        toast: true,
-                                        position: "top-end",
-                                        icon: "success",
-                                        title: "Documento guardado correctamente",
-                                        showConfirmButton: false,
-                                        timer: 2000,
-                                      });
-
-                                      setMostrarModalSubirAnexo(false);
-                                      // Opcional: limpiar formulario
-                                      setMensaje("");
-                                      setNombreDoc("");
-                                      setArchivo(null);
-                                      setErrores({});
-                                    }
-                                  }}
+                                  onClick={handleUploadAnexo}
                                   className="px-4 py-2 bg-[#8B1538] text-white rounded"
                                 >
                                   Guardar
@@ -2131,16 +2506,26 @@ export default function BuscadorDocumentos() {
                                     key={index}
                                     className="border-t hover:bg-gray-50"
                                   >
-                                    <td className="px-3 py-2">{turno.instruccion}</td>
-                                    <td className="px-3 py-2">{turno.funcionario}</td>
-                                    <td className="px-3 py-2">{turno.areaDestino}</td>
-                                    <td className="px-3 py-2">{turno.prioridad}</td>
-                                    <td className="px-3 py-2">{turno.fecha}</td>
-                                    <td className="px-3 py-2">{turno.areaTurna}</td>
-                                    <td className="px-3 py-2">{turno.quienTurna}</td>
-                                    <td className="px-3 py-2 font-medium">
-                                      {turno.estatus}
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.instruccion?.descripcion || turno.instruccion?.label || turno.instruccion || "Sin instrucción"}
                                     </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.dirigido?.nombre || turno.remitente?.label || turno.remitente || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.areaDestino?.nombre || turno.areaDestino?.label || turno.areaDestino || "Sin área"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">{turno.prioridad || "-"}</td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.dirigido?.area || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 font-medium">{turno.status || "Pendiente"}</td>
                                   </tr>
                                 ))
                               ) : (
@@ -2191,23 +2576,35 @@ export default function BuscadorDocumentos() {
                                 {/* Instrucción */}
                                 <div className="col-span-2">
                                   <label>Instrucción*</label>
-                                  <input
+                                  <select
                                     value={form.instruccion}
-                                    onChange={(e) =>
-                                      setForm({ ...form, instruccion: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.instruccion ? "border-red-500" : "border-gray-300"
-                                    }`}
-                                    placeholder="Buscar y seleccionar opción"
-                                  />
-
+                                    onChange={(e) => setForm({ ...form, instruccion: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.instruccion ? "border-red-500" : "border-gray-300"}`}
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {instrucciones.map((inst) => (
+                                      <option key={inst.value} value={inst.value}>
+                                        {inst.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Funcionario */}
                                 <div>
                                   <label>Funcionario que remite</label>
-                                  <input className="w-full border rounded px-3 py-2" />
+                                  <select
+                                    value={form.remitente}
+                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {remitentes.map((item) => (
+                                      <option key={item.value} value={item.value}>
+                                        {item.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Área destino */}
@@ -2215,22 +2612,33 @@ export default function BuscadorDocumentos() {
                                   <label>Área de destino*</label>
                                   <select
                                     value={form.areaDestino}
-                                    onChange={(e) =>
-                                      setForm({ ...form, areaDestino: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.areaDestino ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    onChange={(e) => setForm({ ...form, areaDestino: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.areaDestino ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
+                                    {areas.map((area) => (
+                                      <option key={area.value} value={area.value}>
+                                        {area.label}
+                                      </option>
+                                    ))}
                                   </select>
-
                                 </div>
 
                                 {/* Dirigido a */}
                                 <div className="col-span-2">
                                   <label>Dirigido a</label>
-                                  <input className="w-full border rounded px-3 py-2" placeholder="Buscar y seleccionar opción" />
+                                  <select
+                                    value={form.dirigido}
+                                    onChange={(e) => setForm({ ...form, dirigido: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {usuarios.map((user) => (
+                                      <option key={user.value} value={user.value}>
+                                        {user.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Prioridad */}
@@ -2238,16 +2646,14 @@ export default function BuscadorDocumentos() {
                                   <label>Prioridad*</label>
                                   <select
                                     value={form.prioridad}
-                                    onChange={(e) =>
-                                      setForm({ ...form, prioridad: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.prioridad ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    onChange={(e) => setForm({ ...form, prioridad: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
+                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
+                                    <option value="Urgente">Urgente</option>
+                                    <option value="Normal">Normal</option>
                                   </select>
-
                                 </div>
 
                                 {/* Fecha */}
@@ -2269,13 +2675,28 @@ export default function BuscadorDocumentos() {
                                 {/* Quién lo turna */}
                                 <div>
                                   <label>Quién lo turna</label>
-                                  <input className="w-full border rounded px-3 py-2" />
+                                  <select
+                                    value={form.turna}
+                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {usuarios.map((user) => (
+                                      <option key={user.value} value={user.value}>
+                                        {user.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Notas */}
                                 <div className="col-span-2">
                                   <label>Notas</label>
-                                  <textarea className="w-full border rounded px-3 py-2"></textarea>
+                                  <textarea
+                                    value={form.notas}
+                                    onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  />
                                 </div>
 
                                 {/* Autorizar */}
@@ -2323,7 +2744,11 @@ export default function BuscadorDocumentos() {
                         {/* Botón agregar */}
                         <div className="flex justify-start">
                           <button
-                            onClick={() => setMostrarModalCopias(true)}
+                            onClick={() => {
+                              setMostrarModalCopias(true);
+                              setBusquedaFuncionario("");
+                              setSelectedCopiaUsuario(null);
+                            }}
                              className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
                             Añadir funcionario
@@ -2340,27 +2765,36 @@ export default function BuscadorDocumentos() {
                             </thead>
 
                             <tbody>
-                              {copias.map((funcionario, index) => (
-                                <tr
-                                  key={index}
-                                  className="border-t hover:bg-gray-50"
-                                >
-                                  {/* 🔥 Columna eliminar */}
-                                  <td className="px-4 py-2">
-                                    <button
-                                      onClick={() => eliminarCopia(index)}
-                                      className="text-red-500 hover:text-red-700 transition"
-                                      title="Eliminar"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </td>
+                              {copiasDocumento.length > 0 ? (
+                                copiasDocumento.map((copia, index) => (
+                                  <tr
+                                    key={copia._id || index}
+                                    className="border-t hover:bg-gray-50"
+                                  >
+                                    <td className="px-4 py-2">
+                                      <button
+                                        onClick={() => {
+                                          setCopiasDocumento((prev) => prev.filter((_, i) => i !== index));
+                                        }}
+                                        className="text-red-500 hover:text-red-700 transition"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
 
-                                  <td className="px-4 py-2 text-gray-700">
-                                    {funcionario}
+                                    <td className="px-4 py-2 text-gray-700">
+                                      {copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "Sin funcionario"}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={2} className="text-center py-4 text-gray-400">
+                                    Sin copias registradas
                                   </td>
                                 </tr>
-                              ))}
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -2547,14 +2981,14 @@ export default function BuscadorDocumentos() {
                       {documentosFiltrados.length > 0 ? (
                         documentosFiltrados.map((d) => (
                           <div
-                            key={d.value}
+                            key={d.docId}
                             onClick={() => {
-                              if (!documentosSeleccionados.includes(d.value)) {
-                                setDocumentosSeleccionados([...documentosSeleccionados, d.value]);
+                              if (!documentosSeleccionados.includes(d)) {
+                                setDocumentosSeleccionados([...documentosSeleccionados, d]);
 
                                 //  AQUÍ asigna lo que quieres mostrar en Anexos
                                 setAsuntoSeleccionado({
-                                  descripcion: d.label // o aquí puedes usar otra propiedad si tienes más info
+                                  descripcion: d.docId // o aquí puedes usar otra propiedad si tienes más info
                                 });
                               }
                               setBusquedaDocumentoRelacionado("");
@@ -2562,7 +2996,7 @@ export default function BuscadorDocumentos() {
                             }}
                             className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
                           >
-                            {d.label}
+                            {d.folio } - {d.asunto || "Sin asunto"}
                           </div>
                         ))
                       ) : (
@@ -2580,10 +3014,10 @@ export default function BuscadorDocumentos() {
                   <div className="border rounded p-2 max-h-32 overflow-y-auto">
                     {documentosSeleccionados.length > 0 ? (
                       documentosSeleccionados.map((id) => {
-                        const doc = documentos.find(d => d.value === id);
+                        const doc = documentos.find(d => d.docId === id.docId);
                         return (
-                          <div key={id} className="flex justify-between items-center py-1">
-                            <span className="text-sm">{doc ? doc.label : id}</span>
+                          <div key={id.docId} className="flex justify-between items-center py-1">
+                            <span className="text-sm">{doc ? doc.folio : id.docId}</span>
                             <button
                               onClick={() => setDocumentosSeleccionados(documentosSeleccionados.filter(sel => sel !== id))}
                               className="text-red-500 text-xs"
@@ -2604,10 +3038,7 @@ export default function BuscadorDocumentos() {
               {/* FOOTER */}
               <div className="flex justify-end p-4">
                 <button
-                  onClick={() => {
-                    setForm({ ...form, relacionados: documentosSeleccionados });
-                    setMostrarModalRelacionado(false);
-                  }}
+                  onClick={handleSaveRelacionados}
                   className="bg-[#8B1538] text-white px-6 py-2 rounded"
                 >
                   Guardar
@@ -2837,16 +3268,17 @@ export default function BuscadorDocumentos() {
                     {mostrarOpcionesFuncionario && (
                       <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
                         {funcionariosFiltrados.length > 0 ? (
-                          funcionariosFiltrados.map((f, i) => (
+                          funcionariosFiltrados.map((e) => (
                             <div
-                              key={i}
+                              key={e.value}
                               onClick={() => {
-                                setBusquedaFuncionario(f);
+                                setBusquedaFuncionario(e.label);
+                                setSelectedCopiaUsuario(e);
                                 setMostrarOpcionesFuncionario(false);
                               }}
                               className="px-2 py-2 hover:bg-gray-100 cursor-pointer"
                             >
-                              {f}
+                              {e.label}
                             </div>
                           ))
                         ) : (
@@ -2862,14 +3294,7 @@ export default function BuscadorDocumentos() {
                 {/* FOOTER */}
                 <div className="flex justify-end p-4">
                   <button
-                    onClick={() => {
-                      if (!busquedaFuncionario.trim()) return;
-
-                      setCopias((prev) => [...prev, busquedaFuncionario]);
-
-                      setBusquedaFuncionario("");
-                      setMostrarModalCopias(false);
-                    }}
+                    onClick={handleGuardarCopia}
                     className="bg-[#C53030] text-white px-6 py-2 rounded"
                   >
                     Guardar

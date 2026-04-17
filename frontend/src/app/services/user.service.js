@@ -9,9 +9,12 @@ export const getUsers = (token) => {
     });
 }
 
-export const updateUser = (id, data) => {
+export const updateUser = (id, data, token) => {
     return fetchAPI(`/users/update/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(data)
     });
 }

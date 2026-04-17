@@ -17,6 +17,13 @@ export const createDocument = (data) => {
     });
 };
 
+export const uploadAnexo = (id, formData) => {
+    return fetchAPI(`/documentos/${id}/anexo-file`, {
+        method: 'POST',
+        body: formData,
+    });
+};
+
 export const updateDocument = (id, data) => {
     return fetchAPI(`/documentos/update/${id}`, {
         method: 'PUT',
@@ -30,8 +37,8 @@ export const deleteDocument = (id) => {
     });
 };
 
-export const getDocumentById = (id) => {
-    return fetchAPI(`/documentos/${id}`, {
+export const getDocumentById = (docId) => {
+    return fetchAPI(`/documentos/${docId}`, {
         method: 'GET',
     });
 };

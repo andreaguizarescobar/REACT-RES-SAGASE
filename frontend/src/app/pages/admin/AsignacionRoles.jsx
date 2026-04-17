@@ -1,10 +1,13 @@
 import { Minus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getUsers, updateUser } from "../../services/user.service.js";
 
 export function AsignacionRoles() {
   const [criterio, setCriterio] = useState("");
-
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [menu, setMenu] = useState({
     visible: false,
     x: 0,
@@ -12,50 +15,82 @@ export function AsignacionRoles() {
     user: null,
   });
 
-  // MOCK
-  const dataMock = [
-    {
-      nombre: "Andrea Vianney Guizar Escobar",
-      usuario: "AGN-AVGE",
-      proceso: "Correspondencia",
-      rol: "Administrador",
-    },
-    {
-      nombre: "Luis Pérez Sánchez",
-      usuario: "AGN-LPS",
-      proceso: "Finanzas",
-      rol: "Usuario",
-    },
-    {
-      nombre: "Carlos Ramírez Torres",
-      usuario: "AGN-CRT",
-      proceso: null,
-      rol: null,
-    },
-    {
-      nombre: "María López Hernández",
-      usuario: "AGN-MLH",
-      proceso: null,
-      rol: null,
-    },
+  const [modalRol, setModalRol] = useState({
+    visible: false,
+    user: null,
+    modo: "asignar",
+  });
+
+  const [formRol, setFormRol] = useState({
+    proceso: "",
+    rol: "",
+  });
+
+  const procesos = [
+    "Correspondencia",
+    "Finanzas",
+    "Gestión de instrucciones y solicitudes",
   ];
 
-  // FILTRO
-  const filteredUsers = dataMock.filter((user) => {
+  const roles = [
+    "Administrador",
+    "Ejecutor",
+    "Registrador Enrutador",
+    "Validador de respuesta",
+  ];
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await getUsers(token);
+
+      if (!response.ok) {
+        setError("No se pudieron cargar los usuarios.");
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Usuarios cargados:", data);
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (fetchError) {
+      console.error("Error cargando usuarios:", fetchError);
+      setError("Error de red al cargar los usuarios.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const getUserRole = (user) => {
+    const primaryRole = user.roles?.[0] || {};
+    console.log(`Roles del usuario ${user.username}:`, primaryRole.rol);
+    return {
+      proceso: primaryRole.proceso || null,
+      rol: primaryRole.rol || null,
+    };
+  };
+
+  const filteredUsers = users.filter((user) => {
     const texto = criterio.toLowerCase();
+    const { proceso, rol } = getUserRole(user);
 
     return (
-      user.nombre.toLowerCase().includes(texto) ||
-      user.usuario.toLowerCase().includes(texto) ||
-      (user.proceso || "").toLowerCase().includes(texto) ||
-      (user.rol || "").toLowerCase().includes(texto)
+      (user.nombre?.toLowerCase().includes(texto) ||
+        user.username?.toLowerCase().includes(texto) ||
+        user.userId?.toLowerCase().includes(texto) ||
+        proceso?.toLowerCase().includes(texto) ||
+        rol?.toLowerCase().includes(texto))
     );
   });
 
-  // 👉 CLICK EN FILA
   const handleClick = (e, user) => {
     e.stopPropagation();
-
     setMenu({
       visible: true,
       x: e.clientX,
@@ -65,69 +100,75 @@ export function AsignacionRoles() {
   };
 
   const cerrarMenu = () => {
-    setMenu({ ...menu, visible: false });
+    setMenu({ ...menu, visible: false, user: menu.user });
   };
 
-  // 👉 ACCIONES
   const handleAsignar = () => {
     setModalRol({
       visible: true,
       user: menu.user,
       modo: "asignar",
     });
-
-    setFormRol({
-      proceso: "",
-      rol: "",
-    });
-
+    setFormRol({ proceso: "", rol: "" });
     cerrarMenu();
   };
 
   const handleEditar = () => {
+    const { proceso, rol } = getUserRole(menu.user);
     setModalRol({
       visible: true,
       user: menu.user,
       modo: "editar",
     });
-
-    setFormRol({
-      proceso: menu.user.proceso || "",
-      rol: menu.user.rol || "",
-    });
-
+    setFormRol({ proceso: proceso || "", rol: rol || "" });
     cerrarMenu();
   };
 
+  const handleEliminar = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await updateUser(menu.user.userId, { roles: [] }, token);
 
-  const handleEliminar = () => {
-    //alert(`Eliminar rol de ${menu.user.nombre}`);
-    cerrarMenu();
+      if (!response.ok) {
+        console.error("Error eliminando rol:", response.statusText);
+        return;
+      }
+
+      await fetchUsers();
+      cerrarMenu();
+    } catch (error) {
+      console.error("Error eliminando rol:", error);
+    }
   };
 
-const [modalRol, setModalRol] = useState({
-  visible: false,
-  user: null,
-  modo: "asignar", // o "editar"
-});
+  const handleSaveRole = async () => {
+    if (!formRol.proceso || !formRol.rol) {
+      alert("Selecciona proceso y rol antes de guardar.");
+      return;
+    }
 
-const [formRol, setFormRol] = useState({
-  proceso: "",
-  rol: "",
-});
+    try {
+      const token = localStorage.getItem("token");
+      const response = await updateUser(
+        modalRol.user.userId,
+        { roles: [{ rol: formRol.rol, proceso: formRol.proceso }] },
+        token
+      );
 
-const procesos = [
-  "Correspondencia",
-  "Finanzas",
-  "Gestión de instrucciones y solicitudes",
-];
+      if (!response.ok) {
+        console.error("Error guardando rol:", response.statusText);
+        alert("No se pudo guardar el rol. Revisa la consola.");
+        return;
+      }
 
-const roles = [
-  "Administrador",
-  "Ejecutor",
-  "Registrador Enrutador",
-  "Validador de respuesta"
-];
+      await fetchUsers();
+      setModalRol({ visible: false, user: null, modo: "asignar" });
+      setMenu({ ...menu, visible: false, user: null });
+    } catch (saveError) {
+      console.error("Error guardando rol:", saveError);
+      alert("Ocurrió un error al guardar el rol.");
+    }
+  };
 
   return (
     <div
@@ -183,7 +224,7 @@ const roles = [
                     }`}
                   >
                     <td className="px-3 py-2">{user.nombre}</td>
-                    <td className="px-3 py-2">{user.usuario}</td>
+                    <td className="px-3 py-2">{user.username}</td>
                     <td className="px-3 py-2">
                       {user.proceso || (
                         <span className="italic">Sin asignar</span>

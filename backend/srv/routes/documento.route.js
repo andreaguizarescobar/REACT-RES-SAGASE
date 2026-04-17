@@ -1,6 +1,21 @@
 import { Router } from "express";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import * as documentoController from "../controllers/documento.controller.js";
 const router = Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadDir = path.join(__dirname, '../uploads/anexos');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadDir),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`),
+  }),
+});
 
 // documento/getAll
 router.get('/getAll', documentoController.getAll);
@@ -18,6 +33,8 @@ router.patch('/:docId/bitacora', documentoController.patchBitacoraDocumento);
 router.patch('/:docId/copia', documentoController.patchCopiaDocumento);
 // patch documento/:docId/anexo
 router.patch('/:docId/anexo', documentoController.patchAnexoDocumento);
+// patch documento/:docId/anexo-file
+router.post('/:docId/anexo-file', upload.single('archivo'), documentoController.uploadAnexoDocumento);
 // patch documento/:docId/removerAnexo
 router.patch('/:docId/removerAnexo', documentoController.patchRemoverAnexoDocumento);
 // patch documento/:docId/status
