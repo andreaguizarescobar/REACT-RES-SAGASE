@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Minus } from "lucide-react";
 import nayaritLogo from "../../assets/images/nayaritLogo.png";
 import bgNayarit from "../../assets/images/personajenayarit.jpg";
 
@@ -16,12 +16,16 @@ export function Login() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -146,24 +150,126 @@ export function Login() {
   const cumpleRegex = validarPassword(newPassword);
   const coincide = newPassword === confirmPassword && confirmPassword.length > 0;
 
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleRecuperarPassword = async () => {
+    if (!email) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: "Ingrese su correo electrónico",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      return;
+    }
+
+     // Simulación de envío
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Correo enviado correctamente",
+      text: "Revise su bandeja de entrada",
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
+
+    setShowRecoverModal(false);
+
+    // Redirigir a pantalla de reset (simulada)
+    setTimeout(() => {
+      navigate("/reset-password");
+    }, 2000);
+    // try {
+    //   const response = await fetch("/api/auth/recuperar-password", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({ email }),
+    //   });
+
+    //   const data = await response.json();
+
+    //   if (response.ok) {
+    //     Swal.fire({
+    //       toast: true,
+    //       position: "top-end",
+    //       icon: "success",
+    //       title: "Correo enviado correctamente",
+    //       showConfirmButton: false,
+    //       timer: 3000,
+    //       timerProgressBar: true,
+    //     });
+
+    //     setShowRecoverModal(false);
+    //     setEmail("");
+    //   } else {
+    //     Swal.fire({
+    //       toast: true,
+    //       position: "top-end",
+    //       icon: "error",
+    //       title: data.message || "No se pudo enviar el correo",
+    //       showConfirmButton: false,
+    //       timer: 3000,
+    //       timerProgressBar: true,
+    //     });
+    //   }
+    // } catch (error) {
+    //   Swal.fire({
+    //     toast: true,
+    //     position: "top-end",
+    //     icon: "error",
+    //     title: "Error de conexión",
+    //     showConfirmButton: false,
+    //     timer: 3000,
+    //     timerProgressBar: true,
+    //   });
+    // }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     
     <div className="min-h-screen flex">
 
       {/* IZQUIERDA (LOGIN) */}
       <div className="w-full md:w-[35%] bg-gray-100 flex items-center justify-center p-8">
-        <div className="w-full max-w-sm">
-
-          <div className="mb-8 text-center">
+        <motion.div
+          className="w-full max-w-sm"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={itemVariants} className="mb-4 text-center">
             <img
               src={nayaritLogo}
               alt="Nayarit Secretaría de Educación"
               className="h-16 mx-auto mb-4"
             />
-            <h2 className="text-3xl text-[#8B1538] tracking-wide">
+            <h2 className="text-4xl font-semibold text-[#8B1538] tracking-widest">
               SAGASE
             </h2>
-          </div>
+          </motion.div>
 
           <h2 className="text-2xl mb-2 text-gray-800 text-center">
             Iniciar Sesión
@@ -209,9 +315,14 @@ export function Login() {
             </div>
 
             <div className="text-right">
-              <a href="#" className="text-sm text-[#8B1538] hover:underline">
+              <button
+                type="button"
+                onClick={() => setShowRecoverModal(true)}
+                className="text-sm text-[#8B1538] hover:underline"
+              >
                 ¿Olvidó su contraseña?
-              </a>
+              </button>
+
             </div>
 
             <button
@@ -230,7 +341,7 @@ export function Login() {
             </p>
 
           </form>
-        </div>
+        </motion.div>
       </div>
 
       {/* DERECHA (FONDO + CARD CON TU TEXTO) */}
@@ -247,20 +358,28 @@ export function Login() {
 
         {/* CARD FLOTANTE CON TU CONTENIDO ORIGINAL */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white w-[470px] p-10 rounded-2xl shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white w-[470px] p-10 rounded-2xl shadow-xl"
+          >
 
             <h1 className="text-3xl mb-3 text-gray-800">
-              Bienvenido a <br /> SAGASE
+              Bienvenido a <br /> 
+              <h1 className="text-4xl font-semibold text-[#8B1538] tracking-widest">
+              SAGASE
+              </h1>
             </h1>
 
             <p className="text-gray-500 leading-relaxed">
               Sistema Automatizado de Gestión y Archivos para la Secretaría de
-              Educación del Estado de Nayarit. Esta plataforma permite el
+              Educación del Estado de Nayarit. <br/> Esta plataforma permite el
               registro, seguimiento, validación y administración de documentos
               institucionales de manera digital, segura y organizada.
             </p>
 
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -372,6 +491,65 @@ export function Login() {
                         Confirmar
                       </button>
                     </div>
+
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showRecoverModal && (
+            <motion.div
+              className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white w-[500px] rounded shadow-lg relative"
+              >
+                {/* HEADER */}
+                <div className="px-4 py-3 border-b text-sm font-semibold text-gray-700">
+                  <h1>Restablecer contraseña</h1>
+                  Ingrese el correo electrónico relacionado con su cuenta.
+                </div>
+
+                {/* BOTÓN CERRAR */}
+                <button
+                  onClick={() => setShowRecoverModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white absolute top-2 right-3 hover:opacity-90"
+                >
+                  <Minus size={14} />
+                </button>
+
+                {/* CONTENIDO */}
+                <div className="p-6 space-y-4">
+                  
+                  <input
+                    type="email"
+                    placeholder="Correo electrónico"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                  />
+
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium">Nota:</span> Se enviará un correo con instrucciones para restablecer su contraseña. Asegúrese de revisar su bandeja de entrada y la carpeta de spam.
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleRecuperarPassword}
+                      className="bg-[#8B1538] text-white px-4 py-2 rounded text-sm hover:bg-[#6B0F2A] transition"
+                    >
+                      Enviar
+                    </button>
+                  </div>
 
                 </div>
               </motion.div>

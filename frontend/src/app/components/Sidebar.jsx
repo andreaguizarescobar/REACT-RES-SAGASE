@@ -1,29 +1,29 @@
 import { useState } from "react";
 import bgSidebar from "../assets/images/fondogob.jpg";
 
-const generalTasks = [
-  { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
-  { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
-  { label: "Registra documento y genera notas de atención", color: "text-[#79142A]", view: "registra-documento" },
-  { label: "Reporte de asuntos", color: "text-[#60595D]", view: "reporte-asuntos" },
-  { label: "Reporte de acuerdos", color: "text-[#79142A]", view: "reporte-acuerdos" },
-  { label: "Generación de Oficios", color: "text-[#60595D]", view: "generacion-oficios" },
-  { label: "Control de Oficios", color: "text-[#79142A]", view: "control-oficios" },
-  { label: "Registro Salida de Correspondencia", color: "text-[#60595D]", view: "salida-correspondencia" },
-  { label: "Modifica Salida de Correspondencia", color: "text-[#79142A]", view: "modificaS-correspondencia" },
-  { label: "Consulta Salida de Correspondencia", color: "text-[#60595D]", view: "consultaS-correspondencia" },
-  { label: "Reporte Salida de Correspondencia", color: "text-[#79142A]", view: "reporteS-correspondencia" },
-  { label: "Tablero de control Salida de Correspondencia", color: "text-[#60595D]", view: "tableroS-correspondencia" },
-  { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
-];
+// const generalTasks = [
+//   { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
+//   { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
+//   { label: "Registra documento y genera notas de atención", color: "text-[#79142A]", view: "registra-documento" },
+//   { label: "Reporte de asuntos", color: "text-[#60595D]", view: "reporte-asuntos" },
+//   { label: "Reporte de acuerdos", color: "text-[#79142A]", view: "reporte-acuerdos" },
+//   { label: "Generación de Oficios", color: "text-[#60595D]", view: "generacion-oficios" },
+//   { label: "Control de Oficios", color: "text-[#79142A]", view: "control-oficios" },
+//   { label: "Registro Salida de Correspondencia", color: "text-[#60595D]", view: "salida-correspondencia" },
+//   { label: "Modifica Salida de Correspondencia", color: "text-[#79142A]", view: "modificaS-correspondencia" },
+//   { label: "Consulta Salida de Correspondencia", color: "text-[#60595D]", view: "consultaS-correspondencia" },
+//   { label: "Reporte Salida de Correspondencia", color: "text-[#79142A]", view: "reporteS-correspondencia" },
+//   { label: "Tablero de control Salida de Correspondencia", color: "text-[#60595D]", view: "tableroS-correspondencia" },
+//   { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+// ];
 
 const tareasPorRol = {
   VALIDADOR: [
-    { label: "Visualiza documento", view: "visualiza-documento" },
-    { label: "Validar respuesta", view: "validar-respuesta" },
-    { label: "Tablero de control", view: "tablero-control" },
-    { label: "Generación de oficios", view: "generacion-oficios" },
-    { label: "Control de oficios", view: "control-oficios" }
+    { label: "Visualiza documento", color: "text-[#79142A]", view: "visualiza-documento" },
+    { label: "Validar respuesta", color: "text-[#60595D]", view: "validar-respuesta" },
+    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
+    { label: "Generación de oficios", color: "text-[#60595D]", view: "generacion-oficios" },
+    { label: "Control de oficios", color: "text-[#79142A]", view: "control-oficios" }
   ],
 
   REGISTRADOR: [
@@ -43,12 +43,12 @@ const tareasPorRol = {
   ],
 
   EJECUTOR: [
-    { label: "Visualiza documento", view: "visualiza-documento" },
-    { label: "Atiende asunto", view: "atiende-asunto" },
-    { label: "Tablero de control", view: "tablero-control" },
-    { label: "Buscador de documentos", view: "buscador-documento" },
-    { label: "Reporte de asuntos", view: "reporte-asuntos" },
-    { label: "Reporte de acuerdos", view: "reporte-acuerdos" }
+    { label: "Visualiza documento",  color: "text-[#79142A]", view: "visualiza-documento" },
+    { label: "Atiende asunto", color: "text-[#60595D]", view: "atiende-asunto" },
+    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
+    { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
+    { label: "Reporte de asuntos", color: "text-[#79142A]", view: "reporte-asuntos" },
+    { label: "Reporte de acuerdos", color: "text-[#60595D]", view: "reporte-acuerdos" }
   ]
 };
 

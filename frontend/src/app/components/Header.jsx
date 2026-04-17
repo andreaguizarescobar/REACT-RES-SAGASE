@@ -9,7 +9,7 @@ import  Swal from "sweetalert2";
 export function Header({ onToggleSidebar, onGoHome }) {
   const navigate = useNavigate();
   const location = useLocation();
-  // Determina si es admin por la ruta o por una bandera en localStorage (ajusta según tu auth)
+
   const isAdmin =
     location?.pathname?.startsWith?.("/admin") ||
     localStorage.getItem("isAdmin") === "true";
@@ -44,6 +44,15 @@ export function Header({ onToggleSidebar, onGoHome }) {
       time: "Ayer",
     },
   ];
+
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const userStorage = localStorage.getItem("user");
+    if (userStorage) {
+      setUsuario(JSON.parse(userStorage));
+    }
+  }, []);
 
   const handleLogout = () => {
     navigate("/");
@@ -179,8 +188,11 @@ export function Header({ onToggleSidebar, onGoHome }) {
           >
             <User size={18} />
             <span>
-              {isAdmin ? "Administración_SAGA" : "Andrea Escobar"}
+              {usuario
+                ? `${usuario.nombre || usuario.username}`
+                : "Usuario"}
             </span>
+
           </button>
 
           <AnimatePresence>
