@@ -53,7 +53,6 @@ export function AsignacionRoles() {
       }
 
       const data = await response.json();
-      console.log("Usuarios cargados:", data);
       setUsers(Array.isArray(data) ? data : []);
     } catch (fetchError) {
       console.error("Error cargando usuarios:", fetchError);
@@ -69,7 +68,6 @@ export function AsignacionRoles() {
 
   const getUserRole = (user) => {
     const primaryRole = user.roles?.[0] || {};
-    console.log(`Roles del usuario ${user.username}:`, primaryRole.rol);
     return {
       proceso: primaryRole.proceso || null,
       rol: primaryRole.rol || null,

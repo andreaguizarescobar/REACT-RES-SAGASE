@@ -122,7 +122,6 @@ export function ModificaSalidaCorrespondencia() {
       confirmButtonColor: "#8B1538",
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log("Guardado:", formEditar);
 
         Swal.fire({
           icon: "success",

@@ -1,8 +1,10 @@
 import { User, Menu, LogOut, Bell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import nayaritLogo from "../assets/images/nayaritLogo.png";
+import { verifyTokenRequest } from "../services/auth.service";
+import  Swal from "sweetalert2";
 
 export function Header({ onToggleSidebar, onGoHome }) {
   const navigate = useNavigate();
@@ -46,6 +48,45 @@ export function Header({ onToggleSidebar, onGoHome }) {
   const handleLogout = () => {
     navigate("/");
   };
+
+  const verifyToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "Sesión expirada",
+        text: "Por favor, inicia sesión nuevamente.",
+        icon: "warning",
+        confirmButtonText: "Ir a login",
+      }).then(() => {
+        navigate("/");
+      });
+    }
+
+    verifyTokenRequest(token)
+      .then((response) => {
+        if (!response.ok) {
+          Swal.fire({
+            title: "Sesión expirada",
+            text: "Por favor, inicia sesión nuevamente.",
+            icon: "warning",
+            confirmButtonText: "Ir a login",
+          }).then(() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("isAdmin");
+              navigate("/");
+          }
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error verifying token:", error);
+        navigate("/");
+      });
+  };
+
+  useEffect(() => {
+    verifyToken();
+  }, []);
 
   return (
     <header className="bg-white border-b border-[#60595D]-200 flex flex-col">

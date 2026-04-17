@@ -47,8 +47,6 @@ export function GeneracionOficios() {
       contenido,
     };
 
-    console.log("Datos del documento:", data);
-
     // 👇 ABRE EL OFICIO
     setMostrarOficio(true);
   };

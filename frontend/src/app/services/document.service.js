@@ -10,7 +10,6 @@ export const getDocuments = (token) => {
 };
 
 export const createDocument = (data) => {
-    console.log("Data enviada al backend para documento:", data);
     return fetchAPI('/documentos/create', {
         method: 'POST',
         body: JSON.stringify(data)

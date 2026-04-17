@@ -97,7 +97,6 @@ export function AltaUsuarios() {
         password: credenciales.password,
     };
 
-    console.log("Datos del nuevo usuario:", nuevoUsuario, "token", localStorage.getItem("token")); // Verificar datos antes de enviar
     const response = await registerRequest(nuevoUsuario, localStorage.getItem("token"));
     if (response.ok) {
         Swal.fire({

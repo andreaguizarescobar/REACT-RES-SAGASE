@@ -11,6 +11,8 @@ router.get('/getUser/:userId', verifyToken, userController.getUser);
 router.post('/login', userController.login);
 // user/register
 router.post('/register',verifyToken, authorizeRole('ADMIN'), userController.register);
+// user/verificar-token
+router.post('/verificar-token', verifyToken, userController.verifyToken);
 // user/forgot-password
 router.post('/forgot-password', userController.forgot);
 // user/reset-password

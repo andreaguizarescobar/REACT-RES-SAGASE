@@ -117,8 +117,6 @@ export function SalidaCorrespondencia() {
       cancelButtonColor: "#6B7280",
     }).then((result) => {
       if (result.isConfirmed) {
-        // ✅ AQUÍ YA GUARDA
-        console.log("Datos guardados:", form);
 
         Swal.fire({
           toast: true,

@@ -114,6 +114,14 @@ export const cambiarPassword = async (req, res) => {
   }
 };
 
+export const verifyToken = async (req, res) => {
+  try {
+    res.json({ message: "Token válido" });
+  } catch (error) {
+    res.status(401).json({ message: "Token inválido" });
+  }
+};
+
 export default {
   register,
   login,
@@ -123,5 +131,6 @@ export default {
   getAllUsers,
   deleteUser,
   patchUser,
-  cambiarPassword
+  cambiarPassword,
+  verifyToken
 };

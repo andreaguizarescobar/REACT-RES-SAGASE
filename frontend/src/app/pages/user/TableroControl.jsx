@@ -1439,7 +1439,6 @@ export function TableroControl() {
                   <div className="flex justify-end mt-6">
                     <button
                       onClick={() => {
-                        console.log("Documento actualizado:", documentoEditar);
                         setDocumentoEditar(null);
                       }}
                       className="bg-[#8B1538] text-white px-6 py-2 rounded-lg hover:opacity-90"

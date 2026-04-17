@@ -2843,9 +2843,6 @@ const obtenerLabel = (lista, id) => {
                               });
 
                               if (result.isConfirmed) {
-                                // Aquí guardas (API, etc)
-                                console.log("Guardado con éxito:", { mensaje, nombreDoc, archivo });
-
                                 Swal.fire({
                                   toast: true,
                                   position: "top-end",
