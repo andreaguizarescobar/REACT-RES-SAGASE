@@ -16,5 +16,5 @@ export const sendResetEmail = async (email, token) => {
     `
   };
 
-  await transporter.send(msg);
+  await transporter.sendMail(msg)
 };

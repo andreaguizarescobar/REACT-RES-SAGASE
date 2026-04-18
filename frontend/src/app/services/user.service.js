@@ -30,3 +30,17 @@ export const getUserById = (id) => {
         method: 'GET',
     });
 }
+
+export const forgot = (email) => {
+    return fetchAPI(`/users/forgot-password`, {
+        method: 'POST',
+        body: JSON.stringify({ email })
+    })
+}
+
+export const reset = (token, password) => {
+    return fetchAPI(`/users/reset-password`, {
+        method: 'POST',
+        body: JSON.stringify({ token, password })
+    })
+}

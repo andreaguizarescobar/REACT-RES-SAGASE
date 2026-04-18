@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import bgNayarit from "../../assets/images/personajenayarit2.jpg";
 import nayaritLogo from "../../assets/images/nayaritLogo.png";
+import { reset } from "../../services/user.service";
 
 export function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -13,7 +14,6 @@ export function ResetPassword() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const navigate = useNavigate();
-
   const validarPassword = (pass) => {
     return /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{1,8}$/.test(pass);
   };
@@ -27,7 +27,24 @@ export function ResetPassword() {
     const coincide =
     newPassword === confirmPassword && confirmPassword.length > 0;
 
-  const handleReset = () => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Token no proporcionado",
+        showConfirmButton: false,
+        timer: 3000,
+      });
+      navigate("/");
+    }
+
+  }, [navigate]);
+
+  const handleReset = async() => {
     if (newPassword !== confirmPassword) {
       return Swal.fire({
         toast: true,
@@ -50,19 +67,34 @@ export function ResetPassword() {
       });
     }
 
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "Contraseña restablecida",
-      text: "Inicie sesión con su nueva contraseña",
-      showConfirmButton: false,
-      timer: 4000,
-    });
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const response = await reset(token, newPassword);
+    if (!response.ok) {
+      const errorData = await response.json();
+      return Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Error al restablecer contraseña",
+        text: errorData.message || "Intente nuevamente",
+        showConfirmButton: false,
+        timer: 3000,
+      });
+    }
 
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Contraseña restablecida",
+          text: "Inicie sesión con su nueva contraseña",
+          showConfirmButton: false,
+          timer: 4000,
+        });
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
   };
 
   return (

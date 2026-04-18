@@ -7,6 +7,7 @@ import bgNayarit from "../../assets/images/personajenayarit.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import { loginRequest, cambiarPasswordRequest } from "../../services/auth.service";
+import { forgot } from "../../services/user.service";
 
 export function Login() {
   const [username, setUsername] = useState("");
@@ -21,9 +22,6 @@ export function Login() {
   const [showModal, setShowModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   const navigate = useNavigate();
 
@@ -167,7 +165,20 @@ export function Login() {
       return;
     }
 
-     // Simulación de envío
+    const response = await forgot(email);
+      if (!response.ok) {
+        const errorData = await response.json();
+        return Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: errorData.message || "Error al enviar el correo",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      }
+
     Swal.fire({
       toast: true,
       position: "top-end",
@@ -181,56 +192,6 @@ export function Login() {
 
     setShowRecoverModal(false);
 
-    // Redirigir a pantalla de reset (simulada)
-    setTimeout(() => {
-      navigate("/reset-password");
-    }, 2000);
-    // try {
-    //   const response = await fetch("/api/auth/recuperar-password", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({ email }),
-    //   });
-
-    //   const data = await response.json();
-
-    //   if (response.ok) {
-    //     Swal.fire({
-    //       toast: true,
-    //       position: "top-end",
-    //       icon: "success",
-    //       title: "Correo enviado correctamente",
-    //       showConfirmButton: false,
-    //       timer: 3000,
-    //       timerProgressBar: true,
-    //     });
-
-    //     setShowRecoverModal(false);
-    //     setEmail("");
-    //   } else {
-    //     Swal.fire({
-    //       toast: true,
-    //       position: "top-end",
-    //       icon: "error",
-    //       title: data.message || "No se pudo enviar el correo",
-    //       showConfirmButton: false,
-    //       timer: 3000,
-    //       timerProgressBar: true,
-    //     });
-    //   }
-    // } catch (error) {
-    //   Swal.fire({
-    //     toast: true,
-    //     position: "top-end",
-    //     icon: "error",
-    //     title: "Error de conexión",
-    //     showConfirmButton: false,
-    //     timer: 3000,
-    //     timerProgressBar: true,
-    //   });
-    // }
   };
 
   const containerVariants = {
