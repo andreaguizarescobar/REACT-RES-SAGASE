@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { verifyToken } from "../middlewares/auth.middlewares.js";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -22,28 +23,28 @@ router.get('/getAll', documentoController.getAll);
 // documento/:docId
 router.get('/:docId', documentoController.getById);
 // documento/create
-router.post('/create', documentoController.create);
+router.post('/create', verifyToken, documentoController.create);
 // documento/update/:docId
-router.put('/update/:docId', documentoController.putDocumento);
+router.put('/update/:docId',verifyToken, documentoController.putDocumento);
 // patch documento/:docId/turnado
-router.patch('/:docId/turnado', documentoController.patchTurnadoDocumento);
+router.patch('/:docId/turnado', verifyToken, documentoController.patchTurnadoDocumento);
 // patch documento/:docId/bitacora
-router.patch('/:docId/bitacora', documentoController.patchBitacoraDocumento);
+router.patch('/:docId/bitacora', verifyToken, documentoController.patchBitacoraDocumento);
 // patch documento/:docId/copia
-router.patch('/:docId/copia', documentoController.patchCopiaDocumento);
+router.patch('/:docId/copia', verifyToken, documentoController.patchCopiaDocumento);
 // patch documento/:docId/anexo
-router.patch('/:docId/anexo', documentoController.patchAnexoDocumento);
+router.patch('/:docId/anexo', verifyToken, documentoController.patchAnexoDocumento);
 // patch documento/:docId/anexo-file
-router.post('/:docId/anexo-file', upload.single('archivo'), documentoController.uploadAnexoDocumento);
+router.post('/:docId/anexo-file', verifyToken, upload.single('archivo'), documentoController.uploadAnexoDocumento);
 // patch documento/:docId/removerAnexo
-router.patch('/:docId/removerAnexo', documentoController.patchRemoverAnexoDocumento);
+router.patch('/:docId/removerAnexo', verifyToken, documentoController.patchRemoverAnexoDocumento);
 // patch documento/:docId/status
-router.patch('/:docId/status', documentoController.patchStatusDocumento);
+router.patch('/:docId/status', verifyToken, documentoController.patchStatusDocumento);
 // patch documento/:docId/relacionado
-router.patch('/:docId/relacionado', documentoController.patchRelacionadoDocumento);
+router.patch('/:docId/relacionado', verifyToken, documentoController.patchRelacionadoDocumento);
 // patch documento/:docId/removerRelacionado
-router.patch('/:docId/removerRelacionado', documentoController.patchRemoverRelacionadoDocumento);
+router.patch('/:docId/removerRelacionado', verifyToken, documentoController.patchRemoverRelacionadoDocumento);
 // documento/delete/:docId
-router.delete('/delete/:docId', documentoController.deleteDocumento);
+router.delete('/delete/:docId', verifyToken, documentoController.deleteDocumento);
 
 export default router;

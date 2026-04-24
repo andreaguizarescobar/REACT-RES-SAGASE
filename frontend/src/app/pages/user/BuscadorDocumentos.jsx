@@ -29,6 +29,7 @@ export default function BuscadorDocumentos() {
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
   const [documentoAnexos, setDocumentoAnexos] = useState([]);
   const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
+  const [bitacoraDocumento, setBitacoraDocumento] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [temasPrincipales, setTemasPrincipales] = useState([]);
@@ -41,6 +42,7 @@ export default function BuscadorDocumentos() {
   const [copiasDocumento, setCopiasDocumento] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
 
   useEffect(() => {
     const loadCatalogos = async () => {
@@ -92,7 +94,6 @@ export default function BuscadorDocumentos() {
           })));
         }
 
-        const token = localStorage.getItem("token");
         if (token) {
           const usersRes = await getUsers(token);
           if (usersRes.ok) {
@@ -117,7 +118,6 @@ useEffect(() => {
       setError(null);
 
       try {
-        const token = localStorage.getItem("token");
         const response = await getDocuments(token);
 
         if (!response.ok) {
@@ -199,6 +199,7 @@ useEffect(() => {
     temaPrincipal: "",
     temaSecundario: "",
     sintesis: "",
+    observaciones: "",
     documentoInterno: false,
     faltaInformacion: false,
     otroFuncionario: false,
@@ -217,7 +218,7 @@ useEffect(() => {
     if (!docId) return;
 
     try {
-      const response = await getDocumentById(docId);
+      const response = await getDocumentById(docId, token);
       if (!response.ok) {
         console.error("Error obteniendo documento por ID:", response.status, response.statusText);
         Swal.fire({
@@ -254,7 +255,8 @@ useEffect(() => {
         tipoDocumento: selectedTipoValue,
         temaPrincipal: selectedTemaValue,
         temaSecundario: selectedSecundarioValue,
-        sintesis: fullDoc.observaciones || fullDoc.sintesis || "",
+        sintesis: fullDoc.asunto,
+        observaciones: fullDoc.observaciones || "",
         documentoInterno: !!fullDoc.interno,
         faltaInformacion: !!fullDoc.faltaInformacion,
         otroFuncionario: !!fullDoc.otroFuncionario,
@@ -272,6 +274,7 @@ useEffect(() => {
       setDocumentoAnexos(fullDoc.anexos || []);
       setTurnosDocumento(fullDoc.turnados || []);
       setCopiasDocumento(fullDoc.copias || []);
+      setBitacoraDocumento(fullDoc.bitacora || []);
       setRelacionadosDocumento(
         (fullDoc.relacionados || [])
           .map((rel) => {
@@ -368,11 +371,11 @@ useEffect(() => {
             tema: formEditar.temaPrincipal,
             secundario: formEditar.temaSecundario,
             adicional: formEditar.materialAdicional,
-            observaciones: formEditar.sintesis,
-            asunto: asuntoSeleccionado?.descripcion || formEditar.sintesis,
+            observaciones: formEditar.observaciones,
+            asunto: formEditar.sintesis,
           };
 
-          const response = await updateDocument(currentDocId, payload);
+          const response = await updateDocument(currentDocId, payload, token);
           if (response.ok) {
             const updatedDocumento = await response.json();
             setDocumentos((prev) =>
@@ -535,39 +538,6 @@ const documentosFiltrados = documentos.filter((d) =>
   
   const bitacoraRef = useRef(null);
 
-  const bitacora = [
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Registró el asunto",
-      fecha: "11/10/2022",
-      hora: "21:45:30",
-      tipo: "registro",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Adjuntó el documento: GUARDIA NACIONAL.pdf",
-      fecha: "11/10/2022",
-      hora: "21:47:11",
-      tipo: "adjunto",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Generó la instrucción: Atender el tema y dar respuesta al interesado. Prioridad: Trámite Extra-urgente.",
-      fecha: "11/10/2022",
-      hora: "21:48:54",
-      tipo: "instruccion",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Autorizado y turnado a Dirección de Desarrollo Archivístico Nacional",
-      fecha: "11/10/2022",
-      hora: "21:48:56",
-      tipo: "autorizado",
-    },
-  ];
-
   const imprimirDoc = () => {
     window.print();
   };
@@ -721,7 +691,7 @@ const documentosFiltrados = documentos.filter((d) =>
         status: form.autorizar ? "Autorizado" : "Pendiente",
       };
 
-      const response = await addTurnado(currentDocId, turnadoData);
+      const response = await addTurnado(currentDocId, turnadoData, token);
       if (!response.ok) throw new Error("Error agregando el turno");
 
       const updatedDocumento = await response.json();
@@ -787,7 +757,7 @@ const documentosFiltrados = documentos.filter((d) =>
         funcionario: selectedCopiaUsuario.value,
       };
 
-      const response = await addCopia(currentDocId, copiaData);
+      const response = await addCopia(currentDocId, copiaData, token);
       if (!response.ok) throw new Error("Error agregando la copia");
 
       const updatedDocumento = await response.json();
@@ -902,7 +872,8 @@ const documentosFiltrados = documentos.filter((d) =>
       formData.append('mensaje', mensaje);
       formData.append('nombre', nombreDoc);
 
-      const response = await uploadAnexo(currentDocId, formData);
+      console.log("Subiendo anexo con datos:", currentDocId);
+      const response = await uploadAnexo(currentDocId, formData, token);
       if (!response.ok) throw new Error('Error subiendo el anexo');
 
       const updatedDocumento = await response.json();
@@ -938,7 +909,7 @@ const documentosFiltrados = documentos.filter((d) =>
     if (!currentDocId) return;
 
     try {
-      const response = await removeAnexo(currentDocId, { anexoId });
+      const response = await removeAnexo(currentDocId, { anexoId }, token);
       if (!response.ok) throw new Error('Error eliminando anexo');
 
       const updatedDocumento = await response.json();
@@ -974,7 +945,7 @@ const documentosFiltrados = documentos.filter((d) =>
           showConfirmButton: false,
           timer: 1500,
         });
-        const response = await addRelacionado(currentDocId, { relacionado: { item: id, modelo: "Documento" } });
+        const response = await addRelacionado(currentDocId, { relacionado: { item: id, modelo: "Documento" } }, token);
         if (!response.ok) throw new Error('Error agregando documento relacionado');
         updatedDocumento = await response.json();
       }
@@ -1007,7 +978,7 @@ const documentosFiltrados = documentos.filter((d) =>
     if (!currentDocId) return;
 
     try {
-      const response = await removeRelacionado(currentDocId, { relacionadoId: relatedId });
+      const response = await removeRelacionado(currentDocId, { relacionadoId: relatedId }, token);
       if (!response.ok) throw new Error('Error eliminando documento relacionado');
 
       const updatedDocumento = await response.json();
@@ -1676,7 +1647,10 @@ const documentosFiltrados = documentos.filter((d) =>
 
                             <div className="col-span-4">
                               <label className="text-xs text-gray-500">Observaciones</label>
-                              <textarea className="w-full border rounded px-2 py-1" />
+                              <textarea className="w-full border rounded px-2 py-1" 
+                              value={formEditar.observaciones}
+                              onChange={handleChange}
+                              />
                             </div>
 
                           </div>
@@ -2866,12 +2840,10 @@ const documentosFiltrados = documentos.filter((d) =>
                       
                               <div className="p-6 space-y-4">
                       
-                                {bitacora.length ? (
-                                  bitacora.map((movimiento, index) => {
+                                {bitacoraDocumento.length ? (
+                                  bitacoraDocumento.map((movimiento, index) => {
                                     const esPrincipal =
-                                      movimiento.tipo === "registro" ||
-                                      movimiento.tipo === "turnado" ||
-                                      movimiento.tipo === "autorizado";
+                                      movimiento.importancia === "Alta";
                       
                                     return (
                                       <div
@@ -2884,7 +2856,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                       >
                                         <div>
                                           <p className="font-semibold">
-                                            {movimiento.usuario}
+                                            {movimiento.user.nombre}
                                           </p>
                       
                                           <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
@@ -2893,8 +2865,13 @@ const documentosFiltrados = documentos.filter((d) =>
                                         </div>
                       
                                         <div className="text-right text-xs whitespace-nowrap">
-                                          <p>{movimiento.fecha}</p>
-                                          <p>{movimiento.hora}</p>
+                                          <p>Fecha: {formatDateValue(movimiento.fecha)}</p>
+                                          <p>Hora: {// Obtener solo la hora en formato HH:mm
+                                            new Date(movimiento.fecha).toLocaleTimeString([], {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            })
+                                          }</p>
                                         </div>
                                       </div>
                                     );

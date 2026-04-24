@@ -41,6 +41,7 @@ export function RegistrarDocumento() {
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
   const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
   const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
 
   const documentosFiltrados = documentos.filter((d) =>
     d.label.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
@@ -79,7 +80,7 @@ export function RegistrarDocumento() {
             };
           }));
         }
-        const docsRes = await getDocuments();
+        const docsRes = await getDocuments(token);
         if (docsRes.ok) {
           const docs = await docsRes.json();
           setDocumentos(docs.map(d => ({ value: d._id, label: d.folio })));
@@ -294,11 +295,12 @@ export function RegistrarDocumento() {
             tipo: form.tipoDocumento,
             tema: form.temaPrincipal,
             secundario: form.temaSecundario,
-            observaciones: form.sintesis,
+            asunto: form.sintesis,
+            observaciones: form.observaciones,
             relacionados: form.relacionados,
             // otros campos si es necesario
           };
-          const response = await createDocument(data);
+          const response = await createDocument(data, token);
           if (response.ok) {
 
             const dataGuardado = {
@@ -496,7 +498,7 @@ const [documentoEditar, setDocumentoEditar] = useState(null);
       tipoRemitente: "externo",
       remitenteExterno: doc.remitenteInterno || doc.remitenteExterno || prev.remitenteExterno,
       tipoDocumento: "oficio",
-      sintesis: doc.sintesis || prev.sintesis,
+      sintesis: doc.asunto || prev.sintesis,
     }));
 
     setModalEditarAbierto(true);
