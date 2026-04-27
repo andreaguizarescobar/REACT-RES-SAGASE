@@ -7,6 +7,13 @@ import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAdicional, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
 import { getUsers } from "../../services/user.service.js";
+import {
+  Toggle,
+  handleChangeForm,
+  validarDocumentoForm,
+  handleToggleFaltaInformacion as handleToggleFaltaInformacionHelper,
+  showValidationError,
+} from "../../utils/documentoFormHelpers.jsx";
 
 const BaseURL = "http://localhost:3333/";
 
@@ -311,30 +318,17 @@ useEffect(() => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormEditar((prev) => ({ ...prev, [name]: value }));
-    setErrores((prev) => ({ ...prev, [name]: !value.trim() }));
+    handleChangeForm(e, setFormEditar, setErrores, { validateOnChange: true });
   };
 
-  const validarFormulario = () => {
-    const nuevosErrores = {};
-    if (!formEditar.tipoDocumento) nuevosErrores.tipoDocumento = true;
-    if (!formEditar.temaPrincipal) nuevosErrores.temaPrincipal = true;
-    if (!formEditar.sintesis) nuevosErrores.sintesis = true;
-    setErrores(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
-  };
+  const validarFormulario = () =>
+    validarDocumentoForm(formEditar, setErrores, {
+      required: ["tipoDocumento", "temaPrincipal", "sintesis"],
+    });
 
   const handleSave = () => {
     if (!validarFormulario()) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Faltan campos obligatorios",
-        showConfirmButton: false,
-        timer: 2500,
-      });
+      showValidationError();
       return;
     }
 
@@ -414,26 +408,8 @@ useEffect(() => {
     });
   };
 
-  const Toggle = ({ checked, onChange }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${checked ? "bg-[#79142A]" : "bg-gray-300"}`}
-    >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-5" : "translate-x-1"}`} />
-    </button>
-  );
-
-  const handleToggleFaltaInformacion = (value) => {
-    setFormEditar((prev) => ({ ...prev, faltaInformacion: value }));
-    if (value) {
-      const anioActual = new Date().getFullYear();
-      const numeroAleatorio = Math.floor(Math.random() * 900) + 100;
-      setFolioGenerado(`Folio ${numeroAleatorio}-${anioActual}`);
-    } else {
-      setFolioGenerado("");
-    }
-  };
+  const handleToggleFaltaInformacion = (value) =>
+    handleToggleFaltaInformacionHelper(value, setFormEditar, setFolioGenerado);
 
   // refs + dropdown states usados en UI
   const refTipoDoc = useRef(null);

@@ -1,5 +1,7 @@
 import { Minus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { reporteAcuerdos } from "../../services/document.service";
+
 
 export function ReporteAcuerdos() {
 
@@ -10,20 +12,7 @@ export function ReporteAcuerdos() {
 
   const [mostrarReporte, setMostrarReporte] = useState(false);
 
-  const datosAcuerdos = [
-    {
-      folio: "588-2023",
-      tipoDocumento: "Oficio",
-      numeroDocumento: "OF-01-2023",
-      estatus: "Autorizado",
-      procedencia: "Luis Pérez Sánchez - Administración y Finanzas",
-      asunto: "Se solicita capacitación",
-      instruccion: "Atender conforme proceda",
-      fechaAcuse: "2023-07-03"
-    }
-  ];
-
-  const [resultados] = useState(datosAcuerdos);
+  const [datosAcuerdos, setDatosAcuerdos] = useState([]);
 
   const exportarExcel = () => {
     const encabezados = [
@@ -37,16 +26,17 @@ export function ReporteAcuerdos() {
       "Fecha de acuse"
     ];
 
-    const filas = resultados.map((item) =>
+
+    const filas = datosAcuerdos.map((item) =>
       [
         item.folio,
         item.tipoDocumento,
-        item.numeroDocumento,
-        item.estatus,
-        item.procedencia,
+        item.docId,
+        item.status,
+        item.remitente,
         item.asunto,
-        item.instruccion,
-        item.fechaAcuse
+        item.turnados.instruccion,
+        item.turnados.fechaTurnado
       ].join(",")
     );
 
@@ -69,7 +59,9 @@ export function ReporteAcuerdos() {
     window.print();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const response = await reporteAcuerdos({fechaInicio: form.fechaInicio,fechaFin: form.fechaFin} ,localStorage.getItem("token"));
+    setDatosAcuerdos(await response.json())
     setMostrarReporte(true);
   };
 
@@ -219,7 +211,8 @@ export function ReporteAcuerdos() {
 
                     <tbody>
 
-                      {resultados.map((item, index) => (
+                      {datosAcuerdos.length > 0 ? (datosAcuerdos.map((item, index) => (
+                        item.turnados.map(turno => (
                         <tr key={index} className="border-t">
 
                           <td className="px-2 py-2 border">
@@ -227,19 +220,19 @@ export function ReporteAcuerdos() {
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.tipoDocumento}
+                            {item.tipo.tipo}
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.numeroDocumento}
+                            {item.docId}
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.estatus}
+                            {item.status}
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.procedencia}
+                            {item.remitente.name}
                           </td>
 
                           <td className="px-2 py-2 border">
@@ -247,15 +240,21 @@ export function ReporteAcuerdos() {
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.instruccion}
+                            {turno.instruccion.descripcion}
                           </td>
 
                           <td className="px-2 py-2 border">
-                            {item.fechaAcuse}
+                            {turno.fechaTurnado.split("T")[0]}
                           </td>
 
                         </tr>
-                      ))}
+                      ))))) : (
+                        <tr>
+                          <td colSpan={8} className="text-center py-4 text-gray-400">
+                            Sin copias registradas
+                          </td>
+                        </tr>
+                      )}
 
                     </tbody>
 

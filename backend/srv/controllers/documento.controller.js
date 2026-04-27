@@ -221,6 +221,16 @@ export const deleteDocumento = async (req, res) => {
     }
 };
 
+export const reporteAcuerdos = async (req, res) => {
+    try {
+        const { fechaInicio, fechaFin } = req.body;
+        const acuerdos = await documentoService.reporteAcuerdos(fechaInicio, fechaFin);
+        res.status(200).json(acuerdos);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export default {
     getAll,
     getById,
@@ -233,5 +243,6 @@ export default {
     patchStatusDocumento,
     patchRelacionadoDocumento,
     patchRemoverRelacionadoDocumento,
-    deleteDocumento
+    deleteDocumento,
+    reporteAcuerdos
 };

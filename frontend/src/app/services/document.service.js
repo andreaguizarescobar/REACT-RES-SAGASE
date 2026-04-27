@@ -137,3 +137,14 @@ export const removeRelacionado = (id, data, token) => {
     });
 }; 
 
+export const reporteAcuerdos = (data, token) => {
+    console.log(data)
+    return fetchAPI(`/documentos/reporte/acuerdos`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+    });
+};
+

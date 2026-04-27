@@ -7,61 +7,59 @@ import {
 } from "recharts";
 import { useState, useEffect, useRef } from "react";
 
-/* ============================
-   DATOS GRÁFICAS
-============================ */
+import { getDocuments, updateDocument } from "../../services/document.service";
 
 const fichasGestion = [
-  { name: "Sin instrucciones", value: 1, color: "#9CA3AF" },
+  { name: "Sin instrucciones", value: 0, color: "#9CA3AF" },
   {
     name: "Con instrucciones no autorizadas",
-    value: 1,
+    value: 0,
     color: "#F59E0B",
   },
   {
     name: "Con instrucción turnada",
-    value: 11,
+    value: 0,
     color: "#0F766E",
   },
-  { name: "Con gestión cerrada", value: 3, color: "#1D4ED8" },
-  { name: "Eliminados", value: 1, color: "#991B1B" },
+  { name: "Con gestión cerrada", value: 0, color: "#1D4ED8" },
+  { name: "Eliminados", value: 0, color: "#991B1B" },
   {
     name: "Con información faltante",
-    value: 1,
+    value: 0,
     color: "#3B82F6",
   },
 ];
 
 const instruccionesEnviadas = [
-  { name: "Cerrado", value: 2, color: "#1D4ED8" },
-  { name: "Concluido", value: 1, color: "#0F766E" },
+  { name: "Cerrado", value: 0, color: "#1D4ED8" },
+  { name: "Concluido", value: 0, color: "#0F766E" },
   {
     name: "Recibido, en ejecución",
-    value: 1,
+    value: 0,
     color: "#3B82F6",
   },
-  { name: "Validado", value: 6, color: "#8B1538" },
+  { name: "Validado", value: 0, color: "#8B1538" },
   {
     name: "Autorizados y turnados",
-    value: 3,
+    value: 0,
     color: "#F59E0B",
   },
-  { name: "Registrado", value: 1, color: "#111827" },
+  { name: "Registrado", value: 0, color: "#111827" },
 ];
 
 const instruccionesRecibidas = [
-  { name: "Validado", value: 4, color: "#8B1538" },
-  { name: "Concluido", value: 3, color: "#0F766E" },
+  { name: "Validado", value: 0, color: "#8B1538" },
+  { name: "Concluido", value: 0, color: "#0F766E" },
   {
     name: "Recibido, en ejecución",
-    value: 2,
+    value: 0,
     color: "#3B82F6",
   },
 ];
 
 const copiasConocimiento = [
-  { name: "Leído", value: 5, color: "#0F766E" },
-  { name: "Por leer", value: 2, color: "#9CA3AF" },
+  { name: "Leído", value: 0, color: "#0F766E" },
+  { name: "Por leer", value: 0, color: "#9CA3AF" },
 ];
 
 const documentosInternos = 18;
@@ -84,57 +82,6 @@ const anexos = [
     folio: "2025000002",
     registrador: "Juan Pérez",
     nombre: "Solicitud.pdf",
-  },
-];
-
-/* ============================
-   DOCUMENTOS SIMULADOS
-============================ */
-
-const documentos = [
-  {
-    folio: "2025000001",
-    numeroDocumento: "OFI-001",
-    fecha: "2025-02-01",
-    sintesis: "Agradecimiento",
-    remitenteInterno: "Dirección Administrativa",
-    remitenteExterno: "Secretaría General",
-    estatus: "Con instrucción turnada",
-    motivo: "Turnado a área técnica",
-    materialAdicional: true,
-  },
-  {
-    folio: "2025000001",
-    numeroDocumento: "OFI-001",
-    fecha: "2025-02-01",
-    sintesis: "Agradecimiento",
-    remitenteInterno: "Dirección Administrativa",
-    remitenteExterno: "Secretaría General",
-    estatus: "Con instrucción turnada",
-    motivo: "Turnado a área técnica",
-    materialAdicional: false,
-  },
-  {
-    folio: "2025000002",
-    numeroDocumento: "OFI-002",
-    fecha: "2025-02-02",
-    sintesis: "Solicitud de información",
-    remitenteInterno: "Recursos Humanos",
-    remitenteExterno: "Dependencia Estatal",
-    estatus: "Sin instrucciones",
-    motivo: "Pendiente de asignación",
-    materialAdicional: false,
-  },
-  {
-    folio: "2025000003",
-    numeroDocumento: "OFI-003",
-    fecha: "2025-02-03",
-    sintesis: "Reporte mensual",
-    remitenteInterno: "Finanzas",
-    remitenteExterno: "Órgano Interno",
-    estatus: "Con gestión cerrada",
-    motivo: "Gestión finalizada",
-    materialAdicional: true,
   },
 ];
 
@@ -210,9 +157,115 @@ export function TableroControl() {
   const [estatusSeleccionado, setEstatusSeleccionado] = useState(null);
 
   const [documentoEditar, setDocumentoEditar] =useState(null);
+  const [documentos, setDocumentos] = useState([]);
+  const [fichas, setFichasGestion] = useState(fichasGestion);
+  const [Enviadas, setInstruccionesEnviadas] = useState(instruccionesEnviadas);
+  const [Recibidas, setInstruccionesRecibidas] = useState(instruccionesRecibidas);
+  const [Copias, setCopiasConocimiento] = useState(copiasConocimiento);
+
+  useEffect(() => {
+  const fetchDocuments = async () => {
+    try {      
+      const documentos = await getDocuments(localStorage.getItem("token"));
+      const docs = await documentos.json();
+      setDocumentos(docs);
+      const contador = {
+        "Sin instrucciones": 0,
+        "Con instrucciones no autorizadas": 0,
+        "Con instrucción turnada": 0,
+        "Con gestión cerrada": 0,
+        "Eliminados": 0,
+        "Con información faltante": 0,
+        "Cerrado": 0,
+        "Concluido": 0,
+        "Recibido, en ejecución": 0,
+        "Validado": 0,
+        "Autorizados y turnados": 0,
+        "Registrado": 0,
+        "Leído": 0,
+        "Por leer": 0,
+      }
+      docs.map((doc) => {
+        console.log("Procesando documento:", doc.turnados.length===0);
+        if (doc.turnados.length === 0) {
+          contador["Sin instrucciones"] += 1;
+          contador["Registrado"] += 1;
+        }else if(doc.status === "Autorizado y turnado" || doc.status === "Validado" || doc.status === "Concluido") {
+          contador["Con instrucción turnada"] += 1;
+          if(doc.respuestas.length === 0) {
+            contador["Recibido, en ejecución"] += 1;
+          }else if (doc.status === "Autorizado y turnado") {
+              contador["Autorizados y turnados"] += 1;
+          } else {
+            if(doc.status === "Validado") {
+              contador["Validado"] += 1;
+            } else if(doc.status === "Concluido") {
+              contador["Concluido"] += 1;
+            }
+          }
+        }else if(doc.status === "Cerrado") {
+          contador["Con gestión cerrada"] += 1;
+          contador["Cerrado"] += 1;
+        }else if(doc.eliminado) {
+          contador["Eliminados"] += 1;
+        }else if(doc.completa === false) {
+          contador["Con información faltante"] += 1;
+        }else{
+          contador["Con instrucciones no autorizadas"] += 1;
+        }
+
+        doc.copias.map(copia => {
+        if(copia.status === "Leído") {
+          console.log("Documento con copia leído:", );
+          contador["Leído"] += 1;
+        }else if(copia.status === "Por leer") {
+          contador["Por leer"] += 1;
+        }
+      });
+      });
+
+      const updatedFichasGestion = fichas.map((ficha) => ({
+        ...ficha, 
+        value: contador[ficha.name]
+      })
+      );
+
+      const updatedInstruccionesEnviadas = Enviadas.map((item) => ({
+        ...item,
+        value: contador[item.name]
+      }));
+
+      const updatedInstruccionesRecibidas = Recibidas.map((item) => ({
+        ...item,
+        value: contador[item.name]
+      }));
+
+      const updatedCopiasConocimiento = Copias.map((item) => ({
+        ...item,
+        value: contador[item.name]
+      }));
+
+      setFichasGestion(updatedFichasGestion);
+      setInstruccionesEnviadas(updatedInstruccionesEnviadas);
+      setInstruccionesRecibidas(updatedInstruccionesRecibidas);
+      setCopiasConocimiento(updatedCopiasConocimiento);
+    } catch (error) {
+      console.error("Error al obtener documentos:", error);
+    }
+  };
+
+  fetchDocuments();
+}, []);
 
   const documentosFiltrados = documentos.filter(
-    (doc) => doc.estatus === estatusSeleccionado,
+    (doc) => doc.turnados.length === 0 && ("Sin instrucciones" === estatusSeleccionado || estatusSeleccionado === "Registrado") ||
+    (doc.status === estatusSeleccionado) || (doc.status === "Autorizado y turnado" && estatusSeleccionado === "Con instrucción turnada") ||
+    (doc.respuestas.length === 0 && doc.turnados.length > 0 && estatusSeleccionado === "Recibido, en ejecución") ||
+    (doc.status === "Cerrado" && estatusSeleccionado === "Con gestión cerrada") || 
+    (doc.eliminado && estatusSeleccionado === "Eliminados") ||
+    (doc.completa === false && estatusSeleccionado === "Con información faltante") ||
+    (doc.copias.some(copia => copia.status === "Leído") && estatusSeleccionado === "Leído") ||
+    (doc.copias.some(copia => copia.status === "Por leer") && estatusSeleccionado === "Por leer")
   );
 
   const tablaModalRef = useRef(null);
@@ -258,38 +311,6 @@ export function TableroControl() {
     window.print();
   };
   
-  const bitacora = [
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Registró el asunto",
-      fecha: "11/10/2022",
-      hora: "21:45:30",
-      tipo: "registro",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Adjuntó el documento: GUARDIA NACIONAL.pdf",
-      fecha: "11/10/2022",
-      hora: "21:47:11",
-      tipo: "adjunto",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Generó la instrucción: Atender el tema y dar respuesta al interesado. Prioridad: Trámite Extra-urgente.",
-      fecha: "11/10/2022",
-      hora: "21:48:54",
-      tipo: "instruccion",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Autorizado y turnado a Dirección de Desarrollo Archivístico Nacional",
-      fecha: "11/10/2022",
-      hora: "21:48:56",
-      tipo: "autorizado",
-    },
-  ];
 
   const imprimirDoc = () => {
     window.print();
@@ -384,7 +405,7 @@ export function TableroControl() {
         {/* PRIMERA INTERACTIVA */}
         <DonutChart
           title="Fichas de Gestión"
-          data={fichasGestion}
+          data={fichas}
           clickable
           onClickSegment={(estatus) => {
             setEstatusSeleccionado(estatus);
@@ -394,17 +415,27 @@ export function TableroControl() {
 
         <DonutChart
           title="Instrucciones y solicitudes enviadas"
-          data={instruccionesEnviadas}
+          data={Enviadas}
+          clickable
+          onClickSegment={(estatus) => {
+            setEstatusSeleccionado(estatus);
+            setPaginaActual(1);
+          }}
         />
 
         <DonutChart
           title="Instrucciones y solicitudes recibidas"
-          data={instruccionesRecibidas}
+          data={Recibidas}
+          clickable
+          onClickSegment={(estatus) => {
+            setEstatusSeleccionado(estatus);
+            setPaginaActual(1);
+          }}
         />
 
         <DonutChart
           title="Copias de conocimiento"
-          data={copiasConocimiento}
+          data={Copias}
         />
 
         {/* Documentos internos */}
@@ -497,16 +528,10 @@ export function TableroControl() {
                       Síntesis del asunto
                     </th>
                     <th className="px-3 py-2 text-left">
-                      Remitente interno
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Remitente externo
+                      Remitente
                     </th>
                     <th className="px-3 py-2 text-left">
                       Estatus
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Motivo
                     </th>
                   </tr>
                 </thead>
@@ -536,25 +561,28 @@ export function TableroControl() {
                           {doc.folio}
                         </td>
                         <td className="px-3 py-2">
-                          {doc.numeroDocumento}
+                          {doc.docId}
                         </td>
                         <td className="px-3 py-2">
-                          {doc.fecha}
+                          {doc.fechaDoc
+                            ? new Date(doc.fechaDoc).toLocaleDateString(
+                                "es-MX",
+                                {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit'
+                                }
+                              )
+                            : ''}
                         </td>
                         <td className="px-3 py-2">
-                          {doc.sintesis}
+                          {doc.asunto}
                         </td>
                         <td className="px-3 py-2">
-                          {doc.remitenteInterno}
+                          {doc.remitente.name || "N/A"}
                         </td>
                         <td className="px-3 py-2">
-                          {doc.remitenteExterno}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.estatus}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.motivo}
+                          {doc.status}
                         </td>
                       </tr>
                     ))

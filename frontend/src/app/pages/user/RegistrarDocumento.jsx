@@ -1,11 +1,22 @@
-import { Minus, Search, Trash2 } from "lucide-react";
+import { Minus, Search, Trash2, Upload, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import { getTipoDocument, createTipoDocument } from "../../services/tipoDocumento.service";
 import { getTemaPrincipal, getAdicional } from "../../services/catalogos.service";
 import { getRemitentes, createRemitente } from "../../services/remitente.service";
-import { getDocuments, createDocument } from "../../services/document.service";
+import { getDocuments, createDocument, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service";
+import { getAreas, getInstrucciones } from "../../services/catalogos.service.js";
+import { getUsers } from "../../services/user.service.js";
+import {
+  Toggle,
+  handleChangeForm,
+  validarDocumentoForm,
+  handleToggleFaltaInformacion as handleToggleFaltaInformacionHelper,
+  showValidationError,
+} from "../../utils/documentoFormHelpers.jsx";
+
+const BaseURL = "http://localhost:3333/";
 
 export function RegistrarDocumento() {
 
@@ -43,9 +54,45 @@ export function RegistrarDocumento() {
   const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
   const [token, setToken] = useState(localStorage.getItem("token") || "");
 
+  const [menuContextual, setMenuContextual] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    documento: null,
+  });
+
+  const [tabActiva, setTabActiva] = useState("datosAsunto");
+  const [documentoEditar, setDocumentoEditar] = useState(null);
+  const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
+  const [folioGenerado, setFolioGenerado] = useState("");
+  const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+  const [documentoAnexos, setDocumentoAnexos] = useState([]);
+  const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
+  const [bitacoraDocumento, setBitacoraDocumento] = useState([]);
+  const [materialesAdicionalesState, setMaterialesAdicionalesState] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [instrucciones, setInstrucciones] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [turnosDocumento, setTurnosDocumento] = useState([]);
+  const [copiasDocumento, setCopiasDocumento] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const documentosFiltrados = documentos.filter((d) =>
-    d.label.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
+    d.folio.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
   );
+
+  const formatDateValue = (value, withTime = false) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    if (withTime) {
+      options.hour = '2-digit';
+      options.minute = '2-digit';
+    }
+    return date.toLocaleDateString('es-ES', options);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -83,7 +130,7 @@ export function RegistrarDocumento() {
         const docsRes = await getDocuments(token);
         if (docsRes.ok) {
           const docs = await docsRes.json();
-          setDocumentos(docs.map(d => ({ value: d._id, label: d.folio })));
+          setDocumentos(Array.isArray(docs) ? docs : []);
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -92,43 +139,97 @@ export function RegistrarDocumento() {
     loadData();
   }, []);
 
-  const validarFormulario = () => {
-    const nuevosErrores = {};
-    
-    if (!form.ejercicio) nuevosErrores.ejercicio = true;
-    if (!form.noDocumento) nuevosErrores.noDocumento = true;
-    if (!form.fechaDocumento) nuevosErrores.fechaDocumento = true;
-    if (!form.fechaAcuse) nuevosErrores.fechaAcuse = true;
-    if (!form.fechaRegistro) nuevosErrores.fechaRegistro = true;
-    if (!form.tipoRemitente) nuevosErrores.tipoRemitente = true;
-    if (!form.tipoDocumento) nuevosErrores.tipoDocumento = true;
-    if (!form.temaPrincipal) nuevosErrores.temaPrincipal = true;
-    if (!form.sintesis) nuevosErrores.sintesis = true;
+  useEffect(() => {
+    const loadAdditionalCatalogos = async () => {
+      try {
+        const areasRes = await getAreas();
+        if (areasRes.ok) {
+          const areasData = await areasRes.json();
+          setAreas(areasData.map((a) => ({
+            value: a._id,
+            label: a.nombre || a.descripcion || "Área desconocida",
+          })));
+        }
 
-    if (form.tipoRemitente === "interno" && !form.remitenteInterno)
-      nuevosErrores.remitenteInterno = true;
+        const instruccionRes = await getInstrucciones();
+        if (instruccionRes.ok) {
+          const insts = await instruccionRes.json();
+          setInstrucciones(insts.map((i) => ({
+            value: i._id,
+            label: i.descripcion || i.nombre || "Instrucción",
+          })));
+        }
 
-    if (form.tipoRemitente === "externo" && !form.remitenteExterno)
-      nuevosErrores.remitenteExterno = true;
+        if (token) {
+          const usersRes = await getUsers(token);
+          if (usersRes.ok) {
+            const users = await usersRes.json();
+            setUsuarios(users.map((u) => ({
+              value: u._id,
+              label: `${u.name || u.nombre || ""}`.trim(),
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Error cargando catálogos adicionales:", error);
+      }
+    };
 
-    setErrores(nuevosErrores);
+    loadAdditionalCatalogos();
+  }, [token]);
 
-    return Object.keys(nuevosErrores).length === 0;
-  };
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      setLoading(true);
+      setError(null);
 
-  const [folioGenerado, setFolioGenerado] = useState("");
+      try {
+        const response = await getDocuments(token);
 
-  const handleToggleFaltaInformacion = (value) => {
-    setForm({ ...form, faltaInformacion: value });
+        if (!response.ok) {
+          setError("No se pudieron cargar los documentos.");
+          console.error("Error cargando documentos:", response.status, response.statusText);
+          return;
+        }
 
-    if (value) {
-      const anioActual = new Date().getFullYear();
-      const numeroAleatorio = Math.floor(Math.random() * 900) + 100;
-      setFolioGenerado(`Folio ${numeroAleatorio}-${anioActual}`);
-    } else {
-      setFolioGenerado("");
-    }
-  };
+        const data = await response.json();
+        setDocumentos(Array.isArray(data) ? data : []);
+      } catch (fetchError) {
+        setError("Error de red al cargar los documentos.");
+        console.error("Error cargando documentos:", fetchError);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [token]);
+
+  const validarFormulario = () =>
+    validarDocumentoForm(form, setErrores, {
+      required: [
+        "ejercicio",
+        "noDocumento",
+        "fechaDocumento",
+        "fechaAcuse",
+        "fechaRegistro",
+        "tipoRemitente",
+        "tipoDocumento",
+        "temaPrincipal",
+        "sintesis",
+      ],
+      conditional: [
+        (currentForm, currentErrores) => {
+          if (currentForm.tipoRemitente === "interno" && !currentForm.remitenteInterno)
+            currentErrores.remitenteInterno = true;
+          if (currentForm.tipoRemitente === "externo" && !currentForm.remitenteExterno)
+            currentErrores.remitenteExterno = true;
+        },
+      ],
+    });
+
+  const handleToggleFaltaInformacion = (value) =>
+    handleToggleFaltaInformacionHelper(value, setForm, setFolioGenerado);
 
   const usuariosInstitucion = [
     { id: 1, nombre: "Juan Pérez - Dirección General" },
@@ -156,46 +257,19 @@ export function RegistrarDocumento() {
   });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
 
-    const nuevoForm = {
-      ...form,
-      [name]: value,
-    };
+    handleChangeForm(e, setForm, setErrores, { clearOnChange: true });
 
     if (name === "tipoRemitente") {
-      nuevoForm.remitenteInterno = "";
-      nuevoForm.remitenteExterno = "";
+      setForm((prev) => ({
+        ...prev,
+        remitenteInterno: "",
+        remitenteExterno: "",
+      }));
       setBusquedaRemitenteExt("");
     }
-
-    setForm(nuevoForm);
-
-    // 🔥 quitar error al escribir
-    if (errores[name]) {
-      setErrores({
-        ...errores,
-        [name]: false,
-      });
-    }
   };
-
-
-  const Toggle = ({ checked, onChange, disabled }) => (
-    <button
-      type="button"
-      onClick={() => !disabled && onChange(!checked)}
-      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-        checked ? "bg-[#8B1538]" : "bg-gray-300"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          checked ? "translate-x-5" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
 
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
   const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
@@ -260,14 +334,7 @@ export function RegistrarDocumento() {
 
   const handleSave = () => {
     if (!validarFormulario()) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Faltan campos obligatorios",
-        showConfirmButton: false,
-        timer: 2500,
-      });
+      showValidationError();
       return;
     }
 
@@ -359,6 +426,604 @@ export function RegistrarDocumento() {
         }
       }
     });
+  };
+
+  const handleModificar = async () => {
+    const doc = documentoSeleccionado;
+    if (!doc) return;
+
+    const docId = doc.docId || doc.numeroDocumento || doc._id;
+    if (!docId) return;
+
+    try {
+      const response = await getDocumentById(docId, token);
+      if (!response.ok) {
+        console.error("Error obteniendo documento por ID:", response.status, response.statusText);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo obtener el documento completo.",
+        });
+        return;
+      }
+
+      const fullDoc = await response.json();
+      const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
+      const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
+      const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
+      const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
+      const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
+      const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
+      const selectedSecundarioValue = fullDoc.secundario?._id || fullDoc.secundario || "";
+      const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
+      const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
+      const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
+      const tipoRemitente = fullDoc.interno ? "interno" : "externo";
+
+      setDocumentoEditar(fullDoc);
+      setFormEditar({
+        ejercicio: fullDoc.ejercicio || new Date().getFullYear().toString(),
+        noDocumento: fullDoc.docId || fullDoc.numeroDocumento || "",
+        fechaDocumento: formatDateValue(fullDoc.fechaDoc),
+        fechaAcuse: formatDateValue(fullDoc.acuse),
+        fechaRegistro: formatDateValue(fullDoc.registro, true),
+        tipoRemitente,
+        remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
+        remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
+        tipoDocumento: selectedTipoValue,
+        temaPrincipal: selectedTemaValue,
+        temaSecundario: selectedSecundarioValue,
+        sintesis: fullDoc.asunto,
+        observaciones: fullDoc.observaciones || "",
+        documentoInterno: !!fullDoc.interno,
+        faltaInformacion: !!fullDoc.faltaInformacion,
+        otroFuncionario: !!fullDoc.otroFuncionario,
+        altaTipoDocumento: false,
+        relacionadoCon: !!fullDoc.relacionadoCon,
+        materialAdicional: selectedMaterialValue,
+      });
+
+      setBusquedaTipoDoc(selectedTipoLabel);
+      setBusquedaTemaPrincipal(selectedTemaLabel);
+      setBusquedaTemaSecundario(selectedSecundarioLabel);
+      setBusquedaMaterial(selectedMaterialLabel);
+      setBusquedaRemitenteExt(remitenteLabel);
+      setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
+      setDocumentoAnexos(fullDoc.anexos || []);
+      setTurnosDocumento(fullDoc.turnados || []);
+      setCopiasDocumento(fullDoc.copias || []);
+      setBitacoraDocumento(fullDoc.bitacora || []);
+      setRelacionadosDocumento(
+        (fullDoc.relacionados || [])
+          .map((rel) => {
+            if (!rel || !rel.item) return null;
+            const related = rel.item;
+            return {
+              relationId: rel._id,
+              value: related._id || related.value,
+              folio: related.folio || related.label || "",
+              docId: related.docId || "",
+              remitente: related.remitente ? (related.remitente.name || related.remitente) : "",
+              asunto: related.asunto || related.observaciones || "",
+            };
+          })
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (fullDoc.relacionados || []).map((rel) =>
+          rel?.item?._id || rel?.item || rel
+        )
+      );
+      setDocumentoSeleccionado(fullDoc);
+
+      setModalEditarAbierto(true);
+    } catch (fetchError) {
+      console.error("Error obteniendo documento por ID:", fetchError);
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo recuperar el documento completo.",
+      });
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const descargarBitacora = () => {
+    window.print();
+  };
+  
+  const bitacoraRef = useRef(null);
+
+  const imprimirDoc = () => {
+    window.print();
+  };
+
+  const exportarExcelModal = () => {
+    const datos = documentosFiltrados;
+  
+    if (!datos.length) return;
+  
+    const encabezados = [
+      "Folio",
+      "No. Documento",
+      "Fecha",
+      "Síntesis",
+      "Remitente Interno",
+      "Remitente Externo",
+      "Estatus",
+      "Motivo"
+    ];
+  
+    const filas = datos.map((doc) => [
+      doc.folio,
+      doc.numeroDocumento,
+      doc.fecha,
+      doc.sintesis,
+      doc.remitenteInterno,
+      doc.remitenteExterno,
+      doc.estatus,
+      doc.motivo
+    ]);
+  
+    let contenidoCSV =
+      encabezados.join(",") + "\n" +
+      filas.map((fila) => fila.join(",")).join("\n");
+  
+    const blob = new Blob(["\uFEFF" + contenidoCSV], {
+      type: "text/csv;charset=utf-8;"
+    });
+  
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Documentos_${estatusSeleccionado}.csv`;
+    link.click();
+  };
+
+  const [copias, setCopias] = useState([
+    "Víctor Manuel Enríquez Paniagua",
+    "María Verónica Leal Camarena",
+    "Guillermo Bonilla Tenorio",
+    "Dirección de Administración",
+  ]);
+
+  const eliminarCopia = (index) => {
+    setCopias((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
+  const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
+  const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
+  const [selectedCopiaUsuario, setSelectedCopiaUsuario] = useState(null);
+
+  const funcionariosFiltrados = usuarios
+    .filter((u) =>
+      u.label.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
+      !copiasDocumento.some((copia) => (copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "").toLowerCase() === u.label.toLowerCase())
+    );
+
+  const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
+
+  const turnosVerFiltrados = (turnosDocumento || []).filter((item) =>
+    [
+      item.instruccion?.descripcion || item.instruccion?.label || item.instruccion,
+      item.remitente?.nombre || item.remitente?.label || item.remitente,
+      item.areaDestino?.nombre || item.areaDestino?.label || item.areaDestino,
+      item.dirigido?.nombre || item.dirigido?.label || item.dirigido,
+      item.prioridad,
+      item.compromiso ? formatDateValue(item.compromiso) : item.fechaTurnado ? formatDateValue(item.fechaTurnado) : "",
+      item.turna?.nombre || item.turna?.label || item.turna,
+      item.status,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaVerTurnos.toLowerCase())
+  );
+
+  const [mostrarModalTurno, setMostrarModalTurno] = useState(false);
+
+  const [formTurno, setFormTurno] = useState({
+    instruccion: "",
+    remitente: "",
+    areaDestino: "",
+    dirigido: "",
+    prioridad: "",
+    fecha: "",
+    turna: "",
+    notas: "",
+    autorizar: false,
+  });
+  const [erroresTurno, setErroresTurno] = useState({});
+
+  const validarFormularioAltaInstruccion = () => {
+    let nuevosErrores = {};
+
+    if (!form.instruccion) nuevosErrores.instruccion = true;
+    if (!form.areaDestino) nuevosErrores.areaDestino = true;
+    if (!form.prioridad) nuevosErrores.prioridad = true;
+    if (!form.fecha) nuevosErrores.fecha = true;
+
+    setErroresTurno(nuevosErrores);
+
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const handleGuardarAltaInstruccion = async () => {
+    if (!validarFormularioAltaInstruccion()) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Faltan campos obligatorios",
+        showConfirmButton: false,
+        timer: 2500,
+      });
+      return;
+    }
+
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de guardar el turno.",
+      });
+      return;
+    }
+
+    try {
+      const turnadoData = {
+        instruccion: form.instruccion,
+        remitente: form.remitente,
+        areaDestino: form.areaDestino,
+        dirigido: form.dirigido,
+        prioridad: form.prioridad,
+        compromiso: form.fecha,
+        turna: form.turna,
+        notas: form.notas,
+        status: form.autorizar ? "Autorizado" : "Pendiente",
+      };
+
+      const response = await addTurnado(currentDocId, turnadoData, token);
+      if (!response.ok) throw new Error("Error agregando el turno");
+
+      const updatedDocumento = await response.json();
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setTurnosDocumento(updatedDocumento.turnados || []);
+      setMostrarModalTurno(false);
+      setFormTurno({
+        instruccion: "",
+        remitente: "",
+        areaDestino: "",
+        dirigido: "",
+        prioridad: "",
+        fecha: "",
+        turna: "",
+        notas: "",
+        autorizar: false,
+      });
+      setErroresTurno({});
+
+      Swal.fire({
+        icon: "success",
+        title: "Turno guardado",
+        text: "El turno se agregó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar el turno",
+        text: "No se pudo guardar el turno.",
+      });
+    }
+  };
+
+  const handleGuardarCopia = async () => {
+    if (!selectedCopiaUsuario) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Selecciona un funcionario",
+        showConfirmButton: false,
+        timer: 2500,
+      });
+      return;
+    }
+
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de guardar la copia.",
+      });
+      return;
+    }
+
+    try {
+      const copiaData = {
+        funcionario: selectedCopiaUsuario.value,
+      };
+
+      const response = await addCopia(currentDocId, copiaData, token);
+      if (!response.ok) throw new Error("Error agregando la copia");
+
+      const updatedDocumento = await response.json();
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setCopiasDocumento(updatedDocumento.copias || []);
+      setMostrarModalCopias(false);
+      setBusquedaFuncionario("");
+      setSelectedCopiaUsuario(null);
+
+      Swal.fire({
+        icon: "success",
+        title: "Copia guardada",
+        text: "La copia se agregó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar la copia",
+        text: "No se pudo guardar la copia.",
+      });
+    }
+  };
+
+  const [mostrarModalAnexo, setMostrarModalAnexo] = useState(false);
+  const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
+  const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
+  const [archivo, setArchivo] = useState(null);
+
+  const documentoAnexosFiltrados = documentoAnexos.filter((anexo) =>
+    [anexo.mensaje, anexo.nombre, anexo.ruta]
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaSubirAnexo.toLowerCase())
+  );
+
+  const relacionadosFiltrados = relacionadosDocumento.filter((doc) =>
+    [doc.folio, doc.docId, doc.remitente, doc.asunto]
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaVerTurnos.toLowerCase())
+  );
+  const [dragActivo, setDragActivo] = useState(false);
+
+  const inputRef = useRef(null);
+
+  const eliminarArchivo = () => {
+    setArchivo(null);
+    if (inputRef.current) {
+      inputRef.current.value = ""; // reset input file
+    }
+  };
+
+  const [mensaje, setMensaje] = useState("");
+  const [nombreDoc, setNombreDoc] = useState("");
+  const [erroresAnexos, setErroresAnexos] = useState({});
+
+  const validarAgregarAnexo = () => {
+    let nuevosErrores = {};
+
+    if (!mensaje.trim()) {
+      nuevosErrores.mensaje = true;
+    }
+
+    if (!archivo) {
+      nuevosErrores.archivo = true;
+    }
+
+    if (!nombreDoc.trim()) {
+      nuevosErrores.nombreDoc = true;
+    }
+
+    setErroresAnexos(nuevosErrores);
+
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const normalizeRelacionadoItem = (rel) => {
+    if (!rel) return null;
+    return {
+      relationId: rel._id || rel.relationId || null,
+      value: rel.item?._id || rel._id || rel.value || rel,
+      folio: rel.item?.folio || rel.folio || rel.label || "",
+      docId: rel.item?.docId || rel.docId || "",
+      remitente: rel.item?.remitente ? (rel.item.remitente.name || rel.item.remitente) : (rel.remitente ? (rel.remitente.name || rel.remitente) : ""),
+      asunto: rel.item?.asunto || rel.asunto || rel.observaciones || "",
+    };
+  };
+
+  const handleUploadAnexo = async () => {
+    if (!validarAgregarAnexo()) return;
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de subir anexos.",
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      const user = JSON.parse(localStorage.getItem("user"));
+      formData.append('registrador', user._id || "Desconocido");
+      formData.append('archivo', archivo);
+      formData.append('mensaje', mensaje);
+      formData.append('nombre', nombreDoc);
+
+      console.log("Subiendo anexo con datos:", currentDocId);
+      const response = await uploadAnexo(currentDocId, formData, token);
+      if (!response.ok) throw new Error('Error subiendo el anexo');
+
+      const updatedDocumento = await response.json();
+      setDocumentoAnexos(updatedDocumento.anexos || []);
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setMensaje("");
+      setNombreDoc("");
+      setArchivo(null);
+      setErroresAnexos({});
+      setMostrarModalSubirAnexo(false);
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Anexo subido correctamente',
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al subir el anexo',
+        text: 'No se pudo guardar el archivo en el servidor.',
+      });
+    }
+  };
+
+  const handleRemoveAnexo = async (anexoId) => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      const response = await removeAnexo(currentDocId, { anexoId }, token);
+      if (!response.ok) throw new Error('Error eliminando anexo');
+
+      const updatedDocumento = await response.json();
+      setDocumentoAnexos(updatedDocumento.anexos || []);
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al eliminar el anexo',
+        text: 'No se pudo eliminar el archivo.',
+      });
+    }
+  };
+
+  const handleSaveRelacionados = async () => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      let updatedDocumento = documentoEditar;
+      const newIds = documentosSeleccionados.filter(
+        (id) => !relacionadosDocumento.some((doc) => doc.value === id)
+      );
+      for (const id of newIds) {
+        const doc = documentos.find(d => d.docId === id.docId);
+        const folio = doc ? doc.folio : id;
+        Swal.fire({
+          title: 'Guardando documento relacionado',
+          text: `Guardando folio: ${folio}`,
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        const response = await addRelacionado(currentDocId, { relacionado: { item: id, modelo: "Documento" } }, token);
+        if (!response.ok) throw new Error('Error agregando documento relacionado');
+        updatedDocumento = await response.json();
+      }
+
+      setRelacionadosDocumento(
+        (updatedDocumento.relacionados || [])
+          .map(normalizeRelacionadoItem)
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (updatedDocumento.relacionados || []).map((rel) =>
+          typeof rel === 'object' ? (rel._id || rel.value) : rel
+        )
+      );
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setMostrarModalRelacionado(false);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al agregar documento relacionado',
+        text: 'No se pudo guardar la relación.',
+      });
+    }
+  };
+
+  const handleRemoveRelacionado = async (relatedId) => {
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) return;
+
+    try {
+      const response = await removeRelacionado(currentDocId, { relacionadoId: relatedId }, token);
+      if (!response.ok) throw new Error('Error eliminando documento relacionado');
+
+      const updatedDocumento = await response.json();
+      setRelacionadosDocumento(
+        (updatedDocumento.relacionados || [])
+          .map(normalizeRelacionadoItem)
+          .filter(Boolean)
+      );
+      setDocumentosSeleccionados(
+        (updatedDocumento.relacionados || []).map((rel) =>
+          typeof rel === 'object' ? (rel._id || rel.value) : rel
+        )
+      );
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al eliminar documento relacionado',
+        text: 'No se pudo remover la relación.',
+      });
+    }
+  };
+
+  const [mostrarVisor, setMostrarVisor] = useState(false);
+  const [archivoVista, setArchivoVista] = useState(null);
+    
+  const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
+  const [anexosDisponibles, setAnexosDisponibles] = useState([
+    {
+      id: 1,
+      folio: "ANX-001",
+      nombre: "Contrato.pdf",
+      archivo: null,
+    },
+    {
+      id: 2,
+      folio: "ANX-002",
+      nombre: "Identificación.jpg",
+      archivo: null,
+    },
+  ]);
+
+  const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
+
+  const getReferenceLabel = (value) => {
+    if (!value) return "";
+    if (typeof value === 'object' && value.label) return value.label;
+    if (typeof value === 'string') return value;
+    return String(value);
   };
 
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
@@ -458,8 +1123,6 @@ useEffect(() => {
 }, []);
 
 const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
-const [tabActiva, setTabActiva] = useState("datosAsunto");
-const [documentoEditar, setDocumentoEditar] = useState(null);
 
 
   // form editar (inicializado para evitar undefined)
@@ -483,27 +1146,6 @@ const [documentoEditar, setDocumentoEditar] = useState(null);
     relacionadoCon: false,
     materialAdicional: "",
   });
-
-  const handleModificar = () => {
-    const doc = menuContextual.documento;
-    if (!doc) return;
-
-    setFormEditar((prev) => ({
-      ...prev,
-      ejercicio: "2026",
-      noDocumento: doc.noDocumento || prev.noDocumento,
-      fechaDocumento: doc.fecha || prev.fechaDocumento,
-      fechaAcuse: doc.fecha || prev.fechaAcuse,
-      fechaRegistro: doc.fecha || prev.fechaRegistro,
-      tipoRemitente: "externo",
-      remitenteExterno: doc.remitenteInterno || doc.remitenteExterno || prev.remitenteExterno,
-      tipoDocumento: "oficio",
-      sintesis: doc.asunto || prev.sintesis,
-    }));
-
-    setModalEditarAbierto(true);
-    setMenuContextual((m) => ({ ...m, visible: false }));
-  };
 
 const obtenerLabel = (lista, id) => {
   if (!Array.isArray(lista)) return "";
@@ -530,8 +1172,6 @@ const obtenerLabel = (lista, id) => {
       },
     ];
 
-  
-    const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
   
     const anexosSubidos = [
       {
@@ -566,111 +1206,6 @@ const obtenerLabel = (lista, id) => {
         .toLowerCase()
         .includes(busquedaSubirAnexo.toLowerCase())
     );
-  
-    const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
-    const [archivo, setArchivo] = useState(null);
-    const [dragActivo, setDragActivo] = useState(false);
-  
-    const inputRef = useRef(null);
-  
-    const eliminarArchivo = () => {
-      setArchivo(null);
-      if (inputRef.current) {
-        inputRef.current.value = ""; // reset input file
-      }
-    };
-  
-    const [mensaje, setMensaje] = useState("");
-    const [nombreDoc, setNombreDoc] = useState("");
-    const [erroresAnexos, setErroresAnexos] = useState({});
-  
-    const validarAgregarAnexo = () => {
-      let nuevosErrores = {};
-  
-      if (!mensaje.trim()) {
-        nuevosErrores.mensaje = true;
-      }
-  
-      if (!archivo) {
-        nuevosErrores.archivo = true;
-      }
-  
-      if (!nombreDoc.trim()) {
-        nuevosErrores.nombreDoc = true;
-      }
-  
-      setErroresAnexos(nuevosErrores);
-  
-      return Object.keys(nuevosErrores).length === 0;
-    };
-  
-    const [mostrarVisor, setMostrarVisor] = useState(false);
-    const [archivoVista, setArchivoVista] = useState(null);
-      
-    const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
-    const [anexosDisponibles, setAnexosDisponibles] = useState([
-      {
-        id: 1,
-        folio: "ANX-001",
-        nombre: "Contrato.pdf",
-        archivo: null,
-      },
-      {
-        id: 2,
-        folio: "ANX-002",
-        nombre: "Identificación.jpg",
-        archivo: null,
-      },
-    ]);
-  
-    const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
-  
-      const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-      const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
-    
-      const documentosMock = [
-        {
-          folio: "20220000058",
-          numeroDocumento: "OFI-IMAGO-2022",
-          fecha: "2022-08-09",
-          sintesis: "Agradecimiento",
-          remitenteInterno: "Manuel Emilio Galván Martínez",
-          remitenteExterno: "Gerente de Administración",
-          estatus: "Documento con instrucción turnada",
-          documentoInterno: "No",
-        },
-        {
-          folio: "20220000059",
-          numeroDocumento: "OFI-002-2022",
-          fecha: "2022-08-10",
-          sintesis: "Solicitud",
-          remitenteInterno: "Luis Pérez Sánchez",
-          remitenteExterno: "Gerente de Finanzas",
-          estatus: "Documento con gestión cerrada",
-          documentoInterno: "No",
-        },
-        {
-          folio: "20220000059",
-          numeroDocumento: "OFI-002-2022",
-          fecha: "2022-08-10",
-          sintesis: "Solicitud",
-          remitenteInterno: "Luis Pérez Sánchez",
-          remitenteExterno: "Gerente de Finanzas",
-          estatus: "Documento con gestión cerrada",
-          documentoInterno: "No",
-        },
-        {
-          folio: "20220000059",
-          numeroDocumento: "OFI-002-2022",
-          fecha: "2022-08-10",
-          sintesis: "Solicitud",
-          remitenteInterno: "Luis Pérez Sánchez",
-          remitenteExterno: "Gerente de Finanzas",
-          estatus: "Documento con gestión cerrada",
-          documentoInterno: "No",
-        },
-      ];
-    
     
       useEffect(() => {
         const handleClickOutside = (event) => {
@@ -697,205 +1232,13 @@ const obtenerLabel = (lista, id) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
       }, []);
     
-        const handlePrint = () => {
-        window.print();
-      };
-    
-      const descargarBitacora = () => {
-        window.print();
-      };
       
-      const bitacoraRef = useRef(null);
-    
-      const bitacora = [
-        {
-          usuario: "Víctor Manuel Enríquez Paniagua",
-          descripcion: "Registró el asunto",
-          fecha: "11/10/2022",
-          hora: "21:45:30",
-          tipo: "registro",
-        },
-        {
-          usuario: "Víctor Manuel Enríquez Paniagua",
-          descripcion: "Adjuntó el documento: GUARDIA NACIONAL.pdf",
-          fecha: "11/10/2022",
-          hora: "21:47:11",
-          tipo: "adjunto",
-        },
-        {
-          usuario: "Víctor Manuel Enríquez Paniagua",
-          descripcion:
-            "Generó la instrucción: Atender el tema y dar respuesta al interesado. Prioridad: Trámite Extra-urgente.",
-          fecha: "11/10/2022",
-          hora: "21:48:54",
-          tipo: "instruccion",
-        },
-        {
-          usuario: "Víctor Manuel Enríquez Paniagua",
-          descripcion:
-            "Autorizado y turnado a Dirección de Desarrollo Archivístico Nacional",
-          fecha: "11/10/2022",
-          hora: "21:48:56",
-          tipo: "autorizado",
-        },
-      ];
-    
-      const imprimirDoc = () => {
-        window.print();
-      };
-    
-    
-      const exportarExcelModal = () => {
-        const datos = documentosFiltrados;
-      
-        if (!datos.length) return;
-      
-        const encabezados = [
-          "Folio",
-          "No. Documento",
-          "Fecha",
-          "Síntesis",
-          "Remitente Interno",
-          "Remitente Externo",
-          "Estatus",
-          "Motivo"
-        ];
-      
-        const filas = datos.map((doc) => [
-          doc.folio,
-          doc.numeroDocumento,
-          doc.fecha,
-          doc.sintesis,
-          doc.remitenteInterno,
-          doc.remitenteExterno,
-          doc.estatus,
-          doc.motivo
-        ]);
-      
-        let contenidoCSV =
-          encabezados.join(",") + "\n" +
-          filas.map((fila) => fila.join(",")).join("\n");
-      
-        const blob = new Blob(["\uFEFF" + contenidoCSV], {
-          type: "text/csv;charset=utf-8;"
-        });
-      
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `Documentos_${estatusSeleccionado}.csv`;
-        link.click();
-      };
-    
-      const [copias, setCopias] = useState([
-        "Víctor Manuel Enríquez Paniagua",
-        "María Verónica Leal Camarena",
-        "Guillermo Bonilla Tenorio",
-        "Dirección de Administración",
-      ]);
-    
-      const eliminarCopia = (index) => {
-        setCopias((prev) => prev.filter((_, i) => i !== index));
-      };
-    
-      const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
-      const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
-      const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
-    
-      const funcionarios = [
-        "Víctor Manuel Enríquez Paniagua",
-        "María Verónica Leal Camarena",
-        "Guillermo Bonilla Tenorio",
-        "Dirección de Administración",
-        "Unidad de Correspondencia",
-        "Órgano Interno de Control",
-      ];
-    
-      const funcionariosFiltrados = funcionarios.filter(f =>
-        f.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
-        !copias.some(c => c.toLowerCase() === f.toLowerCase())
-      );
-    
-        const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
-    
-        
     const anexosFiltrados = anexos.filter((anexo) =>
       Object.values(anexo).some((valor) =>
         valor.toLowerCase().includes(busquedaVerTurnos.toLowerCase())
       )
     );
 
-      const turnosVerTodos = [
-        {
-          instruccion:
-            "Atender el tema y dar respuesta al interesado, marcando copia a esta oficina",
-          funcionario: "María Verónica Leal Camarena",
-          areaDestino: "Dirección de Administración",
-          prioridad: "Trámite Extra-urgente",
-          fecha: "2022-10-13",
-          areaTurna:
-            "Dirección de Desarrollo Archivístico Nacional",
-          quienTurna: "María Verónica Leal Camarena",
-          estatus: "Autorizados y turnados",
-        },
-        {
-          instruccion: "Distribuir los materiales",
-          funcionario: "Guillermo Bonilla Tenorio",
-          areaDestino:
-            "Dirección de Desarrollo Archivístico Nacional",
-          prioridad: "Trámite Extra-urgente",
-          fecha: "2022-10-13",
-          areaTurna:
-            "Dirección de Desarrollo Archivístico Nacional",
-          quienTurna: "Víctor Manuel Enríquez Paniagua",
-          estatus: "Concluido",
-        },
-      ];
-    
-      const turnosVerFiltrados = turnosVerTodos.filter((item) =>
-        Object.values(item)
-          .join(" ")
-          .toLowerCase()
-          .includes(busquedaVerTurnos.toLowerCase())
-      );
-    
-      const [mostrarModalTurno, setMostrarModalTurno] = useState(false);
-  
-      const validarFormularioAltaInstruccion = () => {
-        let nuevosErrores = {};
-    
-        if (!form.instruccion) nuevosErrores.instruccion = true;
-        if (!form.areaDestino) nuevosErrores.areaDestino = true;
-        if (!form.prioridad) nuevosErrores.prioridad = true;
-        if (!form.fecha) nuevosErrores.fecha = true;
-    
-        setErrores(nuevosErrores);
-    
-        return Object.keys(nuevosErrores).length === 0;
-      };
-    
-      const handleGuardarAltaInstruccion = () => {
-        if (!validarFormularioAltaInstruccion()) {
-           Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "error",
-            title: "Faltan campos obligatorios",
-            showConfirmButton: false,
-            timer: 2500,
-          });
-          return;
-        }
-    
-        Swal.fire({
-          icon: "success",
-          title: "Guardado",
-          text: "Turno guardado correctamente",
-          confirmButtonColor: "#8B1538",
-        });
-    
-        setMostrarModalTurno(false);
-      };
-    
       const [materiales, setMateriales] = useState([
         {
           id: 1,
@@ -1287,7 +1630,7 @@ const obtenerLabel = (lista, id) => {
                   <Toggle
                     checked={form.relacionadoCon}
                     onChange={(v) => {
-                      setForm({ ...form, relacionadoCon: v });
+                      setFormEditar({ ...form, relacionadoCon: v });
 
                       if (v) {
                         setMostrarModalRelacionado(true);
@@ -1731,7 +2074,7 @@ const obtenerLabel = (lista, id) => {
       <AnimatePresence>
         {mostrarModalRelacionado && (
           <motion.div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1743,7 +2086,6 @@ const obtenerLabel = (lista, id) => {
               transition={{ duration: 0.2 }}
               className="bg-white w-[900px] rounded shadow-lg overflow-hidden"
             >
-              
               {/* HEADER */}
               <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
                 <span className="text-white text-sm">Documentos relacionados</span>
@@ -1773,6 +2115,7 @@ const obtenerLabel = (lista, id) => {
                     <input
                       value={busquedaDocumentoRelacionado}
                       onChange={(e) => {
+                        console.log("Buscando documento relacionado:", e.target.value);
                         setBusquedaDocumentoRelacionado(e.target.value);
                         setMostrarOpcionesDocumento(true);
                       }}
@@ -1788,14 +2131,14 @@ const obtenerLabel = (lista, id) => {
                       {documentosFiltrados.length > 0 ? (
                         documentosFiltrados.map((d) => (
                           <div
-                            key={d.value}
+                            key={d.docId}
                             onClick={() => {
-                              if (!documentosSeleccionados.includes(d.value)) {
-                                setDocumentosSeleccionados([...documentosSeleccionados, d.value]);
+                              if (!documentosSeleccionados.includes(d)) {
+                                setDocumentosSeleccionados([...documentosSeleccionados, d]);
 
                                 //  AQUÍ asigna lo que quieres mostrar en Anexos
                                 setAsuntoSeleccionado({
-                                  descripcion: d.label // o aquí puedes usar otra propiedad si tienes más info
+                                  descripcion: d.docId // o aquí puedes usar otra propiedad si tienes más info
                                 });
                               }
                               setBusquedaDocumentoRelacionado("");
@@ -1803,7 +2146,7 @@ const obtenerLabel = (lista, id) => {
                             }}
                             className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
                           >
-                            {d.label}
+                            {d.folio} - {d.asunto || "Sin asunto"}
                           </div>
                         ))
                       ) : (
@@ -1821,10 +2164,10 @@ const obtenerLabel = (lista, id) => {
                   <div className="border rounded p-2 max-h-32 overflow-y-auto">
                     {documentosSeleccionados.length > 0 ? (
                       documentosSeleccionados.map((id) => {
-                        const doc = documentos.find(d => d.value === id);
+                        const doc = documentos.find(d => d.docId === id.docId);
                         return (
-                          <div key={id} className="flex justify-between items-center py-1">
-                            <span className="text-sm">{doc ? doc.label : id}</span>
+                          <div key={id.docId} className="flex justify-between items-center py-1">
+                            <span className="text-sm">{doc ? doc.folio : id.docId}</span>
                             <button
                               onClick={() => setDocumentosSeleccionados(documentosSeleccionados.filter(sel => sel !== id))}
                               className="text-red-500 text-xs"
@@ -1845,10 +2188,7 @@ const obtenerLabel = (lista, id) => {
               {/* FOOTER */}
               <div className="flex justify-end p-4">
                 <button
-                  onClick={() => {
-                    setForm({ ...form, relacionados: documentosSeleccionados });
-                    setMostrarModalRelacionado(false);
-                  }}
+                  onClick={handleSaveRelacionados}
                   className="bg-[#8B1538] text-white px-6 py-2 rounded"
                 >
                   Guardar
@@ -2546,34 +2886,36 @@ const obtenerLabel = (lista, id) => {
 
                       {/* 🧾 BODY */}
                       <tbody>
-                        {anexosSubirVerFiltrados.length > 0 ? (
-                          anexosSubirVerFiltrados.map((anexo, index) => (
+                        {documentoAnexosFiltrados.length > 0 ? (
+                          documentoAnexosFiltrados.map((anexo) => (
                             <tr
-                              key={index}
+                              key={anexo._id || anexo.nombre}
                               className="border-t hover:bg-gray-50"
                             >
                               {/* 🗑 ELIMINAR */}
                               <td className="px-3 py-2">
-                                <button className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
+                                <button
+                                onClick={() => handleRemoveAnexo(anexo._id)} 
+                                className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
                                   <Trash2 size={14} />
                                 </button>
                               </td>
 
                               {/* 👤 REGISTRADOR */}
                               <td className="px-3 py-2 text-gray-700">
-                                {anexo.registrador || "Omar César Juárez"}
+                                {anexo.registrador?.nombre ? anexo.registrador.nombre : "N/A"}
                               </td>
 
                               {/* 💬 MENSAJE */}
                               <td className="px-3 py-2 text-gray-700">
-                                {anexo.mensaje || "Anexo 1"}
+                                {anexo.mensaje || "Sin mensaje"}
                               </td>
 
                               {/* 📄 BOTÓN ARCHIVO */}
                               <td className="px-3 py-2">
                                 <button
                                   onClick={() => {
-                                    setArchivoVista(item.archivo); // o la ruta/url del archivo
+                                    setArchivoVista(`${BaseURL}${anexo.ruta}`); // o la ruta/url del archivo
                                     setMostrarVisor(true);
                                   }}
                                   className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
@@ -2581,7 +2923,6 @@ const obtenerLabel = (lista, id) => {
                                   Ver Archivo
                                 </button>
                               </td>
-
 
                               {/* 📑 NOMBRE */}
                               <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
@@ -2605,10 +2946,13 @@ const obtenerLabel = (lista, id) => {
 
                     {/* Botón */}
                     <button
-                      onClick={() => setMostrarModalAnexos(true)}
+                      onClick={() => {
+                        setDocumentoSeleccionado([]);
+                        setMostrarModalRelacionado(true);
+                      }}
                       className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                     >
-                      Añadir anexo
+                      Añadir documento relacionado
                     </button>
 
                     {/* 🔍 Buscador */}
@@ -2625,53 +2969,48 @@ const obtenerLabel = (lista, id) => {
                   </div>
 
                   <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                  Añade archivos de anexos al registro para complementar la información del asunto.
+                  Documentos relacionados con este registro.
                 </h3>
                   {/* Tabla de anexos */}
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border border-gray-200">
                       <thead className="bg-[#8B1538] text-white">
-                        <tr>
-                          <th className="px-4 py-2 text-left">
-                            Documento anexo
-                          </th>
-                          <th className="px-4 py-2 text-left">
-                            Folio del anexo
-                          </th>
-                          <th className="px-4 py-2 text-left">
-                            Nombre del documento
-                          </th>
-                        </tr>
-                      </thead>
+                              <tr>
+                                <th className="px-4 py-2 text-left">Folio</th>
+                                <th className="px-4 py-2 text-left">DocId</th>
+                                <th className="px-4 py-2 text-left">Remitente</th>
+                                <th className="px-4 py-2 text-left">Asunto</th>
+                                <th className="px-4 py-2 text-left">Eliminar</th>
+                              </tr>
+                            </thead>
 
                       <tbody>
-                        {anexosFiltrados.length > 0 ? (
-                          anexosFiltrados.map((anexo, index) => (
+                        {relacionadosFiltrados.length > 0 ? (
+                          relacionadosFiltrados.map((relacionado) => (
                             <tr
-                              key={index}
-                              className="border-t hover:bg-gray-50"
-                            >
-                              <td className="px-4 py-2">
-                                <button className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90">
-                                  Ver Archivo
-                                </button>
-                              </td>
-
-                              <td className="px-4 py-2 text-gray-700">
-                                {anexo.folio}
-                              </td>
-
-                              <td className="px-4 py-2 text-gray-700">
-                                {anexo.nombre}
-                              </td>
+                            key={relacionado.value}
+                                className="border-t hover:bg-gray-50"
+                                >
+                                <td className="px-4 py-2 text-gray-700">{relacionado.folio || 'Sin folio'}</td>
+                                  <td className="px-4 py-2 text-gray-700">{relacionado.docId || 'Sin docId'}</td>
+                                  <td className="px-4 py-2 text-gray-700">{relacionado.remitente || 'N/A'}</td>
+                                  <td className="px-4 py-2 text-gray-700">{relacionado.asunto || 'Sin asunto'}</td>
+                                  <td className="px-4 py-2">
+                                   <button
+                                    onClick={() => handleRemoveRelacionado(relacionado.value)}
+                                    className="text-red-500 hover:text-red-700 transition"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                               ))
+                              ) : (
+                              <tr>
+                               <td colSpan={5} className="text-center py-4 text-gray-400">
+                      |          Sin documentos relacionados
+                                </td>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={3} className="text-center py-4 text-gray-400">
-                              Sin resultados
-                            </td>
-                          </tr>
                         )}
                       </tbody>
 
@@ -2819,49 +3158,7 @@ const obtenerLabel = (lista, id) => {
                           </button>
 
                           <button
-                            onClick={async () => {
-                              if (!validarAgregarAnexo()) {
-                                Swal.fire({
-                                  toast: true,
-                                  position: "top-end",
-                                  icon: "error",
-                                  title: "Faltan campos obligatorios",
-                                  showConfirmButton: false,
-                                  timer: 2500,
-                                });
-                                return;
-                              }
-
-                              // Confirmación antes de guardar
-                              const result = await Swal.fire({
-                                title: "Confirmación",
-                                text: "¿Seguro que desea continuar?, su información está correcta?",
-                                icon: "question",
-                                showCancelButton: true,
-                                confirmButtonText: "OK",
-                                cancelButtonText: "Cancelar",
-                                confirmButtonColor: "#8B1538",
-                                cancelButtonColor: "#6B7280",
-                              });
-
-                              if (result.isConfirmed) {
-                                Swal.fire({
-                                  toast: true,
-                                  position: "top-end",
-                                  icon: "success",
-                                  title: "Documento guardado correctamente",
-                                  showConfirmButton: false,
-                                  timer: 2000,
-                                });
-
-                                setMostrarModalSubirAnexo(false);
-                                // Opcional: limpiar formulario
-                                setMensaje("");
-                                setNombreDoc("");
-                                setArchivo(null);
-                                setErrores({});
-                              }
-                            }}
+                            onClick={handleUploadAnexo}
                             className="px-4 py-2 bg-[#8B1538] text-white rounded"
                           >
                             Guardar
@@ -3347,16 +3644,27 @@ const obtenerLabel = (lista, id) => {
                                     key={index}
                                     className="border-t hover:bg-gray-50"
                                   >
-                                    <td className="px-3 py-2">{turno.instruccion}</td>
-                                    <td className="px-3 py-2">{turno.funcionario}</td>
-                                    <td className="px-3 py-2">{turno.areaDestino}</td>
-                                    <td className="px-3 py-2">{turno.prioridad}</td>
-                                    <td className="px-3 py-2">{turno.fecha}</td>
-                                    <td className="px-3 py-2">{turno.areaTurna}</td>
-                                    <td className="px-3 py-2">{turno.quienTurna}</td>
-                                    <td className="px-3 py-2 font-medium">
-                                      {turno.estatus}
+                                    
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.instruccion?.descripcion || turno.instruccion?.label || turno.instruccion || "Sin instrucción"}
                                     </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.dirigido?.nombre || turno.remitente?.label || turno.remitente || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.areaDestino?.nombre || turno.areaDestino?.label || turno.areaDestino || "Sin área"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">{turno.prioridad || "-"}</td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.dirigido?.area || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 text-gray-700">
+                                      {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
+                                    </td>
+                                    <td className="px-3 py-2 font-medium">{turno.status || "Pendiente"}</td>
                                   </tr>
                                 ))
                               ) : (
@@ -3407,23 +3715,36 @@ const obtenerLabel = (lista, id) => {
                                 {/* Instrucción */}
                                 <div className="col-span-2">
                                   <label>Instrucción*</label>
-                                  <input
+                                  <select
                                     value={form.instruccion}
-                                    onChange={(e) =>
-                                      setForm({ ...form, instruccion: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.instruccion ? "border-red-500" : "border-gray-300"
-                                    }`}
-                                    placeholder="Buscar y seleccionar opción"
-                                  />
+                                    onChange={(e) => setForm({ ...form, instruccion: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.instruccion ? "border-red-500" : "border-gray-300"}`}
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {instrucciones.map((inst) => (
+                                      <option key={inst.value} value={inst.value}>
+                                        {inst.label}
+                                      </option>
+                                    ))}
+                                  </select>
 
                                 </div>
 
                                 {/* Funcionario */}
                                 <div>
                                   <label>Funcionario que remite</label>
-                                  <input className="w-full border rounded px-3 py-2" />
+                                  <select
+                                    value={form.remitente}
+                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {remitentes.map((item) => (
+                                      <option key={item.value} value={item.value}>
+                                        {item.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Área destino */}
@@ -3431,14 +3752,15 @@ const obtenerLabel = (lista, id) => {
                                   <label>Área de destino*</label>
                                   <select
                                     value={form.areaDestino}
-                                    onChange={(e) =>
-                                      setForm({ ...form, areaDestino: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.areaDestino ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    onChange={(e) => setForm({ ...form, areaDestino: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.areaDestino ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
+                                    {areas.map((area) => (
+                                      <option key={area.value} value={area.value}>
+                                        {area.label}
+                                      </option>
+                                    ))}
                                   </select>
 
                                 </div>
@@ -3446,7 +3768,18 @@ const obtenerLabel = (lista, id) => {
                                 {/* Dirigido a */}
                                 <div className="col-span-2">
                                   <label>Dirigido a</label>
-                                  <input className="w-full border rounded px-3 py-2" placeholder="Buscar y seleccionar opción" />
+                                  <select
+                                    value={form.dirigido}
+                                    onChange={(e) => setForm({ ...form, dirigido: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {usuarios.map((user) => (
+                                      <option key={user.value} value={user.value}>
+                                        {user.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Prioridad */}
@@ -3454,14 +3787,13 @@ const obtenerLabel = (lista, id) => {
                                   <label>Prioridad*</label>
                                   <select
                                     value={form.prioridad}
-                                    onChange={(e) =>
-                                      setForm({ ...form, prioridad: e.target.value })
-                                    }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.prioridad ? "border-red-500" : "border-gray-300"
-                                    }`}
+                                    onChange={(e) => setForm({ ...form, prioridad: e.target.value })}
+                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
+                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
+                                    <option value="Urgente">Urgente</option>
+                                    <option value="Normal">Normal</option>
                                   </select>
 
                                 </div>
@@ -3485,13 +3817,28 @@ const obtenerLabel = (lista, id) => {
                                 {/* Quién lo turna */}
                                 <div>
                                   <label>Quién lo turna</label>
-                                  <input className="w-full border rounded px-3 py-2" />
+                                  <select
+                                    value={form.turna}
+                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  >
+                                    <option value="">Seleccionar</option>
+                                    {usuarios.map((user) => (
+                                      <option key={user.value} value={user.value}>
+                                        {user.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
 
                                 {/* Notas */}
                                 <div className="col-span-2">
                                   <label>Notas</label>
-                                  <textarea className="w-full border rounded px-3 py-2"></textarea>
+                                  <textarea
+                                    value={form.notas}
+                                    onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                                    className="w-full border rounded px-3 py-2"
+                                  />
                                 </div>
 
                                 {/* Autorizar */}
@@ -3539,7 +3886,11 @@ const obtenerLabel = (lista, id) => {
                         {/* Botón agregar */}
                         <div className="flex justify-start">
                           <button
-                            onClick={() => setMostrarModalCopias(true)}
+                            onClick={() => {setMostrarModalCopias(true);
+                              setBusquedaFuncionario("");
+                              setSelectedCopiaUsuario(null);}
+
+                            }
                              className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
                             Añadir funcionario
@@ -3556,27 +3907,36 @@ const obtenerLabel = (lista, id) => {
                             </thead>
 
                             <tbody>
-                              {copias.map((funcionario, index) => (
+                              {copiasDocumento.length > 0 ? (
+                                copiasDocumento.map((copia, index) => (
                                 <tr
-                                  key={index}
+                                  key={copia._id || index }
                                   className="border-t hover:bg-gray-50"
                                 >
-                                  {/* 🔥 Columna eliminar */}
                                   <td className="px-4 py-2">
-                                    <button
-                                      onClick={() => eliminarCopia(index)}
-                                      className="text-red-500 hover:text-red-700 transition"
-                                      title="Eliminar"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </td>
+                                      <button
+                                        onClick={() => {
+                                          setCopiasDocumento((prev) => prev.filter((_, i) => i !== index));
+                                        }}
+                                        className="text-red-500 hover:text-red-700 transition"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
 
-                                  <td className="px-4 py-2 text-gray-700">
-                                    {funcionario}
+                                    <td className="px-4 py-2 text-gray-700">
+                                      {copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "Sin funcionario"}
+                                    </td>
+                                </tr>
+                              ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={2} className="text-center py-4 text-gray-400">
+                                    Sin copias registradas
                                   </td>
                                 </tr>
-                              ))}
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -3648,12 +4008,10 @@ const obtenerLabel = (lista, id) => {
                       
                               <div className="p-6 space-y-4">
                       
-                                {bitacora.length ? (
-                                  bitacora.map((movimiento, index) => {
+                                {bitacoraDocumento.length ? (
+                                  bitacoraDocumento.map((movimiento, index) => {
                                     const esPrincipal =
-                                      movimiento.tipo === "registro" ||
-                                      movimiento.tipo === "turnado" ||
-                                      movimiento.tipo === "autorizado";
+                                      movimiento.importancia === "Alta";
                       
                                     return (
                                       <div
@@ -3666,7 +4024,7 @@ const obtenerLabel = (lista, id) => {
                                       >
                                         <div>
                                           <p className="font-semibold">
-                                            {movimiento.usuario}
+                                            {movimiento.user.nombre}
                                           </p>
                       
                                           <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
@@ -3675,8 +4033,13 @@ const obtenerLabel = (lista, id) => {
                                         </div>
                       
                                         <div className="text-right text-xs whitespace-nowrap">
-                                          <p>{movimiento.fecha}</p>
-                                          <p>{movimiento.hora}</p>
+                                          <p>Fecha: {formatDateValue(movimiento.fecha)}</p>
+                                          <p>Hora: {// Obtener solo la hora en formato HH:mm
+                                            new Date(movimiento.fecha).toLocaleTimeString([], {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            })
+                                          }</p>
                                         </div>
                                       </div>
                                     );

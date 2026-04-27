@@ -14,7 +14,7 @@ const AnexoSchema = new Schema({
 
 const CopiaSchema = new Schema({
   funcionario: {type: Schema.Types.ObjectId, ref: 'users'},
-  status: String,
+  status: { type: String, default: "Por leer" },
   fecha: { type: Date, default: Date.now }
 }, { _id: true });
 
@@ -62,9 +62,9 @@ const DocumentoSchema = new Schema({
   acuse: Date,
   registro: { type: Date, default: Date.now },
 
-  completa: { type: Boolean, default: false },
-  interno: { type: Boolean, default: false },
-  status: String,
+  completa: { type: Boolean, default: true },
+  interno: { type: Boolean, default: true },
+  status: {type: String, default: "Sin instrucciones"},
 
   remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},

@@ -125,7 +125,8 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
             user: user.id,
             fecha: new Date(),
             importancia: 'Media',
-        }} },
+        }},
+         $set: { status: "Autorizado, y turnado" } },
         { new: true }
     )
     .populate('remitente')
@@ -402,6 +403,25 @@ const deleteDocumento = async (docId) => {
     return await documentoModel.findOneAndDelete({ docId });
 };
 
+const reporteAcuerdos = async (fechaInicio, fechaFin) => {
+    const filtroFecha = {};
+  if (fechaInicio) {
+    filtroFecha.$gte = new Date(fechaInicio);
+  }
+
+  if (fechaFin) {
+    filtroFecha.$lte = new Date(fechaFin);
+  }
+
+   const query = Object.keys(filtroFecha).length > 0 ? {turnados: { $elemMatch: { fechaTurnado: filtroFecha  } }}
+   : {}; 
+
+    return await documentoModel.find(query)
+    .populate('remitente')
+    .populate('tipo')
+    .populate('turnados.instruccion');
+}
+
 export default {
     getAll,
     getById,
@@ -415,5 +435,6 @@ export default {
     patchStatusDocumento,
     patchRelacionadoDocumento,
     patchRemoverRelacionadoDocumento,
-    deleteDocumento
+    deleteDocumento,
+    reporteAcuerdos
 };
