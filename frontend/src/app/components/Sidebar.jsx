@@ -19,8 +19,6 @@ import bgSidebar from "../assets/images/fondogob.jpg";
 
 const tareasPorRol = {
   VALIDADOR: [
-    { label: "Visualiza documento", color: "text-[#79142A]", view: "visualiza-documento" },
-    { label: "Validar respuesta", color: "text-[#60595D]", view: "validar-respuesta" },
     { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
     { label: "Generación de oficios", color: "text-[#60595D]", view: "generacion-oficios" },
     { label: "Control de oficios", color: "text-[#79142A]", view: "control-oficios" }
@@ -43,12 +41,14 @@ const tareasPorRol = {
   ],
 
   EJECUTOR: [
-    { label: "Visualiza documento",  color: "text-[#79142A]", view: "visualiza-documento" },
-    { label: "Atiende asunto", color: "text-[#60595D]", view: "atiende-asunto" },
     { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
     { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
     { label: "Reporte de asuntos", color: "text-[#79142A]", view: "reporte-asuntos" },
-    { label: "Reporte de acuerdos", color: "text-[#60595D]", view: "reporte-acuerdos" }
+    { label: "Reporte de acuerdos", color: "text-[#60595D]", view: "reporte-acuerdos" },
+    { label: "Generación de oficios", color: "text-[#79142A]", view: "generacion-oficios" },
+    { label: "Control de oficios", color: "text-[#60595D]", view: "control-oficios" },
+    { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+
   ]
 };
 

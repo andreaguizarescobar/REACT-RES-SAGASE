@@ -6,6 +6,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, Pencil, X, Minus } from "lucide-react";
 
 import { getDocuments, updateDocument } from "../../services/document.service";
 
@@ -287,6 +289,7 @@ export function TableroControl() {
   );
 
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+  const bitacora = documentoSeleccionado?.bitacora || [];
 
   const anexosRelacionados = anexos.filter(
     (a) => a.folio === documentoSeleccionado?.folio
@@ -453,16 +456,32 @@ export function TableroControl() {
          MODAL DINÁMICO
       ============================ */}
 
-      {estatusSeleccionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center print:block">
+      <AnimatePresence>
+        {estatusSeleccionado && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center print:block"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+
           {/* Fondo oscuro */}
-          <div
+          <motion.div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm no-print"
             onClick={() => setEstatusSeleccionado(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           />
 
           {/* Ventana */}
-          <div className="relative bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[80vh] overflow-y-auto p-6 print:shadow-none print:max-h-none print:w-full">
+          <motion.div
+            className="relative bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[80vh] overflow-y-auto p-6 print:shadow-none print:max-h-none print:w-full"
+            initial={{ scale: 0.9, y: 40, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.9, y: 40, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
             <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
               {" "}
               <h3 className="text-xl font-semibold text-[#8B1538]">
@@ -470,10 +489,11 @@ export function TableroControl() {
               </h3>
               <button
                 onClick={() => setEstatusSeleccionado(null)}
-                className="text-gray-500 hover:text-black text-xl"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
               >
-                ✕
+                <Minus size={14} />
               </button>
+
             </div>
 
             <div className="flex justify-start gap-3 mb-4 no-print">
@@ -664,27 +684,33 @@ export function TableroControl() {
               )}
             </div>
 
+            
+          <AnimatePresence>
             {documentoSeleccionado && (
-              <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto">
-                <div
-                  className="absolute inset-0 bg-black/40"
-                  onClick={() => setDocumentoSeleccionado(null)}
-                />
+              <motion.div
+                className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {/* Fondo oscuro */}
+                <motion.div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setDocumentoSeleccionado(null)}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  />
 
-                <div
-                  className="
-                  relative 
-                  bg-white 
-                  w-full 
-                  max-w-6xl 
-                  h-[90vh] sm:h-[85vh] 
-                  rounded-2xl 
-                  shadow-2xl 
-                  flex 
-                  flex-col 
-                  pt-6
-                "
+                {/* Contenido del modal */}
+                <motion.div
+                  className="relative bg-white w-full max-w-6xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl flex flex-col pt-6"
+                  initial={{ scale: 0.95, y: 50, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.95, y: 50, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
                 >
+
                   {/* Header */}
                   <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
                     <h2 className="text-xl font-bold text-[#8B1538]">
@@ -695,9 +721,9 @@ export function TableroControl() {
                       onClick={() =>
                         setDocumentoSeleccionado(null)
                       }
-                      className="text-gray-500 hover:text-black"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
                     >
-                      ✕
+                        <Minus size={14} />
                     </button>
                   </div>
 
@@ -1355,19 +1381,37 @@ export function TableroControl() {
                     )}
      
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
+           </AnimatePresence>
 
-             {documentoEditar && (
-              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-                <div
+          <AnimatePresence>
+            {documentoEditar && (
+              <motion.div
+                className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {/* Fondo oscuro */}
+                <motion.div
                   className="absolute inset-0 bg-black/40"
                   onClick={() => setDocumentoEditar(null)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 />
             
-                <div className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6">
-                  
+                {/* Modal de edición */}
+                <motion.div
+                  className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
+                  initial={{ scale: 0.9, y: 40, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.9, y: 40, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+
                   {/* Header */}
                   <div className="flex justify-between items-center border-b pb-4 mb-6">
                     <h2 className="text-xl font-bold text-[#8B1538]">
@@ -1376,9 +1420,9 @@ export function TableroControl() {
             
                     <button
                       onClick={() => setDocumentoEditar(null)}
-                      className="text-gray-500 hover:text-black"
+                      className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
                     >
-                      ✕
+                        <Minus size={14} />
                     </button>
                   </div>
             
@@ -1475,13 +1519,14 @@ export function TableroControl() {
                     </button>
                   </div>
             
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
-
-          </div>
-        </div>
+           </AnimatePresence>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
