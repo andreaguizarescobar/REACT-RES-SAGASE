@@ -47,6 +47,8 @@ router.patch('/:docId/removerRelacionado', verifyToken, documentoController.patc
 // documento/delete/:docId
 router.delete('/delete/:docId', verifyToken, documentoController.deleteDocumento);
 // documento/reporte/acuerdos
-router.post('/reporte/acuerdos', documentoController.reporteAcuerdos);
+router.post('/reporte/acuerdos', verifyToken, documentoController.reporteAcuerdos);
+// documento/reporte/asuntos
+router.post('/reporte/asuntos', verifyToken, documentoController.reporteAsuntos);
 
 export default router;

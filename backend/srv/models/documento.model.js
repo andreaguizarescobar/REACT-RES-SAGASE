@@ -42,7 +42,7 @@ const TurnadoSchema = new Schema({
   compromiso: Date,
   turna: {type: Schema.Types.ObjectId, ref: 'users'},
   notas: String,
-  status: String
+  status: {type: String, default: "Registrado"},
 }, { _id: true });
 
 const AdicionalSchema = new Schema({

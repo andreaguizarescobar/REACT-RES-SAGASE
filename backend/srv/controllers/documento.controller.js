@@ -231,6 +231,16 @@ export const reporteAcuerdos = async (req, res) => {
     }
 };
 
+export const reporteAsuntos = async (req, res) => {
+    try {
+        const filtro = req.body;
+        const asuntos = await documentoService.reporteAsuntos(filtro);
+        res.status(200).json(asuntos);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export default {
     getAll,
     getById,
@@ -244,5 +254,6 @@ export default {
     patchRelacionadoDocumento,
     patchRemoverRelacionadoDocumento,
     deleteDocumento,
-    reporteAcuerdos
+    reporteAcuerdos,
+    reporteAsuntos
 };

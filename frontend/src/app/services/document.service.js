@@ -148,3 +148,13 @@ export const reporteAcuerdos = (data, token) => {
     });
 };
 
+export const reporteAsuntos = (data, token) => {
+    return fetchAPI(`/documentos/reporte/asuntos`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+    });
+};
+

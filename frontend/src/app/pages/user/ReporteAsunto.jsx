@@ -1,60 +1,6 @@
 import { Minus } from 'lucide-react';
 import { useState } from 'react';
-
-export function ReporteAsuntos() {
-
-  const [form, setForm] = useState({
-    origen: '',
-    unidadAdministrativa: '',
-    fechaInicio: '',
-    fechaFin: '',
-    registrados: false,
-    autorizadosTurnados: false,
-    recibidosEjecucion: false,
-    atencionConcluida: false,
-    atencionValidada: false,
-    cerrados: false
-  });
-
-  const datosReporte = [
-    {
-      folio: "26-2022",
-      numeroDocumento: "OFI-01/2022",
-      origenTurno: "Dirección Desarrollo Archivístico",
-      areaTurnada: "Dirección Jurídica",
-      asunto: "Solicitud de baja de expedientes",
-      fechaCompromiso: "2022-07-22",
-      instruccion: "Atender conforme proceda",
-      estatus: "Cerrado"
-    },
-    {
-      folio: "34-2022",
-      numeroDocumento: "OFI-06/2022",
-      origenTurno: "Dirección General",
-      areaTurnada: "Dirección Administración",
-      asunto: "Actualización de inventario",
-      fechaCompromiso: "2022-08-01",
-      instruccion: "Revisar y validar",
-      estatus: "Autorizados y turnados"
-    }
-  ];
-
-  const [resultados, setResultados] = useState(datosReporte);
-  const [mostrarReporte, setMostrarReporte] = useState(false);
-
-  const handleToggle = (name) => {
-    setForm((prev) => ({
-      ...prev,
-      [name]: !prev[name]
-    }));
-  };
-
-  const handleOrigenToggle = (value) => {
-    setForm((prev) => ({
-      ...prev,
-      origen: prev.origen === value ? '' : value
-    }));
-  };
+import { reporteAsuntos } from '../../services/document.service';
 
   const Toggle = ({ label, checked, onChange, className = '' }) => (
     <div className={`flex items-center justify-between gap-4 w-full ${className}`}>
@@ -77,6 +23,45 @@ export function ReporteAsuntos() {
       </button>
     </div>
   );
+export function ReporteAsuntos() {
+
+  const [form, setForm] = useState({
+    origen: '',
+    unidadAdministrativa: '',
+    fechaInicio: '',
+    fechaFin: '',
+    Registrado: false,
+    autorizadoYTurnado: false,
+    Recibido: false,
+    Concluido: false,
+    Validado: false,
+    cerrados: false
+  });
+
+  const [datosReporte, setDatosReporte] = useState([]);
+
+  const [mostrarReporte, setMostrarReporte] = useState(false);
+
+  const handleToggle = (name) => {
+    setForm((prev) => ({
+      ...prev,
+      [name]: !prev[name]
+    }));
+  };
+
+  const handleOrigenToggle = (value) => {
+    setForm((prev) => ({
+      ...prev,
+      origen: prev.origen === value ? '' : value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    const response = await reporteAsuntos(form, localStorage.getItem("token"));
+    const data = await response.json();
+    setDatosReporte(data);
+    setMostrarReporte(true);
+  } 
 
   const exportarExcel = () => {
     const encabezados = [
@@ -90,17 +75,18 @@ export function ReporteAsuntos() {
       "Estatus"
     ];
 
-    const filas = resultados.map((item) =>
+    const filas = datosReporte.map((item) =>
+      item.turnados.map((turnado) =>
       [
         item.folio,
-        item.numeroDocumento,
-        item.origenTurno,
-        item.areaTurnada,
+        item.docId,
+        item.remitente.name,
+        item.remitente.area,
         item.asunto,
-        item.fechaCompromiso,
-        item.instruccion,
-        item.estatus
-      ].join(",")
+        turnado.compromiso.splt("T")[0],
+        turnado.instruccion.descripcion,
+        turnado.status
+      ].join(","))
     );
 
     const csvContenido =
@@ -215,14 +201,14 @@ export function ReporteAsuntos() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle label="Registrados" checked={form.registrados} onChange={() => handleToggle('registrados')} />
-              <Toggle label="Autorizados y turnados" checked={form.autorizadosTurnados} onChange={() => handleToggle('autorizadosTurnados')} />
-              <Toggle label="Recibidos en ejecución" checked={form.recibidosEjecucion} onChange={() => handleToggle('recibidosEjecucion')} />
+              <Toggle label="Registrados" checked={form.Registrado} onChange={() => handleToggle('Registrado')} />
+              <Toggle label="Autorizados y turnados" checked={form.autorizadoYTurnado} onChange={() => handleToggle('autorizadoYTurnado')} />
+              <Toggle label="Recibidos en ejecución" checked={form.Recibido} onChange={() => handleToggle('Recibido')} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle label="Con atención concluida" checked={form.atencionConcluida} onChange={() => handleToggle('atencionConcluida')} />
-              <Toggle label="Con atención validada" checked={form.atencionValidada} onChange={() => handleToggle('atencionValidada')} />
+              <Toggle label="Con atención concluida" checked={form.Concluido} onChange={() => handleToggle('Concluido')} />
+              <Toggle label="Con atención validada" checked={form.Validado} onChange={() => handleToggle('Validado')} />
               <Toggle label="Cerrados" checked={form.cerrados} onChange={() => handleToggle('cerrados')} />
             </div>
 
@@ -231,10 +217,7 @@ export function ReporteAsuntos() {
 
         <div className="flex flex-col sm:flex-row justify-center pt-6">
           <button
-            onClick={() => {
-              setResultados(datosReporte);
-              setMostrarReporte(true);
-            }}
+            onClick={handleSubmit}
             className="w-full sm:w-auto bg-[#8B1538] text-white px-12 py-2 rounded hover:opacity-90 transition"
           >
             Generar
@@ -281,11 +264,11 @@ export function ReporteAsuntos() {
                       <p>
                         <strong>Estatus:</strong>{" "}
                         {[
-                          form.registrados && "Registrados",
-                          form.autorizadosTurnados && "Autorizados y turnados",
-                          form.recibidosEjecucion && "Recibidos en ejecución",
-                          form.atencionConcluida && "Con atención concluida",
-                          form.atencionValidada && "Con atención validada",
+                          form.Registrado && "Registrados",
+                          form.autorizadoYTurnado && "Autorizados y turnados",
+                          form.Recibido && "Recibidos en ejecución",
+                          form.Concluido && "Con atención concluida",
+                          form.Validado && "Con atención validada",
                           form.cerrados && "Cerrados"
                         ].filter(Boolean).join(", ") || "NO ESPECIFICADO"}
                       </p>
@@ -306,18 +289,18 @@ export function ReporteAsuntos() {
                       </thead>
 
                       <tbody>
-                        {resultados.map((item, index) => (
+                        {datosReporte.map((item) => ( item.turnados.map((turnado, index) => (
                           <tr key={index}>
                             <td className="px-2 py-2 border">{item.folio}</td>
-                            <td className="px-2 py-2 border">{item.numeroDocumento}</td>
-                            <td className="px-2 py-2 border">{item.origenTurno}</td>
-                            <td className="px-2 py-2 border">{item.areaTurnada}</td>
+                            <td className="px-2 py-2 border">{item.docId}</td>
+                            <td className="px-2 py-2 border">{item.remitente.name}</td>
+                            <td className="px-2 py-2 border">{item.remitente.area}</td>
                             <td className="px-2 py-2 border">{item.asunto}</td>
-                            <td className="px-2 py-2 border">{item.fechaCompromiso}</td>
-                            <td className="px-2 py-2 border">{item.instruccion}</td>
-                            <td className="px-2 py-2 border">{item.estatus}</td>
+                            <td className="px-2 py-2 border">{turnado.compromiso.split("T")[0]}</td>
+                            <td className="px-2 py-2 border">{turnado.instruccion.descripcion}</td>
+                            <td className="px-2 py-2 border">{turnado.status}</td>
                           </tr>
-                        ))}
+                        ))))}
                       </tbody>
                     </table>
 

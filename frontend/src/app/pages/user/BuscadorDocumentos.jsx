@@ -2426,7 +2426,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                   Instrucción
                                 </th>
                                 <th className="px-3 py-2 text-left">
-                                  Funcionario que turna
+                                  Dirigido a
                                 </th>
                                 <th className="px-3 py-2 text-left">
                                   Área de destino
