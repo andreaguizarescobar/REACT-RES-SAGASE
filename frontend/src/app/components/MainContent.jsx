@@ -879,9 +879,11 @@ const moverAPendientes = () => {
             </div>
 
             {/* Contenido columnas */}
-            <div className="flex-1 flex overflow-y-auto">
-              <div className="flex-1 flex items-start justify-center pt-8 px-4 border-r border-gray-200">
-                <div className="w-full flex flex-col gap-3">
+            <div className="flex-1 flex overflow-hidden">
+
+              <div className="flex-1 overflow-y-auto border-r border-gray-200">
+                <div className="flex items-start justify-center pt-8 px-4 min-h-full">
+                    <div className="w-full flex flex-col gap-3">
                   {documentos.map((doc) => (
                     <div
                       key={doc.id}
@@ -994,7 +996,7 @@ const moverAPendientes = () => {
                 <div className="flex items-start justify-center pt-8 px-4 min-h-full">
                   <div className="w-full flex flex-col gap-4">
 
-                  {documentos.map((doc) => (
+                  {misPendientes.map((doc) => (
                     <motion.div
                       key={doc._id}
                       initial={{ opacity: 0, y: 10 }}
@@ -1008,7 +1010,7 @@ const moverAPendientes = () => {
                             {doc.tarea}
                           </p>
                           <p className="text-gray-500 text-[11px]">
-                            {doc.tipo} / Atiende asunto
+                            {doc.tipo} / {doc.tarea}
                           </p>
                         </div>
 
