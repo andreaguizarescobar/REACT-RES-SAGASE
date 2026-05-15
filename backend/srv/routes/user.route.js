@@ -23,5 +23,7 @@ router.patch('/update/:userId', verifyToken, authorizeRole('ADMIN'), userControl
 router.delete('/delete/:userId', verifyToken, authorizeRole('ADMIN'), userController.deleteUser);
 // user/cambiar-password/:userId
 router.post('/cambiar-password/:userId', userController.cambiarPassword);
+// user/tareas/:userId
+router.get('/tareas/:userId', userController.getTareas);
 
 export default router;

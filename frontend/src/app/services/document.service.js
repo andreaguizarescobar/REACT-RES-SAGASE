@@ -19,8 +19,8 @@ export const createDocument = (data, token) => {
     });
 };
 
-export const uploadAnexo = (id, formData, token) => {
-    return fetchAPI(`/documentos/${id}/anexo-file`, {
+export const uploadAnexo = (formData, token) => {
+    return fetchAPI(`/documentos/anexo-file`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`
@@ -30,115 +30,116 @@ export const uploadAnexo = (id, formData, token) => {
 };
 
 export const updateDocument = (id, data, token) => {
-    return fetchAPI(`/documentos/update/${id}`, {
+    return fetchAPI(`/documentos/update`, {
         method: 'PUT',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, documentoData: data})
     });
 };
 
 export const deleteDocument = (id, token) => {
-    return fetchAPI(`/documentos/delete/${id}`, {
+    return fetchAPI(`/documentos/delete`, {
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`
         }
+        , body: JSON.stringify({ docId: id})
     });
 };
 
 export const getDocumentById = (docId, token) => {
-    return fetchAPI(`/documentos/${docId}`, {
-        method: 'GET',
+    return fetchAPI(`/documentos`, {
+        method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`
         }
+        , body: JSON.stringify({docId})
     });
 };
 
 export const addTurnado = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/turnado`, {
+    return fetchAPI(`/documentos/turnado`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, turnadoData: data })
     });
 };
 
 export const addBitacora = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/bitacora`, {
+    return fetchAPI(`/documentos/bitacora`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, bitacoraData: data})
     });
 };
 
 export const addCopia = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/copia`, {
+    return fetchAPI(`/documentos/copia`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, copiaData: data })
     });
 };
 
 export const addAnexo = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/anexo`, {
+    return fetchAPI(`/documentos/anexo`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, anexoData: data })
     });
 };
 
 export const removeAnexo = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/removerAnexo`, {
+    return fetchAPI(`/documentos/removerAnexo`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, anexoData: data })
     });
 };
 
 export const updateStatus = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/status`, {
+    return fetchAPI(`/documentos/status`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, statusData: data })
     });
 };
 
 export const addRelacionado = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/relacionado`, {
+    return fetchAPI(`/documentos/relacionado`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, relacionadoData: data })
     });
 };
 
 export const removeRelacionado = (id, data, token) => {
-    return fetchAPI(`/documentos/${id}/removerRelacionado`, {
+    return fetchAPI(`/documentos/removerRelacionado`, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ docId: id, relacionadoData: data })
     });
 }; 
 
 export const reporteAcuerdos = (data, token) => {
-    console.log(data)
     return fetchAPI(`/documentos/reporte/acuerdos`, {
         method: 'POST',
         headers: {

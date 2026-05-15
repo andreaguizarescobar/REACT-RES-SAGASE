@@ -11,7 +11,8 @@ export const getAll = async (req, res) => {
 
 export const getById = async (req, res) => {
     try {
-        const { docId } = req.params;
+        const { docId } = req.body; 
+        console.log(docId);
         const documentoItem = await documentoService.getById(docId);
         if (documentoItem) {
             res.status(200).json(documentoItem);
@@ -36,8 +37,7 @@ export const create = async (req, res) => {
 
 export const putDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const documentoData = req.body;
+        const {docId, documentoData} = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.putDocumento(docId, documentoData, user);
         if (updatedDocumento) {
@@ -52,8 +52,7 @@ export const putDocumento = async (req, res) => {
 
 export const patchTurnadoDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const turnadoData = req.body;
+        const { docId, turnadoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchTurnadoDocumento(docId, turnadoData, user);
         if (updatedDocumento) {
@@ -68,8 +67,7 @@ export const patchTurnadoDocumento = async (req, res) => {
 
 export const patchBitacoraDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const bitacoraData = req.body;
+        const { docId, bitacoraData } = req.body;
         const updatedDocumento = await documentoService.patchBitacoraDocumento(docId, bitacoraData);
         if (updatedDocumento) {
             res.status(200).json(updatedDocumento);
@@ -83,8 +81,7 @@ export const patchBitacoraDocumento = async (req, res) => {
 
 export const patchCopiaDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const copiaData = req.body;
+        const { docId, copiaData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchCopiaDocumento(docId, copiaData, user);
         if (updatedDocumento) {
@@ -99,8 +96,7 @@ export const patchCopiaDocumento = async (req, res) => {
 
 export const patchAnexoDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const anexoData = req.body;
+        const { docId, anexoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchAnexoDocumento(docId, anexoData, user);
         if (updatedDocumento) {
@@ -115,13 +111,12 @@ export const patchAnexoDocumento = async (req, res) => {
 
 export const uploadAnexoDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
         const user = req.user;
         if (!req.file) {
             return res.status(400).json({ error: 'Archivo no enviado' });
         }
 
-        const { mensaje, registrador, nombre } = req.body;
+        const { mensaje, registrador, nombre, docId } = req.body;
         const ruta = `../uploads/anexos/${req.file.filename}`;
         const anexoData = {
             registrador: registrador || null,
@@ -145,8 +140,7 @@ export const uploadAnexoDocumento = async (req, res) => {
 
 export const patchRemoverAnexoDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const anexoData = req.body;
+        const { docId, anexoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchRemoverAnexoDocumento(docId, anexoData, user);  
         if (updatedDocumento) {
@@ -161,8 +155,7 @@ export const patchRemoverAnexoDocumento = async (req, res) => {
 
 export const patchStatusDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const statusData = req.body;
+        const { docId, statusData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchStatusDocumento(docId, statusData, user);
         if (updatedDocumento) {
@@ -177,8 +170,7 @@ export const patchStatusDocumento = async (req, res) => {
 
 export const patchRelacionadoDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
-        const relacionadoData = req.body;
+        const { docId, relacionadoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchRelacionadoDocumento(docId, relacionadoData, user);
         if (updatedDocumento) {
@@ -192,8 +184,7 @@ export const patchRelacionadoDocumento = async (req, res) => {
 };
 
 export const patchRemoverRelacionadoDocumento = async (req, res) => {
-    try {        const { docId } = req.params;
-        const relacionadoData = req.body;
+    try {        const { docId, relacionadoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchRemoverRelacionadoDocumento(docId, relacionadoData, user);
         if (updatedDocumento) {
@@ -208,7 +199,7 @@ export const patchRemoverRelacionadoDocumento = async (req, res) => {
 
 export const deleteDocumento = async (req, res) => {
     try {
-        const { docId } = req.params;
+        const { docId } = req.body;
         const user = req.user;
         const deletedDocumento = await documentoService.deleteDocumento(docId, user);
         if (deletedDocumento) {

@@ -17,6 +17,22 @@ const UserSchema = new Schema({
   roles: [{rol: { type: String },
   proceso: { type: String }}
   ],
+
+  tareas: [{tarea: { type: String },
+  proceso: { type: String },
+  status: { type: String },
+  fecha: { type: Date, default: Date.now },
+  descripcion: { type: String },
+  documento: { type: Schema.Types.ObjectId, ref: 'Documento' }}
+  ],
+
+  notificaciones: [{tarea: { type: String },
+  proceso: { type: String },
+  status: { type: String },
+  fecha: { type: Date, default: Date.now },
+  descripcion: { type: String },
+  documento: { type: Schema.Types.ObjectId, ref: 'Documento' }}
+  ],
   // Campos para recuperación de contraseña
   resetToken: String,
   resetTokenExpires: Date,

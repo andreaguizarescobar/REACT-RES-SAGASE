@@ -21,31 +21,31 @@ const upload = multer({
 // documento/getAll
 router.get('/getAll', documentoController.getAll);
 // documento/:docId
-router.get('/:docId', documentoController.getById);
+router.post('/', documentoController.getById);
 // documento/create
 router.post('/create', verifyToken, documentoController.create);
 // documento/update/:docId
-router.put('/update/:docId',verifyToken, documentoController.putDocumento);
+router.put('/update',verifyToken, documentoController.putDocumento);
 // patch documento/:docId/turnado
-router.patch('/:docId/turnado', verifyToken, documentoController.patchTurnadoDocumento);
+router.patch('/turnado', verifyToken, documentoController.patchTurnadoDocumento);
 // patch documento/:docId/bitacora
-router.patch('/:docId/bitacora', verifyToken, documentoController.patchBitacoraDocumento);
+router.patch('/bitacora', verifyToken, documentoController.patchBitacoraDocumento);
 // patch documento/:docId/copia
-router.patch('/:docId/copia', verifyToken, documentoController.patchCopiaDocumento);
+router.patch('/copia', verifyToken, documentoController.patchCopiaDocumento);
 // patch documento/:docId/anexo
-router.patch('/:docId/anexo', verifyToken, documentoController.patchAnexoDocumento);
+router.patch('/anexo', verifyToken, documentoController.patchAnexoDocumento);
 // patch documento/:docId/anexo-file
-router.post('/:docId/anexo-file', verifyToken, upload.single('archivo'), documentoController.uploadAnexoDocumento);
+router.post('/anexo-file', verifyToken, upload.single('archivo'), documentoController.uploadAnexoDocumento);
 // patch documento/:docId/removerAnexo
-router.patch('/:docId/removerAnexo', verifyToken, documentoController.patchRemoverAnexoDocumento);
+router.patch('/removerAnexo', verifyToken, documentoController.patchRemoverAnexoDocumento);
 // patch documento/:docId/status
-router.patch('/:docId/status', verifyToken, documentoController.patchStatusDocumento);
+router.patch('/status', verifyToken, documentoController.patchStatusDocumento);
 // patch documento/:docId/relacionado
-router.patch('/:docId/relacionado', verifyToken, documentoController.patchRelacionadoDocumento);
+router.patch('/relacionado', verifyToken, documentoController.patchRelacionadoDocumento);
 // patch documento/:docId/removerRelacionado
-router.patch('/:docId/removerRelacionado', verifyToken, documentoController.patchRemoverRelacionadoDocumento);
+router.patch('/removerRelacionado', verifyToken, documentoController.patchRemoverRelacionadoDocumento);
 // documento/delete/:docId
-router.delete('/delete/:docId', verifyToken, documentoController.deleteDocumento);
+router.delete('/delete', verifyToken, documentoController.deleteDocumento);
 // documento/reporte/acuerdos
 router.post('/reporte/acuerdos', verifyToken, documentoController.reporteAcuerdos);
 // documento/reporte/asuntos

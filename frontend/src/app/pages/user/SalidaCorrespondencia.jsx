@@ -340,20 +340,10 @@ export function SalidaCorrespondencia() {
             </div>
 
             <div>
-              <label>Ficha SAA</label>
+              <label>Folio</label>
               <input
-                name="fichaSAA"
-                value={form.fichaSAA}
-                onChange={handleChange}
-                className="w-full border rounded px-2 py-1"
-              />
-            </div>
-
-            <div>
-              <label>Folio SAGA</label>
-              <input
-                name="folioSAGA"
-                value={form.folioSAGA}
+                name="folio"
+                value={form.folio}
                 onChange={handleChange}
                 className="w-full border rounded px-2 py-1"
               />
@@ -400,6 +390,38 @@ export function SalidaCorrespondencia() {
                 }
               />
               <label>Otro remitente</label>
+            </div>
+          </div>
+        </div>
+
+        {/* DATOS DESTINATARIO */}
+        <div>
+          <h2 className="font-semibold text-gray-700 mb-4">
+            Datos del destinatario
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label>Nombre y cargo*</label>
+              <input
+                name="destinatario"
+                value={form.destinatario}
+                onChange={handleChange}
+                placeholder="Buscar y seleccionar opcion"
+                className={`w-full border rounded px-2 py-1 ${
+                  errores.destinatario ? "border-red-500 bg-red-50" : ""
+                }`}
+              />
+            </div>
+
+            <div className="flex items-center gap-3 mt-5">
+              <Toggle
+                checked={form.otroDestinatario}
+                onChange={(val) =>
+                  setForm({ ...form, otroDestinatario: val })
+                }
+              />
+              <label>Otro destinatario</label>
             </div>
           </div>
         </div>

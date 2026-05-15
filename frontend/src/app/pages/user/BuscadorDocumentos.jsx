@@ -847,9 +847,10 @@ const documentosFiltrados = documentos.filter((d) =>
       formData.append('archivo', archivo);
       formData.append('mensaje', mensaje);
       formData.append('nombre', nombreDoc);
+      formData.append('docId', currentDocId);
 
       console.log("Subiendo anexo con datos:", currentDocId);
-      const response = await uploadAnexo(currentDocId, formData, token);
+      const response = await uploadAnexo(formData, token);
       if (!response.ok) throw new Error('Error subiendo el anexo');
 
       const updatedDocumento = await response.json();

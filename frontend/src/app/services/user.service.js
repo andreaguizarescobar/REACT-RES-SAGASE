@@ -44,3 +44,12 @@ export const reset = (token, password) => {
         body: JSON.stringify({ token, password })
     })
 }
+
+export const getTareas = (userId, token) => {
+    return fetchAPI(`/users/tareas/${userId}`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}

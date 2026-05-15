@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Trash2, Search, Inbox, ListTodo, Send,  Eye, ThumbsUp, Minus, ClipboardCheck, MapPin, Check  } from "lucide-react";
 import { Switch } from "./ui/switch";
-
+import Swal from "sweetalert2";
 import { TableroControl } from "../pages/user/TableroControl";
 import { RegistrarDocumento } from "../pages/user/RegistrarDocumento.jsx";
 import BuscadorDocumentos from "../pages/user/BuscadorDocumentos.jsx";
@@ -16,6 +16,8 @@ import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroContro
 import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
 import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
+import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, getDocumentById } from "../services/document.service";
+import { getTareas } from "../services/user.service";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -83,6 +85,47 @@ export function MainContent({ currentView }) {
       estatus: "Cerrado",
     },
   ]);
+
+
+  const [entradas, setEntradas] = useState([]);
+  const [salidas, setSalidas] = useState([]);
+  const [pendientes, setPendientes] = useState([]);
+
+  useEffect(() => {
+    const fetchTareas = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const user = localStorage.getItem("user");
+        const userId = JSON.parse(user).userId;
+        const tareas = await getTareas(userId, token);
+        const tareasLista = (await tareas.json()).tareas;
+        const entradas = [];
+        const salidas = [];
+        const pendientes = [];
+
+        tareasLista.forEach(tarea => {
+          if (tarea.status === "entrada") {
+            entradas.push(tarea);
+
+          } else if (tarea.status === "salida") {
+            salidas.push(tarea);
+
+          } else if (tarea.status === "pendiente") {
+            pendientes.push(tarea);
+          }
+
+        });
+
+        setEntradas(entradas);
+        setSalidas(salidas);
+        setPendientes(pendientes);
+        console.log("Tareas de usuario:", { entradas, salidas, pendientes });
+      } catch (error) {
+        console.error("Error al obtener las tareas:", error);
+      }
+    };
+    fetchTareas();
+  }, []);
 
   const [docSeleccionado, setDocSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -774,7 +817,7 @@ export function MainContent({ currentView }) {
             <div className="flex-1 flex overflow-y-auto">
               <div className="flex-1 flex items-start justify-center pt-8 px-4 border-r border-gray-200">
                 <div className="w-full flex flex-col gap-3">
-                  {documentos.map((doc) => (
+                  {entradas.map((doc) => (
                     <div
                       key={doc.id}
                       className="relative bg-white border rounded-lg shadow p-3 text-xs hover:shadow-md transition"
@@ -808,21 +851,21 @@ export function MainContent({ currentView }) {
 
                       {/* 🔹 CONTENIDO */}
                       <p className="font-semibold text-gray-800 pr-10">
-                        {doc.titulo}
+                        {doc.tarea}
                       </p>
-                      <p className="text-gray-500">{doc.tipo}</p>
+                      <p className="text-gray-500">{doc.descripcion}</p>
 
                       <div className="mt-2 space-y-1">
                         <p>
-                          <span className="font-medium">Síntesis Asunto:</span> {doc.asunto}
+                          <span className="font-medium">Síntesis Asunto:</span> {doc.documento.asunto}
                         </p>
                         <p>
-                          <span className="font-medium">Folio:</span> {doc.folio}
+                          <span className="font-medium">Folio:</span> {doc.documento.folio}
                         </p>
                         <p>
-                          <span className="font-medium">Dirigido a:</span> {doc.dirigido}
+                          <span className="font-medium">Dirigido a:</span> {doc.turnados[0].dirigido}
                         </p>
-                        <p className="text-gray-400">{doc.fecha}</p>
+                        <p className="text-gray-400">{doc.documento.fechaTurnado}</p>
                       </div>
                     </div>
                   ))}
@@ -833,9 +876,9 @@ export function MainContent({ currentView }) {
               <div className="flex-1 flex items-start justify-center pt-8 px-4 border-r border-gray-200">
                 <div className="w-full flex flex-col gap-4">
 
-                  {documentos.map((doc) => (
+                  {pendientes.map((doc) => (
                     <motion.div
-                      key={doc.id}
+                      key={doc._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="bg-white border rounded-xl shadow-sm p-4 text-xs hover:shadow-md transition"
@@ -844,10 +887,10 @@ export function MainContent({ currentView }) {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {doc.titulo}
+                            {doc.tarea}
                           </p>
                           <p className="text-gray-500 text-[11px]">
-                            {doc.tipo} / Atiende asunto
+                            {doc.descripcion} / Atiende asunto
                           </p>
                         </div>
 
@@ -887,10 +930,10 @@ export function MainContent({ currentView }) {
                         </div>
 
                         <div className="grid grid-cols-4 text-[10px] text-gray-700">
-                          <div className="p-1">{doc.asunto}</div>
-                          <div className="p-1">{doc.folio}</div>
-                          <div className="p-1">{doc.dirigido}</div>
-                          <div className="p-1">Víctor Manuel</div>
+                          <div className="p-1">{doc.documento.asunto}</div>
+                          <div className="p-1">{doc.documento.folio}</div>
+                          <div className="p-1">{doc.documento.turnados[0].dirigido.nombre}</div>
+                          <div className="p-1">{doc.documento.turnados[0].remitente.name}</div>
                         </div>
                       </div>
 

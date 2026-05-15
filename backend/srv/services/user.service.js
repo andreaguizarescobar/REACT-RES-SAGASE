@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import userModel from '../models/user.model.js';
 import jwt from '../config/jwt.js';
 import { sendResetEmail } from './mail.service.js';
+import path from 'path';
 
 const registerUser = async (data) => {
   const userExists = await userModel.findOne({
@@ -101,6 +102,15 @@ export const cambioPassword = async (userId, currentPassword, newPassword) => {
   return "Contraseña actualizada";
 };
 
+export const getTareas = async (userId) => {
+  const user = await userModel.findOne({userId: userId }).populate({path: 'tareas', populate: 
+    {path: 'documento', populate: {path: 'turnados', populate: [{path: 'remitente', select: 'name'}, {path: 'dirigido', select: 'nombre'}]}}}).exec();
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  return user.tareas;
+};
+
 export default {
   registerUser,
   loginUser,
@@ -110,5 +120,6 @@ export default {
   getAllUsers,
   deleteUser,
   patchUser,
-  cambioPassword
+  cambioPassword,
+  getTareas
 };

@@ -2,6 +2,7 @@ import documentoModel from '../models/documento.model.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,7 +11,7 @@ const getAll = async () => {
 };
 
 const getById = async (docId) => {
-    return await documentoModel.findOne({ docId })
+    const documento = ( await documentoModel.findOne({ docId: docId })
         .populate('remitente')
         .populate('tipo')
         .populate('tema')
@@ -29,9 +30,12 @@ const getById = async (docId) => {
                 path: 'registrador', select: 'nombre'
             }
         })
-        .populate('bitacora.user', 'nombre');
+        .populate('bitacora.user', 'nombre'));
+
+        return documento;
 };
 
+import userModel from '../models/user.model.js';
 const create = async (documentoData, user) => {
     // Verificar si ya existe un documento con el mismo docId
     const existingDocumento = await documentoModel.findOne({ docId: documentoData.docId });
@@ -65,8 +69,21 @@ const create = async (documentoData, user) => {
             importancia: 'Alta',
         }
     ];
+
     const newDocumento = new documentoModel(documentoData);
-    return await newDocumento.save();
+
+    const doc = await newDocumento.save();
+    const pendiente = await userModel.findOneAndUpdate({ _id: user.id },
+        {$push: {tareas: {
+            tarea: 'No turnado',
+            fecha: new Date(),
+            descripcion: 'Falta turnar el documento',
+            documento: doc._id,
+            status: 'PENDIENTE'
+        }}},
+        {new: true} 
+    );
+    return doc
 };
 const putDocumento = async (docId, documentoData, user) => {
     // Asegurar que las fechas sean objetos Date válidos
@@ -114,11 +131,16 @@ const putDocumento = async (docId, documentoData, user) => {
 import areaModel from '../models/area.model.js';
 import instruccionModel from '../models/instruccion.model.js';
 const patchTurnadoDocumento = async (docId, turnadoData, user) => {
-    
+    const session = await mongoose.startSession();
+    try{
+    session.startTransaction();
+
     const area = await areaModel.findById(turnadoData.areaDestino);
     
     const instruccion = await instruccionModel.findById(turnadoData.instruccion); // Manejar ambos casos
-    return await documentoModel.findOneAndUpdate(
+    
+
+    const doc = await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { turnados: turnadoData,  bitacora: {
             descripcion: `Turnado a ${area.nombre} con instrucción: ${instruccion.descripcion}`,
@@ -127,7 +149,7 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
             importancia: 'Media',
         }},
          $set: { status: "Autorizado, y turnado" } },
-        { new: true }
+        { session }
     )
     .populate('remitente')
     .populate('tipo')
@@ -148,6 +170,33 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
         }
     })
     .populate('bitacora.user', 'nombre');
+
+    console.log("ASDFGHJ")
+    console.log(turnadoData.dirigido);
+
+    const us = await userModel.findOneAndUpdate(
+        { _id: turnadoData.dirigido},
+        {$push: { tareas: {
+            tarea: 'Atiende asunto',
+            fecha: new Date(),
+            descripcion: 'Atender asunto',
+            documento: doc._id,
+            status: 'ENTRADA'
+        }}},
+        { session }
+    )
+    console.log(us);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return doc
+    }catch(e){
+        await session.abortTransaction();
+        session.endSession();
+
+        throw e;
+    }
 };
 
 const patchBitacoraDocumento = async (docId, bitacoraData) => {
@@ -158,7 +207,6 @@ const patchBitacoraDocumento = async (docId, bitacoraData) => {
     );
 };
 
-import userModel from '../models/user.model.js';
 const patchCopiaDocumento = async (docId, copiaData) => {
     const funcionario = await userModel.findById(copiaData.funcionario);
     return await documentoModel.findOneAndUpdate(

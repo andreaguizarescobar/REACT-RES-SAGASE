@@ -122,6 +122,16 @@ export const verifyToken = async (req, res) => {
   }
 };
 
+export const getTareas = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const tareas = await userService.getTareas(userId);
+    res.json({ tareas });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export default {
   register,
   login,
@@ -132,5 +142,6 @@ export default {
   deleteUser,
   patchUser,
   cambiarPassword,
-  verifyToken
+  verifyToken,
+  getTareas
 };
