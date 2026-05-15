@@ -3,6 +3,7 @@ import { Login } from "./app/pages/user/Login.jsx";
 import { Dashboard } from "./app/pages/user/Dashboard.jsx";
 import { AdminDashboard } from "./app/pages/admin/AdminDashboard.jsx";
 import { ResetPassword } from "./app/pages/user/ResetPassword.jsx";
+import { LlenarDatosAlta } from "./app/pages/admin/LlenarDatosAlta.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
   {
     path: "/reset-password",
     element: <ResetPassword />
+  },
+  {
+    path: "/llenar-datos-alta",
+    element: <LlenarDatosAlta />
   }
 
 ]);

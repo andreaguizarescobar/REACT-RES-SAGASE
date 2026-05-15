@@ -8,6 +8,7 @@ import { Roles } from "../pages/admin/Roles";
 import { SistemRoles } from "../pages/admin/SistemRoles";
 import { AltaUsuarios } from "../pages/admin/AltaUsuarios";
 import { AsignacionRoles } from "../pages/admin/AsignacionRoles";
+import { SolicitudAltaUsuarios } from "../pages/admin/SolicitudAltaUsuarios"; 
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -41,6 +42,9 @@ export function MainContentAdmin({ currentView }) {
             case "asignacion-roles-admin":
             return <AsignacionRoles />;
             
+            case "solicitudes-usuarios-admin":
+            return <SolicitudAltaUsuarios />;
+
             default:
             return (
             <main className="flex-1 flex flex-col bg-white overflow-hidden">

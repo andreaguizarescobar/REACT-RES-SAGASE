@@ -1,4 +1,4 @@
-import { Minus } from "lucide-react";
+import { Minus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUsers, updateUser } from "../../services/user.service.js";
@@ -208,34 +208,48 @@ export function AsignacionRoles() {
             </thead>
 
             <tbody>
-              {filteredUsers.map((user, index) => {
-                const sinAsignar = !user.proceso && !user.rol;
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="py-10 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="animate-spin" size={24} />
+                      <span>Cargando usuarios...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user, index) => {
+                  const { proceso, rol } = getUserRole(user); // 🔥 AQUÍ ESTÁ LA CLAVE
+                  const sinAsignar = !proceso && !rol;
 
-                return (
-                  <tr
-                    key={index}
-                    onClick={(e) => handleClick(e, user)}
-                    className={`border-t cursor-pointer ${
-                      sinAsignar
-                        ? "bg-gray-100 text-gray-400"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <td className="px-3 py-2">{user.nombre}</td>
-                    <td className="px-3 py-2">{user.username}</td>
-                    <td className="px-3 py-2">
-                      {user.proceso || (
-                        <span className="italic">Sin asignar</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {user.rol || (
-                        <span className="italic">Sin asignar</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <motion.tr
+                        key={index}
+                        onClick={(e) => handleClick(e, user)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="cursor-pointer hover:bg-gray-50"
+                    >
+                      <td className="px-3 py-2">{user.nombre}</td>
+
+                      <td className="px-3 py-2">{user.username}</td>
+
+                      <td className="px-3 py-2">
+                        {proceso || (
+                          <span className="italic">Sin asignar</span>
+                        )}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {rol || (
+                          <span className="italic">Sin asignar</span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

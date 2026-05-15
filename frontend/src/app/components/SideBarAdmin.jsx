@@ -7,6 +7,7 @@ const generalTasks = [
   { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
   { label: "Roles de Sistema", color: "text-[#60595D]", view: "roles-sistema-admin" },
   { label: "Alta de Usuarios", color: "text-[#79142A]", view: "alta-usuarios-admin" },
+  { label: "Solicitudes de Usuarios", color: "text-[#79142A]", view: "solicitudes-usuarios-admin" },
   { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
 ];
 

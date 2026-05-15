@@ -1,4 +1,4 @@
-import { Minus } from "lucide-react";
+import { Minus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUsers } from "../../services/user.service.js";
@@ -106,8 +106,11 @@ export function Users() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-4 text-gray-500">
-                      Cargando usuarios...
+                    <td colSpan="8" className="text-center py-6">
+                      <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
+                        <Loader2 className="animate-spin" size={22} />
+                        <span>Cargando usuarios...</span>
+                      </div>
                     </td>
                   </tr>
                 ) : error ? (
@@ -118,7 +121,14 @@ export function Users() {
                   </tr>
                 ) : filteredUsers.length > 0 ? (
                   filteredUsers.map((user, index) => (
-                    <tr key={user.userId || index} className="border-t hover:bg-gray-100">
+                    <motion.tr
+                        key={index}
+                        onClick={(e) => handleClick(e, user)}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="cursor-pointer hover:bg-gray-100"
+                    >
                       <td className="px-3 py-2">{user.nombre}</td>
                       <td className="px-3 py-2">{user.iniciales}</td>
                       <td className="px-3 py-2">{user.sexo}</td>
@@ -127,7 +137,7 @@ export function Users() {
                       <td className="px-3 py-2">{user.ext || "-"}</td>
                       <td className="px-3 py-2">{user.email || user.correo}</td>
                       <td className="px-3 py-2">{user.copia ? "Sí" : "No"}</td>
-                    </tr>
+                    </motion.tr>
                   ))
                 ) : (
                   <tr>

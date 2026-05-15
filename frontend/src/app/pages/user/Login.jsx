@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Minus } from "lucide-react";
 import nayaritLogo from "../../assets/images/nayaritLogo.png";
 import bgNayarit from "../../assets/images/personajenayarit.jpg";
@@ -238,9 +238,12 @@ export function Login() {
 
           <p className="text-sm text-gray-500 mb-8 text-center">
             ¿No tiene una cuenta?{" "}
-            <a href="#" className="text-[#8B1538] hover:underline">
+            <Link 
+              to="/llenar-datos-alta" 
+              className="text-[#8B1538] hover:underline font-medium"
+            >
               Contacte al administrador
-            </a>
+            </Link>
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
