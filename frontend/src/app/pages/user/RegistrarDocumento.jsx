@@ -216,6 +216,8 @@ export function RegistrarDocumento() {
         "tipoRemitente",
         "tipoDocumento",
         "temaPrincipal",
+        "temaSecundario",
+        "materialAdicional",
         "sintesis",
       ],
       conditional: [
@@ -333,6 +335,7 @@ export function RegistrarDocumento() {
     useState(false);
 
   const handleSave = () => {
+
     if (!validarFormulario()) {
       showValidationError();
       return;
@@ -1326,11 +1329,269 @@ const obtenerLabel = (lista, id) => {
                   errores.ejercicio ? "border-red-500 bg-red-50" : ""
                 }`}
               >
-                <option value="">Seleccionar</option>
+                <option value="">Seleccionar tipo de ejercicio</option>
                 <option value="2024">2024</option>
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
               </select>
+            </div>
+        </div>  
+
+          {/* DATOS ESPECÍFICOS */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-600 mb-0">
+              Datos específicos
+            </h2>
+
+            <div className="grid grid-cols-6 gap-4 items-end ">
+
+              {/* Tipo documento con buscador */}
+                <div ref={refTipoDoc} className="col-span-2 relative">
+                  <label className="text-xs text-gray-500">
+                    Selecciona tipo de documento *
+                  </label>
+                  <div
+                    className={`flex items-center border rounded px-2 ${
+                      errores.tipoDocumento ? "border-red-500 bg-red-50" : ""
+                    }`}
+                  >
+                    <Search size={16} className="text-gray-400" />
+                    <input
+                      value={busquedaTipoDoc}
+                      onChange={(e) => {
+                        setBusquedaTipoDoc(e.target.value);
+
+                        if (errores.tipoDocumento) {
+                          setErrores({ ...errores, tipoDocumento: false });
+                        }
+                      }}
+                      onFocus={() => setMostrarOpcionesTipoDoc(true)}
+                      className="w-full px-2 py-1 outline-none"
+                      placeholder="Buscar y seleccionar opción"
+
+                    />
+                  </div>
+
+                  {mostrarOpcionesTipoDoc && (
+                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                      {tiposFiltrados.map((t) => (
+                        <div
+                          key={t.value}
+                          onClick={() => {
+                            setForm({ ...form, tipoDocumento: t.value });
+                            setBusquedaTipoDoc(t.label);
+                            setMostrarOpcionesTipoDoc(false);
+
+                          }}
+                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                        >
+                          {t.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Toggle alta tipo */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    Alta tipo de documento:
+                  </span>
+                  <Toggle
+                    checked={form.altaTipoDocumento}
+                    onChange={(v) => {
+                      setForm({ ...form, altaTipoDocumento: v });
+                      if (v) setMostrarModalTipoDocumento(true);
+                    }}
+                  />
+                </div>
+
+                {/* Relacionado */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-gray-500">Relacionado con:</span>
+                  <Toggle
+                    checked={form.relacionadoCon}
+                    onChange={(v) => {
+                      setFormEditar({ ...form, relacionadoCon: v });
+
+                      if (v) {
+                        setMostrarModalRelacionado(true);
+                      } else {
+                        setMostrarModalRelacionado(false);
+
+                        // 👇 LIMPIAR ASUNTO
+                        setAsuntoSeleccionado(null);
+                        setBusquedaAsunto("");
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Asunto */}
+                <div className="col-span-2 self-start">
+                  <label className="text-xs text-gray-500">Anexos</label>
+                  <textarea
+                    value={asuntoSeleccionado?.descripcion || ""}
+                    disabled
+                    className="w-full border rounded px-2 py-1 h-[34px] resize-none bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mt-4">
+
+              {/* Tema */}
+              <div>
+          
+                <div ref={refTemaPrincipal} className="relative">
+                  <label className="text-xs text-gray-500">
+                    Selecciona asunto *
+                  </label>
+
+                  <div className={`flex items-center border rounded px-2 ${
+                    errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
+                  }`}>
+                    <Search size={16} className="text-gray-400" />
+                    <input
+                      value={busquedaTemaPrincipal}
+                      onChange={(e) => {
+                        setBusquedaTemaPrincipal(e.target.value);
+                        setMostrarOpcionesTemaPrincipal(true);
+                      }}
+                      onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
+                      className="w-full px-2 py-1 outline-none"
+                      placeholder="Buscar y seleccionar opción"
+                    />
+                  </div>
+
+                  {mostrarOpcionesTemaPrincipal && (
+                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                      {temasFiltradosPrincipal.length > 0 ? (
+                        temasFiltradosPrincipal.map((t) => (
+                          <div
+                            key={t.value}
+                            onClick={() => {
+                              setForm({ ...form, temaPrincipal: t.value });
+                              setBusquedaTemaPrincipal(t.label);
+                              setMostrarOpcionesTemaPrincipal(false);
+                            }}
+                            className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                          >
+                            {t.label}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-2 py-1 text-gray-400">Sin resultados</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div ref={refTemaSecundario} className="relative">
+                <label className="text-xs text-gray-500">
+                  Tema secundario *
+                </label>
+
+                <div className={`flex items-center border rounded px-2 ${
+                    errores.temaSecundario ? "border-red-500 bg-red-50" : ""
+                  }`}>
+                  <Search size={16} className="text-gray-400" />
+                  <input
+                    value={busquedaTemaSecundario}
+                    onChange={(e) => {
+                      setBusquedaTemaSecundario(e.target.value);
+                      setMostrarOpcionesTemaSecundario(true);
+
+                      if (errores.temaSecundario) {
+                        setErrores({
+                          ...errores,
+                          temaSecundario: false,
+                        });
+                      }
+                    }}
+                    onFocus={() => setMostrarOpcionesTemaSecundario(true)}
+                    className="w-full px-2 py-1 outline-none"
+                    placeholder="Buscar y seleccionar opción"
+                  />
+                </div>
+
+                {mostrarOpcionesTemaSecundario && (
+                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                    {temasFiltradosSecundario.length > 0 ? (
+                      temasFiltradosSecundario.map((t) => (
+                        <div
+                          key={t.value}
+                          onClick={() => {
+                            setForm({ ...form, temaSecundario: t.value });
+                            setBusquedaTemaSecundario(t.label);
+                            setMostrarOpcionesTemaSecundario(false);
+                          }}
+                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                        >
+                          {t.label}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div ref={refAdicional} className="relative">
+                <label className="text-xs text-gray-500">
+                  Selecciona material adicional *
+                </label>
+
+                <div className={`flex items-center border rounded px-2 ${ 
+                  errores.materialAdicional ? "border-red-500 bg-red-50" : "" 
+                  }`}>
+                  <Search size={16} className="text-gray-400" />
+                  <input
+                    value={busquedaAdicional}
+                    onChange={(e) => {
+                      setBusquedaAdicional(e.target.value);
+                      setMostrarOpcionesAdicional(true);
+
+                      if (errores.materialAdicional) {
+                        setErrores({
+                          ...errores,
+                          materialAdicional: false,
+                        });
+                      }
+                    }}
+                    onFocus={() => setMostrarOpcionesAdicional(true)}
+                    className="w-full px-2 py-1 outline-none"
+                    placeholder="Buscar y seleccionar opción"
+                  />
+                </div>
+
+                {mostrarOpcionesAdicional && (
+                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                    {adicionalesFiltrados.length > 0 ? (
+                      adicionalesFiltrados.map((a) => (
+                        <div
+                          key={a.value}
+                          onClick={() => {
+                            setForm({ ...form, materialAdicional: a.value });
+                            setBusquedaAdicional(a.label);
+                            setMostrarOpcionesAdicional(false);
+                          }}
+                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                        >
+                          {a.label}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
+                    )}
+                  </div>
+                )}
+              </div>
+      
+
             </div>
           </div>
 
@@ -1340,7 +1601,7 @@ const obtenerLabel = (lista, id) => {
               Datos generales
             </h2>
 
-            <div className="grid grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-3 gap-4 items-end">
 
               <div>
                 <label className="text-xs text-gray-500">No. de documento *</label>
@@ -1380,7 +1641,7 @@ const obtenerLabel = (lista, id) => {
                 />
               </div>
 
-              <div>
+              <div className="hidden">
                 <label className="text-xs text-gray-500">Fecha de registro *</label>
                 <input
                   type="datetime-local"
@@ -1547,9 +1808,7 @@ const obtenerLabel = (lista, id) => {
                   </motion.div>
                 )}
 
-
               </AnimatePresence>
-
 
             </div>
           </div>
@@ -1558,241 +1817,12 @@ const obtenerLabel = (lista, id) => {
           {/* DATOS ESPECÍFICOS */}
           <div>
             <h2 className="text-sm font-semibold text-gray-600 mb-2">
-              Datos específicos
+              Información complementaría
             </h2>
 
-            <div className="grid grid-cols-6 gap-4 items-end">
-
-              {/* Tipo documento con buscador */}
-                <div ref={refTipoDoc} className="col-span-2 relative">
-                  <label className="text-xs text-gray-500">
-                    Selecciona tipo de documento *
-                  </label>
-                  <div
-                    className={`flex items-center border rounded px-2 ${
-                      errores.tipoDocumento ? "border-red-500 bg-red-50" : ""
-                    }`}
-                  >
-                    <Search size={16} className="text-gray-400" />
-                    <input
-                      value={busquedaTipoDoc}
-                      onChange={(e) => {
-                        setBusquedaTipoDoc(e.target.value);
-
-                        if (errores.tipoDocumento) {
-                          setErrores({ ...errores, tipoDocumento: false });
-                        }
-                      }}
-                      onFocus={() => setMostrarOpcionesTipoDoc(true)}
-                      className="w-full px-2 py-1 outline-none"
-                      placeholder="Buscar y seleccionar opción"
-
-                    />
-                  </div>
-
-                  {mostrarOpcionesTipoDoc && (
-                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                      {tiposFiltrados.map((t) => (
-                        <div
-                          key={t.value}
-                          onClick={() => {
-                            setForm({ ...form, tipoDocumento: t.value });
-                            setBusquedaTipoDoc(t.label);
-                            setMostrarOpcionesTipoDoc(false);
-
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                        >
-                          {t.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Toggle alta tipo */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    Alta tipo de documento:
-                  </span>
-                  <Toggle
-                    checked={form.altaTipoDocumento}
-                    onChange={(v) => {
-                      setForm({ ...form, altaTipoDocumento: v });
-                      if (v) setMostrarModalTipoDocumento(true);
-                    }}
-                  />
-                </div>
-
-                {/* Relacionado */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-gray-500">Relacionado con:</span>
-                  <Toggle
-                    checked={form.relacionadoCon}
-                    onChange={(v) => {
-                      setFormEditar({ ...form, relacionadoCon: v });
-
-                      if (v) {
-                        setMostrarModalRelacionado(true);
-                      } else {
-                        setMostrarModalRelacionado(false);
-
-                        // 👇 LIMPIAR ASUNTO
-                        setAsuntoSeleccionado(null);
-                        setBusquedaAsunto("");
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Asunto */}
-                <div className="col-span-2 self-start">
-                  <label className="text-xs text-gray-500">Anexos</label>
-                  <textarea
-                    value={asuntoSeleccionado?.descripcion || ""}
-                    disabled
-                    className="w-full border rounded px-2 py-1 h-[34px] resize-none bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mt-4">
-
-              {/* Tema */}
-              <div>
-          
-                <div ref={refTemaPrincipal} className="relative">
-                  <label className="text-xs text-gray-500">
-                    Selecciona asunto *
-                  </label>
-
-                  <div className={`flex items-center border rounded px-2 ${
-                    errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
-                  }`}>
-                    <Search size={16} className="text-gray-400" />
-                    <input
-                      value={busquedaTemaPrincipal}
-                      onChange={(e) => {
-                        setBusquedaTemaPrincipal(e.target.value);
-                        setMostrarOpcionesTemaPrincipal(true);
-                      }}
-                      onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
-                      className="w-full px-2 py-1 outline-none"
-                      placeholder="Buscar y seleccionar opción"
-                    />
-                  </div>
-
-                  {mostrarOpcionesTemaPrincipal && (
-                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                      {temasFiltradosPrincipal.length > 0 ? (
-                        temasFiltradosPrincipal.map((t) => (
-                          <div
-                            key={t.value}
-                            onClick={() => {
-                              setForm({ ...form, temaPrincipal: t.value });
-                              setBusquedaTemaPrincipal(t.label);
-                              setMostrarOpcionesTemaPrincipal(false);
-                            }}
-                            className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                          >
-                            {t.label}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div ref={refTemaSecundario} className="relative">
-                <label className="text-xs text-gray-500">
-                  Tema secundario
-                </label>
-
-                <div className="flex items-center border rounded px-2">
-                  <Search size={16} className="text-gray-400" />
-                  <input
-                    value={busquedaTemaSecundario}
-                    onChange={(e) => {
-                      setBusquedaTemaSecundario(e.target.value);
-                      setMostrarOpcionesTemaSecundario(true);
-                    }}
-                    onFocus={() => setMostrarOpcionesTemaSecundario(true)}
-                    className="w-full px-2 py-1 outline-none"
-                    placeholder="Buscar y seleccionar opción"
-                  />
-                </div>
-
-                {mostrarOpcionesTemaSecundario && (
-                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                    {temasFiltradosSecundario.length > 0 ? (
-                      temasFiltradosSecundario.map((t) => (
-                        <div
-                          key={t.value}
-                          onClick={() => {
-                            setForm({ ...form, temaSecundario: t.value });
-                            setBusquedaTemaSecundario(t.label);
-                            setMostrarOpcionesTemaSecundario(false);
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                        >
-                          {t.label}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div ref={refAdicional} className="relative">
-                <label className="text-xs text-gray-500">
-                  Selecciona material adicional
-                </label>
-
-                <div className="flex items-center border rounded px-2">
-                  <Search size={16} className="text-gray-400" />
-                  <input
-                    value={busquedaAdicional}
-                    onChange={(e) => {
-                      setBusquedaAdicional(e.target.value);
-                      setMostrarOpcionesAdicional(true);
-                    }}
-                    onFocus={() => setMostrarOpcionesAdicional(true)}
-                    className="w-full px-2 py-1 outline-none"
-                    placeholder="Buscar y seleccionar opción"
-                  />
-                </div>
-
-                {mostrarOpcionesAdicional && (
-                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                    {adicionalesFiltrados.length > 0 ? (
-                      adicionalesFiltrados.map((a) => (
-                        <div
-                          key={a.value}
-                          onClick={() => {
-                            setForm({ ...form, materialAdicional: a.value });
-                            setBusquedaAdicional(a.label);
-                            setMostrarOpcionesAdicional(false);
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                        >
-                          {a.label}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-
-              <div className="col-span-4">
+            <div className="grid grid-cols-1 gap-4 items-end">
+       
+              <div className="col-span-1">
                 <label className="text-xs text-gray-500">
                   Síntesis del asunto *
                 </label>
@@ -1806,7 +1836,7 @@ const obtenerLabel = (lista, id) => {
                 />
               </div>
 
-              <div className="col-span-4">
+              <div className="col-span-1">
                 <label className="text-xs text-gray-500">Observaciones</label>
                 <textarea className="w-full border rounded px-2 py-1" />
               </div>
@@ -1814,6 +1844,83 @@ const obtenerLabel = (lista, id) => {
             </div>
           </div>
 
+          {/* SUBIR ARCHIVO */}
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-600 mb-2">
+              Documento digital
+            </h2>
+
+            <div className="flex justify-center">
+              
+              {/* Documento */}
+              <div className="w-full max-w-xl">
+  
+                  {/* Input oculto */}
+                <input
+                  ref={inputRef}
+                  type="file"
+                  id="archivoDocumento"
+                  className="hidden"
+                  onChange={(e) => setArchivo(e.target.files[0])}
+                />
+
+                {/* Zona Drag & Drop */}
+                <label
+                  htmlFor="archivoDocumento"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragActivo(true);
+                  }}
+                  onDragLeave={() => setDragActivo(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragActivo(false);
+
+                    const file = e.dataTransfer.files[0];
+
+                    if (file) {
+                      setArchivo(file);
+                    }
+                  }}
+                  className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-2 cursor-pointer transition ${
+                    errores.archivo
+                      ? "border-red-500 bg-red-50"
+                      : dragActivo
+                      ? "border-[#8B1538] bg-red-50"
+                      : "border-gray-300 hover:border-[#8B1538] hover:bg-gray-50"
+                  }`}
+                >
+                  {/* Botón eliminar */}
+                  {archivo && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        eliminarArchivo();
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+
+                  <Upload size={30} className="text-[#8B1538]" />
+
+                  <p className="text-sm text-gray-600 text-center">
+                    {archivo
+                      ? archivo.name
+                      : "Haz clic o arrastra un archivo aquí"}
+                  </p>
+
+                  <span className="text-xs text-gray-400">
+                    PDF, DOC, DOCX, JPG, PNG (máx. 5MB)
+                  </span>
+                </label>
+
+              </div>
+            </div>
+          </div>
+          
           {/* BOTÓN */}
           <div className="flex justify-end">
             <button
@@ -2451,7 +2558,7 @@ const obtenerLabel = (lista, id) => {
                       <div className="w-80">
                         <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
                         <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
-                          <option value="">Seleccionar</option>
+                          <option value="">Seleccionar tipo de ejercicio</option>
                           <option value="2024">2024</option>
                           <option value="2025">2025</option>
                           <option value="2026">2026</option>
@@ -2479,7 +2586,7 @@ const obtenerLabel = (lista, id) => {
                           <input type="date" name="fechaAcuse" value={documentoEditar?.fechaAcuse || ""} disabled className="w-full border rounded px-2 py-1 bg-gray-100" />
                         </div>
 
-                        <div>
+                        <div className="hidden">
                           <label className="text-xs text-gray-500">Fecha de registro *</label>
                           <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                         </div>
@@ -2726,7 +2833,7 @@ const obtenerLabel = (lista, id) => {
 
                         <div ref={refTemaSecundario} className="relative">
                           <label className="text-xs text-gray-500">
-                            Tema secundario
+                            Tema secundario *
                           </label>
 
                           <div className="flex items-center border rounded px-2">
@@ -2765,7 +2872,7 @@ const obtenerLabel = (lista, id) => {
 
                         <div ref={refMaterial} className="relative">
                           <label className="text-xs text-gray-500">
-                            Selecciona material adicional
+                            Selecciona material adicional *
                           </label>
 
                           <div className="flex items-center border rounded px-2">

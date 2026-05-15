@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Minus, Trash2, Plus, Upload, X } from "lucide-react";
+import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Swal from "sweetalert2";
 import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service.js";
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAdicional, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
 import { getUsers } from "../../services/user.service.js";
+
 import {
   Toggle,
   handleChangeForm,
@@ -1028,7 +1029,7 @@ const documentosFiltrados = documentos.filter((d) =>
 
   return (
     <main
-      className="flex-1 p-4 bg-white"
+      className="flex-1 p-4 bg-white overflow-y-auto overflow-x-hidden h-screen"
       onClick={() =>
         menuContextual.visible &&
         setMenuContextual((m) => ({ ...m, visible: false }))
@@ -1059,58 +1060,139 @@ const documentosFiltrados = documentos.filter((d) =>
         </button>
       </div>
 
-      <div className="overflow-x-auto bg-white border rounded-lg shadow-sm">
-        <table className="min-w-full text-xs">
-          <thead className="bg-[#79142A] text-white">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">Folio</th>
-              <th className="px-4 py-3 text-left font-medium">Número</th>
-              <th className="px-4 py-3 text-left font-medium">Fecha</th>
-              <th className="px-4 py-3 text-left font-medium">Síntesis</th>
-              <th className="px-4 py-3 text-left font-medium">Remitente</th>
-              <th className="px-4 py-3 text-left font-medium">Estatus</th>
-            </tr>
-          </thead>
+      {/* CONTENEDOR TABLA + PAGINACIÓN RESPONSIVA */}
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden max-w-full">
 
-          <tbody>
-            {loading ? (
+      {/* SCROLL RESPONSIVO HORIZONTAL + VERTICAL */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+          <table className="min-w-[900px] w-full text-xs relative">
+            <thead className="bg-[#79142A] text-white sticky top-0 z-10">
               <tr>
-                <td colSpan="6" className="text-center py-6 text-[#60595D]">
-                  Cargando documentos...
-                </td>
+                <th className="px-4 py-3 text-left font-medium">Folio</th>
+                <th className="px-4 py-3 text-left font-medium">Número</th>
+                <th className="px-4 py-3 text-left font-medium">Fecha</th>
+                <th className="px-4 py-3 text-left font-medium">Síntesis</th>
+                <th className="px-4 py-3 text-left font-medium">Remitente</th>
+                <th className="px-4 py-3 text-left font-medium">Estatus</th>
               </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan="6" className="text-center py-6 text-red-500">
-                  {error}
-                </td>
-              </tr>
-            ) : resultadosPaginados.length == 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center py-6 text-[#60595D]">
-                  No se encontraron documentos.
-                </td>
-              </tr>
-            ) : (
-              resultadosPaginados.map((doc, index) => (
-                <tr
-                  key={doc.folio}
-                  onContextMenu={(e) => handleRightClick(e, doc)}
-                  className={`border-t cursor-context-menu transition ${index % 2 === 0 ? "bg-white" : "bg-white"} hover:bg-[#79142A]/10`}
-                >
-                  <td className="px-4 py-2 font-medium text-gray-700">{doc.folio}</td>
-                  <td className="px-4 py-2">{doc.docId}</td>
-                  <td className="px-4 py-2">{formatDateValue(doc.fechaDoc)}</td>
-                  <td className="px-4 py-2">{doc.asunto || "Sin asunto"}</td>
-                  <td className="px-4 py-2">{doc.remitente.name}</td>
-                  <td className="px-4 py-2">
-                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">{doc.status || "Recibido"}</span>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-[#60595D]">
+                    Cargando documentos...
                   </td>
                 </tr>
-              ))
+              ) : error ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              ) : resultadosPaginados.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-[#60595D]">
+                    No se encontraron documentos.
+                  </td>
+                </tr>
+              ) : (
+                resultadosPaginados.map((doc, index) => (
+                  <tr
+                    key={doc.folio}
+                    onContextMenu={(e) => handleRightClick(e, doc)}
+                    className={`border-t cursor-context-menu transition hover:bg-[#79142A]/10`}
+                  >
+                    <td className="px-4 py-2 font-medium text-gray-700 whitespace-nowrap">
+                      {doc.folio}
+                    </td>
+
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {doc.docId}
+                    </td>
+
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {formatDateValue(doc.fechaDoc)}
+                    </td>
+
+                    <td className="px-4 py-2 min-w-[300px]">
+                      {doc.asunto || "Sin asunto"}
+                    </td>
+
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      {doc.remitente.name}
+                    </td>
+
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <span className="px-2 py-1 rounded bg-gray-200 text-gray-700">
+                        {doc.status || "Recibido"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINACIÓN ABAJO */}
+        <div className="border-t bg-white px-4 py-3 flex flex-wrap justify-center items-center gap-2">
+
+          {/* ANTERIOR */}
+          <button
+            onClick={() =>
+              setPaginaActual((prev) => Math.max(prev - 1, 1))
+            }
+            disabled={paginaActual === 1}
+            className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          {/* NÚMEROS */}
+          <div className="flex items-center gap-2 max-w-full">
+            {Array.from(
+              { length: Math.min(3, totalPaginas) },
+              (_, i) => {
+                let inicio = Math.max(1, paginaActual - 1);
+
+                if (inicio + 2 > totalPaginas) {
+                  inicio = Math.max(1, totalPaginas - 2);
+                }
+
+                const numeroPagina = inicio + i;
+
+                return (
+                  <button
+                    key={numeroPagina}
+                    onClick={() => setPaginaActual(numeroPagina)}
+                    className={`w-10 h-10 rounded-xl font-medium shrink-0 transition-all duration-200 ${
+                      paginaActual === numeroPagina
+                        ? "bg-[#79142A] text-white shadow-md scale-105"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {numeroPagina}
+                  </button>
+                );
+              }
             )}
-          </tbody>
-        </table>
+          </div>
+
+          {/* SIGUIENTE */}
+          <button
+            onClick={() =>
+              setPaginaActual((prev) =>
+                Math.min(prev + 1, totalPaginas)
+              )
+            }
+            disabled={paginaActual === totalPaginas}
+            className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 bg-white hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30"
+          >
+            <ChevronRight size={18} />
+          </button>
+
+        </div>
       </div>
 
         <AnimatePresence>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import bgSidebar from "../assets/images/fondogob.jpg";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // const generalTasks = [
 //   { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
@@ -88,13 +89,13 @@ export function Sidebar({ isOpen, onSelectView }) {
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
-      className={`border-r flex flex-col transition-all duration-300 ${
-        isOpen ? "w-64" : "w-0 overflow-hidden"
+      className={`border-r flex flex-col transition-all duration-300 h-screen overflow-hidden ${
+        isOpen ? "w-64" : "w-0"
       }`}
     >
       
-
-      <div className="p-4 flex flex-col">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="p-4 flex flex-col min-h-full">
         <h3 className="text-sm text-[#60595D]-700 mb-2">Tareas Generales</h3>
 
         <div className="bg-white border border-[#60595D]-200 rounded flex flex-col h-70">
@@ -125,83 +126,90 @@ export function Sidebar({ isOpen, onSelectView }) {
 
           </div>
 
-          {/* Paginación */}
+          {/* PAGINACIÓN */}
           {tareas.length > 0 && totalPaginas > 1 && (
-            <div className="border-t border-gray-200 py-1">
-              <div className="flex items-center justify-center gap-1 text-[10px]">
+            <div className="border-t border-gray-100 px-3 py-3 bg-white">
+              <div className="flex items-center justify-center gap-2">
 
+                {/* ANTERIOR */}
                 <button
-                  onClick={() => setPaginaActual((prev) => prev - 1)}
+                  onClick={() =>
+                    setPaginaActual((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={paginaActual === 1}
-                  className={`w-5 h-5 flex items-center justify-center rounded border ${
-                    paginaActual === 1
-                      ? "bg-[#60595D]-200 text-[#60595D]-400 cursor-not-allowed"
-                      : "bg-white hover:bg-[#60595D]-100"
-                  }`}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
                 >
-                  &lt;
+                  <ChevronLeft size={16} />
                 </button>
 
-                {(() => {
-                  const maxVisible = 3;
+                {/* NÚMEROS */}
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const maxVisible = 3;
 
-                  let inicio = Math.max(1, paginaActual - 1);
-                  let fin = inicio + maxVisible - 1;
+                    let inicio = Math.max(1, paginaActual - 1);
+                    let fin = inicio + maxVisible - 1;
 
-                  if (fin > totalPaginas) {
-                    fin = totalPaginas;
-                    inicio = Math.max(1, fin - maxVisible + 1);
-                  }
+                    if (fin > totalPaginas) {
+                      fin = totalPaginas;
+                      inicio = Math.max(1, fin - maxVisible + 1);
+                    }
 
-                  return Array.from({ length: fin - inicio + 1 }, (_, i) => {
-                    const numeroPagina = inicio + i;
+                    return Array.from(
+                      { length: fin - inicio + 1 },
+                      (_, i) => {
+                        const numeroPagina = inicio + i;
 
-                    return (
-                      <button
-                        key={numeroPagina}
-                        onClick={() => setPaginaActual(numeroPagina)}
-                        className={`w-5 h-5 flex items-center justify-center rounded border ${
-                          paginaActual === numeroPagina
-                            ? "bg-[#79142A] text-white"
-                            : "bg-white hover:bg-gray-100"
-                        }`}
-                      >
-                        {numeroPagina}
-                      </button>
+                        return (
+                          <button
+                            key={numeroPagina}
+                            onClick={() => setPaginaActual(numeroPagina)}
+                            className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
+                              paginaActual === numeroPagina
+                                ? "bg-[#79142A] text-white shadow-md scale-105"
+                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                            }`}
+                          >
+                            {numeroPagina}
+                          </button>
+                        );
+                      }
                     );
-                  });
-                })()}
+                  })()}
+                </div>
 
+                {/* SIGUIENTE */}
                 <button
-                  onClick={() => setPaginaActual((prev) => prev + 1)}
+                  onClick={() =>
+                    setPaginaActual((prev) =>
+                      Math.min(prev + 1, totalPaginas)
+                    )
+                  }
                   disabled={paginaActual === totalPaginas}
-                  className={`w-5 h-5 flex items-center justify-center rounded border ${
-                    paginaActual === totalPaginas
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-white hover:bg-gray-100"
-                  }`}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
                 >
-                  &gt;
+                  <ChevronRight size={16} />
                 </button>
 
               </div>
             </div>
           )}
+        </div>
+          
+        <div className="p-4 border-t border-gray-200">
+          <h2 className="text-sm text-[#60595D]-700 mb-2">Rol de su usuario</h2>
+
+          <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
+            {user?.roles && user.roles.length > 0
+              ? user.roles.map((r) => nombreRoles[r.rol] || r.rol).join(", ")
+              : "Sin rol asignado"}
+          </div>
 
         </div>
-      </div>
-
-      <div className="p-4 border-t border-gray-200">
-        <h2 className="text-sm text-[#60595D]-700 mb-2">Rol de su usuario</h2>
-
-        <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
-          {user?.roles && user.roles.length > 0
-            ? user.roles.map((r) => nombreRoles[r.rol] || r.rol).join(", ")
-            : "Sin rol asignado"}
+     
         </div>
-
       </div>
-
+     
     </aside>
   );
 }
