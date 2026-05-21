@@ -368,9 +368,14 @@ export function RegistrarDocumento() {
             asunto: form.sintesis,
             observaciones: form.observaciones,
             relacionados: form.relacionados,
-            // otros campos si es necesario
           };
-          const response = await createDocument(data, token);
+
+          const dataForm = new FormData();
+          dataForm.append("data", JSON.stringify({data}));
+          if (archivo) {
+            dataForm.append("archivo", archivo);
+          }
+          const response = await createDocument(dataForm, token);
           if (response.ok) {
 
             const dataGuardado = {

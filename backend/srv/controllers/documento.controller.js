@@ -26,8 +26,24 @@ export const getById = async (req, res) => {
 
 export const create = async (req, res) => {
     try {
-        const documentoData = req.body;
+        if (!req.file) {
+            return res.status(400).json({ error: 'Archivo no enviado' });
+        }
+        console.log('Archivo recibido:', req.file); // Verificar que el archivo se ha recibido correctamente
         const user = req.user; // Obtener el usuario autenticado del token
+        const ruta = `../uploads/anexos/${req.file.filename}`;
+        const anexoData = {
+            registrador: user.id,
+            mensaje: 'Documento registrado con anexo',
+            ruta: ruta,
+            nombre: req.file.originalname,
+        };
+        const {data} = req.body;
+        console.log('Datos recibidos en el cuerpo de la solicitud:', data); // Verificar los datos recibidos
+        const documentoData = JSON.parse(data).data; // Manejar ambos casos
+        console.log('Datos del documento:', documentoData); // Verificar los datos del documento
+        documentoData.anexos = [anexoData];
+        console.log('Datos del documento con anexo:', documentoData);
         const newDocumento = await documentoService.create(documentoData, user);
         res.status(201).json(newDocumento);
     } catch (error) {
@@ -232,6 +248,36 @@ export const reporteAsuntos = async (req, res) => {
     }
 };
 
+export const patchRespuestaDocumento = async (req, res) => {
+    try {
+        const ruta = req.file ? `../uploads/anexos/${req.file.filename}` : null;
+        const { docId, mensaje, anexos, nombre } = req.body;
+        const user = req.user;
+
+        let respuestaData = mensaje;
+        if (typeof respuestaData === 'string') {
+            try {
+                respuestaData = JSON.parse(respuestaData);
+            } catch (e) {
+                respuestaData = { mensaje: respuestaData, nombre: nombre || null };
+            }
+        }
+
+        if (!respuestaData || typeof respuestaData !== 'object') {
+            respuestaData = { mensaje: String(mensaje || ''), nombre: nombre || null };
+        }
+
+        const updatedDocumento = await documentoService.patchRespuestaDocumento(docId, respuestaData, user, ruta);
+        if (updatedDocumento) {
+            res.status(200).json(updatedDocumento);
+        } else {
+            res.status(404).json({ error: 'Documento no encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export default {
     getAll,
     getById,
@@ -243,6 +289,7 @@ export default {
     patchRemoverAnexoDocumento,
     patchStatusDocumento,
     patchRelacionadoDocumento,
+    patchRespuestaDocumento,
     patchRemoverRelacionadoDocumento,
     deleteDocumento,
     reporteAcuerdos,

@@ -53,3 +53,22 @@ export const getTareas = (userId, token) => {
         }
     });
 }
+
+export const concluirTarea = (tareaId, token, notas) => {
+    return fetchAPI(`/users/concluir-tarea/${tareaId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notas })
+    });
+}
+
+export const moveTarea = (tareaId, token) => {
+    return fetchAPI(`/users/move-tarea/${tareaId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}

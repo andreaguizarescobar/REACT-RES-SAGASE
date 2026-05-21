@@ -24,6 +24,10 @@ router.delete('/delete/:userId', verifyToken, authorizeRole('ADMIN'), userContro
 // user/cambiar-password/:userId
 router.post('/cambiar-password/:userId', userController.cambiarPassword);
 // user/tareas/:userId
-router.get('/tareas/:userId', userController.getTareas);
+router.get('/tareas/:userId', verifyToken, userController.getTareas);
+// user/move-tarea/:tareaId
+router.post('/move-tarea/:tareaId', verifyToken, userController.moveTarea);
+// user/concluir-tarea/:tareaId
+router.post('/concluir-tarea/:tareaId', verifyToken, userController.concluirTarea);
 
 export default router;

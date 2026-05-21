@@ -15,7 +15,7 @@ export const createDocument = (data, token) => {
         headers: {
             Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: data
     });
 };
 
@@ -156,6 +156,16 @@ export const reporteAsuntos = (data, token) => {
             Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(data)
+    });
+};
+
+export const enviarRespuesta = (formData, token) => {
+    return fetchAPI(`/documentos/respuesta`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: formData,
     });
 };
 

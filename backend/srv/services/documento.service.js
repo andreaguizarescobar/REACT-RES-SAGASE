@@ -11,7 +11,11 @@ const getAll = async () => {
 };
 
 const getById = async (docId) => {
-    const documento = ( await documentoModel.findOne({ docId: docId })
+    const query = mongoose.Types.ObjectId.isValid(docId)
+        ? { $or: [{ docId }, { _id: docId }] }
+        : { docId };
+
+    const documento = await documentoModel.findOne(query)
         .populate('remitente')
         .populate('tipo')
         .populate('tema')
@@ -30,9 +34,10 @@ const getById = async (docId) => {
                 path: 'registrador', select: 'nombre'
             }
         })
-        .populate('bitacora.user', 'nombre'));
+        .populate('bitacora.user', 'nombre')
+        .populate('respuestas.registrador', 'nombre');
 
-        return documento;
+    return documento;
 };
 
 import userModel from '../models/user.model.js';
@@ -79,7 +84,7 @@ const create = async (documentoData, user) => {
             fecha: new Date(),
             descripcion: 'Falta turnar el documento',
             documento: doc._id,
-            status: 'PENDIENTE'
+            status: 'pendiente'
         }}},
         {new: true} 
     );
@@ -171,21 +176,24 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     })
     .populate('bitacora.user', 'nombre');
 
-    console.log("ASDFGHJ")
-    console.log(turnadoData.dirigido);
+    // mover la tarea pendeiente a salidas, cambiando el estatus a salida, y agregar una nueva tarea pendiente para el area destino
+    await userModel.findOneAndUpdate(
+        { _id: user.id, 'tareas.documento': doc._id, 'tareas.status': 'pendiente' },
+        { $set: { 'tareas.$.status': 'salida' } },
+        { session }
+    );
 
-    const us = await userModel.findOneAndUpdate(
+    await userModel.findOneAndUpdate(
         { _id: turnadoData.dirigido},
         {$push: { tareas: {
             tarea: 'Atiende asunto',
             fecha: new Date(),
             descripcion: 'Atender asunto',
             documento: doc._id,
-            status: 'ENTRADA'
+            status: 'entrada'
         }}},
         { session }
     )
-    console.log(us);
 
     await session.commitTransaction();
     session.endSession();
@@ -509,6 +517,38 @@ const reporteAsuntos = async (filtro) => {
     .populate('turnados.instruccion');
 }
 
+const patchRespuestaDocumento = async (docId, respuestaData, user, ruta) => {
+    const query = mongoose.Types.ObjectId.isValid(docId)
+        ? { $or: [{ docId }, { _id: docId }] }
+        : { docId };
+
+    return await documentoModel.findOneAndUpdate(
+         query,
+        { $push: { respuestas: {
+            mensaje: respuestaData.mensaje,
+            nombre: respuestaData.nombre,
+            fecha: new Date(),
+            ruta: ruta,
+            registrador: user.id,
+        }} },
+        { new: true }
+    ).populate('remitente')
+    .populate('tipo')
+    .populate('tema')
+    .populate('secundario')
+    .populate('adicional')
+    .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
+    .populate('turnados.instruccion')
+    .populate('turnados.remitente')
+    .populate('turnados.areaDestino')
+    .populate('turnados.dirigido')
+    .populate('turnados.turna')
+    .populate('copias.funcionario')
+    .populate({ path: 'anexos', populate: { path: 'registrador', select: 'nombre' } })
+    .populate('bitacora.user', 'nombre')
+    .populate('respuestas.registrador', 'nombre');
+};
+
 export default {
     getAll,
     getById,
@@ -524,5 +564,6 @@ export default {
     patchRemoverRelacionadoDocumento,
     deleteDocumento,
     reporteAcuerdos,
-    reporteAsuntos
+    reporteAsuntos,
+    patchRespuestaDocumento
 };

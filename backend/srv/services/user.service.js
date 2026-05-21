@@ -104,11 +104,55 @@ export const cambioPassword = async (userId, currentPassword, newPassword) => {
 
 export const getTareas = async (userId) => {
   const user = await userModel.findOne({userId: userId }).populate({path: 'tareas', populate: 
-    {path: 'documento', populate: {path: 'turnados', populate: [{path: 'remitente', select: 'name'}, {path: 'dirigido', select: 'nombre'}]}}}).exec();
+    {path: 'documento', populate: [{path: 'turnados', populate: [{path: 'remitente', select: 'name'}, {path: 'dirigido', select: 'nombre'}]},
+  {path: 'tipo', select: 'tipo'}]}}).exec();
   if (!user) {
     throw new Error("Usuario no encontrado");
   }
   return user.tareas;
+};
+
+// Mover una tarea de usuario de entrada a pendientes
+export const moveTarea = async (userId, tareaId) => {
+  const user = await userModel.findOne({ _id: userId });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  const tarea = user.tareas.id(tareaId);
+  if (!tarea) {
+    throw new Error("Tarea no encontrada");
+  }
+  if (tarea.status === 'entrada') {
+    tarea.status = 'pendiente';
+  }
+  await user.save();
+  return "Tarea movida a pendientes";
+};
+
+// Marcar una tarea como concluida, y actualizar el status en el documento asociado y añadir notas si se proporcionan
+import documentoModel from '../models/documento.model.js';
+export const concluirTarea = async (userId, tareaId, notas) => {
+  const user = await userModel.findOne({ _id: userId });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  const tarea = user.tareas.id(tareaId);
+  if (!tarea) {
+    throw new Error("Tarea no encontrada");
+  }
+  tarea.status = 'salida';
+  tarea.fecha = new Date();
+  // Actualizar el status en el documento asociado
+  const documento = await documentoModel.findById(tarea.documento);
+  if (documento) {
+    documento.status = 'Concluido';
+    if (notas) {
+      documento.notas = notas;
+    }
+    await documento.save();
+  }
+  await user.save();
+  return "Tarea marcada como concluida";
 };
 
 export default {
@@ -121,5 +165,7 @@ export default {
   deleteUser,
   patchUser,
   cambioPassword,
-  getTareas
+  getTareas,
+  moveTarea,
+  concluirTarea
 };

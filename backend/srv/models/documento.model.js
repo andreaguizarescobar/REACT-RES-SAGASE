@@ -28,7 +28,8 @@ const BitacoraSchema = new Schema({
 const RespuestaSchema = new Schema({
   mensaje: String,
   nombre: String,
-  anexos: [String],
+  ruta: String,
+  registrador: {type: Schema.Types.ObjectId, ref: 'users'},
   fecha: { type: Date, default: Date.now }
 }, { _id: true });
 
@@ -94,7 +95,7 @@ const DocumentoSchema = new Schema({
   copias: [CopiaSchema],
   bitacora: [BitacoraSchema],
   respuestas: [RespuestaSchema],
-
+  notas: String,
   eliminado: { type: Boolean, default: false },
   motivoEliminado: String
 

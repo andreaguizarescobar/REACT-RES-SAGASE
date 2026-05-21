@@ -23,7 +23,7 @@ router.get('/getAll', documentoController.getAll);
 // documento/:docId
 router.post('/', documentoController.getById);
 // documento/create
-router.post('/create', verifyToken, documentoController.create);
+router.post('/create', verifyToken, upload.single('archivo'), documentoController.create);
 // documento/update/:docId
 router.put('/update',verifyToken, documentoController.putDocumento);
 // patch documento/:docId/turnado
@@ -50,5 +50,7 @@ router.delete('/delete', verifyToken, documentoController.deleteDocumento);
 router.post('/reporte/acuerdos', verifyToken, documentoController.reporteAcuerdos);
 // documento/reporte/asuntos
 router.post('/reporte/asuntos', verifyToken, documentoController.reporteAsuntos);
+// documento/respuesta
+router.post('/respuesta', verifyToken, upload.single('archivo'), documentoController.patchRespuestaDocumento);
 
 export default router;

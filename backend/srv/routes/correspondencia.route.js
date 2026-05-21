@@ -6,10 +6,10 @@ router.get('/', correspondenciaController.getCorrespondenciaList);
 // correspondencia/getItem/:id
 router.get('/:id', correspondenciaController.getCorrespondenciaItem);
 // correspondencia/create
-router.post('/', correspondenciaController.postCorrespondenciaItem);
+router.post('/create', correspondenciaController.postCorrespondenciaItem);
 // correspondencia/update/:id
-router.put('/:id', correspondenciaController.putCorrespondenciaItem);
+router.put('/update/:id', correspondenciaController.putCorrespondenciaItem);
 // correspondencia/delete/:id
-router.delete('/:id', correspondenciaController.deleteCorrespondenciaItem);
+router.delete('/delete/:id', correspondenciaController.deleteCorrespondenciaItem);
 
 export default router;
