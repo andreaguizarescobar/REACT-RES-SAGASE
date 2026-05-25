@@ -72,3 +72,46 @@ export const moveTarea = (tareaId, token) => {
         }
     });
 }
+
+export const validarTarea = (tareaId, token) => {
+    return fetchAPI(`/users/validar-tarea/${tareaId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const devolverTarea = (tareaId, token) => {
+    return fetchAPI(`/users/devolver-tarea/${tareaId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const createSolicitud = (data) => {
+    return fetchAPI('/users/solicitud', {
+        method: 'POST',
+        body: JSON.stringify(data) // data
+    });
+}
+
+export const getSolicitudes = (token) => {
+    return fetchAPI('/users/solicitudes', {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const approveSolicitud = (id, token) => {
+    return fetchAPI(`/users/solicitudes/approve/${id}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}

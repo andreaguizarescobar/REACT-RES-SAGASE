@@ -136,7 +136,6 @@ export const moveTarea = async (req, res) => {
   try {
     const tareaId = req.params.tareaId;
     const userId = req.user.id; // Asegúrate de que el middleware de autenticación establezca userId en req
-    console.log(`Moviendo tarea ${tareaId} para el usuario ${userId}`);
     const result = await userService.moveTarea(userId, tareaId);
     res.json({ message: result });
   } catch (error) {
@@ -157,6 +156,56 @@ export const concluirTarea = async (req, res) => {
   }
 };
 
+export const validarTarea = async (req, res) => {
+  try {
+    const tareaId = req.params.tareaId;
+    const userId = req.user.id; // Asegúrate de que el middleware de autenticación establezca userId en req
+    const result = await userService.validarTarea(userId, tareaId);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const devolverTarea = async (req, res) => {
+  try {
+    const tareaId = req.params.tareaId;
+    const userId = req.user.id;
+    const result = await userService.devolverTarea(userId, tareaId);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const getSolicitudes = async (req, res) => {
+  try {
+    const solicitudes = await userService.getSolicitudes();
+    res.json(solicitudes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const approveSolicitud = async (req, res) => {
+  try {
+    const solicitudId = req.params.id;
+    const result = await userService.approveSolicitud(solicitudId);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const solicitud = async (req, res) => {
+  try {
+    const result = await userService.solicitud(req.body);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export default {
   register,
   login,
@@ -170,5 +219,10 @@ export default {
   verifyToken,
   getTareas,
   moveTarea,
-  concluirTarea
+  concluirTarea,
+  validarTarea,
+  devolverTarea,
+  getSolicitudes,
+  approveSolicitud,
+  solicitud
 };

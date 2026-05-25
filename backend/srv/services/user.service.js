@@ -109,10 +109,18 @@ export const getTareas = async (userId) => {
   if (!user) {
     throw new Error("Usuario no encontrado");
   }
+  // si el usuario es validador, incluir tareas del area de secretaria particular
+  if (user.roles.some((rol) => rol.rol === 'VALIDADOR')) {
+    const secretaria = await areaModel.findOne({ nombre: 'SECRETARIA PARTICULAR' }).populate({path: 'tareas', populate: 
+    {path: 'documento', populate: [{path: 'turnados', populate: [{path: 'remitente', select: 'name'}, {path: 'dirigido', select: 'nombre'}]},
+  {path: 'tipo', select: 'tipo'}]}});
+    user.tareas.push(...secretaria.tareas);
+  }
   return user.tareas;
 };
 
 // Mover una tarea de usuario de entrada a pendientes
+import areaModel from '../models/area.model.js';
 export const moveTarea = async (userId, tareaId) => {
   const user = await userModel.findOne({ _id: userId });
   if (!user) {
@@ -120,7 +128,27 @@ export const moveTarea = async (userId, tareaId) => {
   }
   const tarea = user.tareas.id(tareaId);
   if (!tarea) {
-    throw new Error("Tarea no encontrada");
+    // Buscar en tareas del área de secretaria particular
+    const secretaria = await areaModel.findOne({ nombre: 'SECRETARIA PARTICULAR' });
+    if (secretaria) {
+      const tareaArea = secretaria.tareas.id(tareaId);
+      if (tareaArea) {
+        // Mover tarea del área a pendientes del usuario
+        user.tareas.push({
+          tarea: tareaArea.tarea,
+          status: 'pendiente',
+          proceso: tareaArea.proceso,
+          documento: tareaArea.documento,
+          fecha: new Date(),
+          notas: tareaArea.notas
+        });
+
+        secretaria.tareas.pull(tareaArea._id);
+        await secretaria.save();
+        await user.save();
+        return "Tarea movida a pendientes";
+      }
+    }
   }
   if (tarea.status === 'entrada') {
     tarea.status = 'pendiente';
@@ -140,8 +168,24 @@ export const concluirTarea = async (userId, tareaId, notas) => {
   if (!tarea) {
     throw new Error("Tarea no encontrada");
   }
-  tarea.status = 'salida';
   tarea.fecha = new Date();
+
+  // agregar tarea a área correspondiente
+  const area = await areaModel.findOne({ nombre: 'SECRETARIA PARTICULAR' });
+  if (area) {
+    area.tareas.push({
+      tarea: `Revisión de documento`,
+      proceso: tarea.proceso,
+      status: 'entrada',
+      fecha: new Date(),
+      descripcion: tarea.descripcion,
+      documento: tarea.documento
+    });
+    await area.save();
+  }
+  
+
+  tarea.status = 'salida';
   // Actualizar el status en el documento asociado
   const documento = await documentoModel.findById(tarea.documento);
   if (documento) {
@@ -153,6 +197,140 @@ export const concluirTarea = async (userId, tareaId, notas) => {
   }
   await user.save();
   return "Tarea marcada como concluida";
+};
+
+export const validarTarea = async (userId, tareaId) => {
+  const user = await userModel.findOne({ _id: userId });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  const tarea = user.tareas.id(tareaId);
+  if (!tarea) {
+    throw new Error("Tarea no encontrada");
+  }
+  if (tarea.status === 'pendiente') {
+    tarea.titulo = 'Documento validado';
+    tarea.proceso = 'Validación';
+    tarea.status = 'salida';
+  }
+
+  const documento = await documentoModel.findById(tarea.documento);
+  if (documento) {
+    documento.status = 'Validado';
+    await documento.save();
+  }
+
+  await user.save();
+  return "Tarea movida a salida";
+};
+
+export const devolverTarea = async (userId, tareaId) => {
+  const user = await userModel.findOne({ _id: userId });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  const tarea = user.tareas.id(tareaId);
+  if (!tarea) {
+    throw new Error("Tarea no encontrada");
+  }
+
+  const documento = await documentoModel.findById(tarea.documento);
+  if (!documento) {
+    throw new Error("Documento asociado no encontrado");
+  }
+
+  const lastTurnado = documento.turnados?.[documento.turnados.length - 1];
+  if (!lastTurnado || !lastTurnado.dirigido) {
+    throw new Error("No se encontró un último turno dirigido");
+  }
+
+  tarea.status = 'salida';
+
+  const destinatario = await userModel.findById(lastTurnado.dirigido);
+  if (!destinatario) {
+    throw new Error("Usuario destino no encontrado");
+  }
+// si el usuario tiene la tarea en salidas, cambiarla a entrada, si no, agregar una nueva tarea de entrada
+  const tareaDestinatario = destinatario.tareas.find(t => t.documento.toString() === documento._id.toString() && t.status === 'salida');
+  if (tareaDestinatario) {
+    tareaDestinatario.status = 'entrada';
+  } else {
+    destinatario.tareas.push({
+    tarea: 'Revisar respuesta devuelta',
+    proceso: tarea.proceso,
+    status: 'entrada',
+    fecha: new Date(),
+    descripcion: 'Responder con correcciones solicitadas',
+    documento: documento._id
+  });
+  }
+
+  await user.save();
+  await destinatario.save();
+  return "Tarea devuelta al último dirigido";
+};
+
+import solicitudModel from '../models/solicitud.model.js';
+export const solicitud = async (data) => {
+  const solicitud = await solicitudModel.create(data);
+  return "Solicitud enviada";
+};
+
+export const getSolicitudes = async () => {
+  return await solicitudModel.find({ status: 'Pendiente' }).populate('area');
+};
+
+export const approveSolicitud = async (solicitudId) => {
+  const solicitud = await solicitudModel.findById(solicitudId).populate('area', 'nombre');
+  if (!solicitud) {
+    throw new Error('Solicitud no encontrada');
+  }
+
+  const baseUserName = `AGN-${(solicitud.iniciales || 'USR').replace(/\s+/g, '')}`;
+  let username = baseUserName;
+  let counter = 0;
+
+  while (await userModel.findOne({ username })) {
+    counter += 1;
+    username = `${baseUserName}${counter}`;
+  }
+
+  const password = Math.random().toString(36).slice(-8) || 'Password1';
+  const hashedPassword = await hash(password, 10);
+
+  const user = await userModel.create({
+    userId: `user-${(solicitud.iniciales || 'USR').replace(/\s+/g, '')}-${Date.now()}`,
+    username,
+    password: hashedPassword,
+    nombre: solicitud.nombre,
+    iniciales: solicitud.iniciales,
+    sexo: solicitud.sexo,
+    cargo: solicitud.cargo,
+    area: solicitud.area?.nombre || solicitud.area,
+    telefono: solicitud.telefono,
+    ext: solicitud.ext,
+    email: solicitud.email,
+    copia: solicitud.copia,
+    status: 'Activo',
+    firstLogin: true,
+    roles: []
+  });
+
+  solicitud.status = 'Aprobada';
+  await solicitud.save();
+
+  return {
+    message: 'Solicitud aprobada',
+    credentials: {
+      username,
+      password
+    },
+    user: {
+      userId: user.userId,
+      username: user.username,
+      email: user.email
+    }
+  };
 };
 
 export default {
@@ -167,5 +345,10 @@ export default {
   cambioPassword,
   getTareas,
   moveTarea,
-  concluirTarea
+  concluirTarea,
+  validarTarea,
+  devolverTarea,
+  solicitud,
+  getSolicitudes,
+  approveSolicitud
 };

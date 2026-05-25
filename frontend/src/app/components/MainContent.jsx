@@ -20,8 +20,7 @@ import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
   import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
   import { getAreas, getInstrucciones, getAdicional, getTemaPrincipal } from "../services/catalogos.service.js";
   import { getRemitentes } from "../services/remitente.service.js";
-  import { getUsers } from "../services/user.service.js";
-import { getTareas, moveTarea, concluirTarea } from "../services/user.service";
+  import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTarea } from "../services/user.service.js";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -44,7 +43,7 @@ export function MainContent({ currentView }) {
       const entradas = [];
       const salidas = [];
       const pendientes = [];
-
+console.log("Tareas obtenidas del servicio:", tareasLista);
       tareasLista.forEach((tarea) => {
         if (tarea.status === "entrada") {
           entradas.push(tarea);
@@ -54,7 +53,7 @@ export function MainContent({ currentView }) {
           pendientes.push(tarea);
         }
       });
-
+      console.log("Tareas cargadas:", { entradas, salidas, pendientes });
       setEntradas(entradas);
       setSalidas(salidas);
       setPendientes(pendientes);
@@ -477,7 +476,7 @@ const moverAPendientes = () => {
       otroFuncionario: false,
       altaTipoDocumento: false,
       relacionadoCon: false,
-      materialAdicional: "",
+      materialAdicional: false,
     });
   
   const [errores, setErrores] = useState({});
@@ -806,9 +805,7 @@ const moverAPendientes = () => {
                   const resp = await fetch(url);
                   if (resp.ok) {
                     const blob = await resp.blob();
-                    console.log('Archivo obtenido por fetch, usando Blob para visor');
                     setArchivoVista(blob);
-                  console.log('Archivo obtenido por fetch, usando URL directa para visor', archivoVista);
                     setMostrarVisor(true);
                     return;
                   }
@@ -1171,7 +1168,7 @@ const moverAPendientes = () => {
                         </button>
 
                       {/* TURNAR SOLO SI ES VALIDADOR */}
-                      {esValidador || esEjecutor && (
+                      {(esValidador || esEjecutor) && (
                         <button
                           onClick={() => handleTomarAsunto(doc)}
                           className="p-1 rounded hover:bg-green-100 text-green-600"
@@ -1196,7 +1193,7 @@ const moverAPendientes = () => {
                           <span className="font-medium">Folio:</span> {doc.documento.folio}
                         </p>
                         <p>
-                          <span className="font-medium">Dirigido a:</span> {doc.documento.turnados.at(-1).dirigido.nombre}
+                          <span className="font-medium">Dirigido a:</span> {doc.documento.turnados?.at(-1).dirigido.nombre}
                         </p>
                         <p className="text-gray-400">{doc.documento.fechaTurnado}</p>
                       </div>
@@ -1279,7 +1276,7 @@ const moverAPendientes = () => {
                           <div className="p-1">{doc.documento.asunto || "Sin síntesis disponible"}</div>
                           <div className="p-1">{doc.documento.folio}</div>
                           {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
-                            <><div className="p-1">{doc.documento.turnados.at(-1).dirigido.nombre}</div><div className="p-1">{doc.documento.turnados.at(-1).remitente?.name}</div></>
+                            <><div className="p-1">{doc.documento.turnados?.at(-1).dirigido.nombre}</div><div className="p-1">{doc.documento.turnados.at(-1).remitente?.name}</div></>
                           ) : (
                             <><div className="p-1 text-gray-400">Sin información de turno</div><div className="p-1 text-gray-400">Sin información de turno</div></>
                           )}
@@ -1289,7 +1286,7 @@ const moverAPendientes = () => {
                       {/* FOOTER */}
                       <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
                         {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
-                          <span>Creado {tiempoTranscurrido(doc.documento.turnados.at(-1).fechaTurnado)}</span>
+                          <span>Creado {tiempoTranscurrido(doc.documento.turnados?.at(-1).fechaTurnado)}</span>
                         ) : (
                           <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
                         )}
@@ -1396,8 +1393,8 @@ const moverAPendientes = () => {
                             <div className="grid grid-cols-4 text-[10px] text-gray-700">
                               <div className="p-1">{doc.documento.asunto}</div>
                               <div className="p-1">{doc.documento.folio}</div>
-                              <div className="p-1">{doc.documento.turnados.at(-1).dirigido.nombre}</div>
-                              <div className="p-1">{doc.documento.turnados.at(-1).remitente.name}</div>
+                              <div className="p-1">{doc.documento.turnados?.at(-1).dirigido.nombre}</div>
+                              <div className="p-1">{doc.documento.turnados?.at(-1).remitente.name}</div>
                             </div>
 
                           </div>
@@ -1645,7 +1642,7 @@ const moverAPendientes = () => {
 
 
   // FUNCIÓN CONTINUAR
-  const validarRespuesta = () => {
+  const validarRespuesta = async () => {
 
     if (!respuestaGuardada) {
       Swal.fire({
@@ -1658,59 +1655,85 @@ const moverAPendientes = () => {
       return;
     }
 
-    // ❌ REGRESAR AL EJECUTOR
-    if (validacionRespuesta === "no") {
+    const tareaId = docSeleccionadoPendientes?.tareaId || docSeleccionadoPendientes?._id;
+    const tokenValue = localStorage.getItem("token");
 
+    if (!tareaId || !tokenValue) {
       Swal.fire({
-        icon: "info",
-        title: "Respuesta regresada",
-        text: "La respuesta regresó al ejecutor para su modificación.",
+        icon: "error",
+        title: "No se pudo validar la tarea",
+        text: "No se encontró la tarea o el token de usuario.",
         confirmButtonColor: "#8B1538"
       });
+      return;
+    }
 
-      // CERRAR MODAL
-      setMostrarModal(false);
+    // ❌ REGRESAR AL EJECUTOR
+    if (validacionRespuesta === "no") {
+      try {
+        const response = await devolverTarea(tareaId, tokenValue);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Ocurrió un error al devolver la tarea.");
+        }
 
-      // LIMPIAR DOCUMENTO
-      setDocSeleccionadoPendientes(false);
-      // OPCIONAL:
-      // setTabActiva("turnoRecibido");
+        await cargarTareas();
+
+        Swal.fire({
+          icon: "info",
+          title: "Respuesta regresada",
+          text: "La respuesta fue enviada de nuevo al último usuario dirigido.",
+          confirmButtonColor: "#8B1538"
+        });
+      } catch (error) {
+        console.error("Error al devolver la tarea:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "Ocurrió un error al devolver la tarea.",
+          confirmButtonColor: "#8B1538"
+        });
+      } finally {
+        setMostrarModal(false);
+        setDocSeleccionadoPendientes(false);
+        setRespuestaGuardada(false);
+        setValidacionRespuesta("");
+      }
 
       return;
     }
 
     // ✅ VALIDACIÓN CORRECTA
     if (validacionRespuesta === "si") {
+      try {
+        const response = await validarTarea(tareaId, tokenValue);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Ocurrió un error al validar la tarea.");
+        }
 
-      // AGREGAR A SALIDAS
-      setMisSalidas((prev) => [
-        {
-          ...docSeleccionadoPendientes,
-          concluido: true,
-          fechaConclusion: new Date(),
-        },
-        ...prev,
-      ]);
+        await cargarTareas();
 
-      // ELIMINAR DE PENDIENTES
-      setMisPendientes((prev) =>
-        prev.filter(
-          (item) => item.id !== docSeleccionadoPendientes.id
-        )
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Proceso concluido",
-        text: "La instancia fue enviada a salidas correctamente.",
-        confirmButtonColor: "#8B1538"
-      });
-
-      // CERRAR MODAL
-      setMostrarModal(false);
-
-      // LIMPIAR DOCUMENTO
-      setDocSeleccionadoPendientes(false);
+        Swal.fire({
+          icon: "success",
+          title: "Proceso concluido",
+          text: "La instancia fue validada correctamente.",
+          confirmButtonColor: "#8B1538"
+        });
+      } catch (error) {
+        console.error("Error al validar la tarea:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "Ocurrió un error al validar la tarea.",
+          confirmButtonColor: "#8B1538"
+        });
+      } finally {
+        setMostrarModal(false);
+        setDocSeleccionadoPendientes(false);
+        setRespuestaGuardada(false);
+        setValidacionRespuesta("");
+      }
     }
 
   };
@@ -1781,8 +1804,8 @@ const moverAPendientes = () => {
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
-                  { id: "materialAdicional", label: "Material adicional" },
-                  { id: "turnoRecibido", label: "Atender turno recibido" },
+                  ...(docSeleccionado.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
+                  ...(!esEjecutor ? [] : [{ id: "turnoRecibido", label: "Atender turno recibido" }]),
                   { id: "verTurnos", label: "Todos los turnos" },
                   { id: "copias", label: "Copias" },
                   { id: "bitacora", label: "Bitácora" },
@@ -1886,22 +1909,8 @@ const moverAPendientes = () => {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.asunto ||
+                                  docSeleccionado.temaPrincipal ||
                                   "Administrativo"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Tema secundario
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionado.temaSecundario ||
-                                  ""
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2023,7 +2032,7 @@ const moverAPendientes = () => {
                               </label>
                               <textarea
                                 value={
-                                  docSeleccionado.sintesis
+                                  docSeleccionado.temaPrincipal
                                 }
                                 disabled
                                 rows={3}
@@ -2373,14 +2382,7 @@ const moverAPendientes = () => {
                             </thead>
 
                             <tbody>
-                              {[
-                                "Víctor Manuel Enríquez Paniagua",
-                                "María Verónica Leal Camarena",
-                                "Guillermo Bonilla Tenorio",
-                                "Dirección de Administración",
-                                "Unidad de Correspondencia",
-                                "Órgano Interno de Control",
-                              ].map((funcionario, index) => (
+                              {copiasDocumento.map((funcionario, index) => (
                                 <tr
                                   key={index}
                                   className="border-t hover:bg-gray-50"
@@ -2460,8 +2462,8 @@ const moverAPendientes = () => {
                       
                               <div className="p-6 space-y-4">
                       
-                                {bitacora.length ? (
-                                  bitacora.map((movimiento, index) => {
+                                {bitacoraDocumento.length ? (
+                                  bitacoraDocumento.map((movimiento, index) => {
                                     const esPrincipal =
                                       movimiento.tipo === "registro" ||
                                       movimiento.tipo === "turnado" ||
@@ -2586,7 +2588,7 @@ const moverAPendientes = () => {
 
                               <input
                                 type="date"
-                                value={docSeleccionadoPendientes?.turnados?.[0]?.compromiso ? formatDateForInput(docSeleccionadoPendientes.turnados.at(-1).compromiso) : "2023-07-10"}
+                                value={docSeleccionadoPendientes?.turnados?.[0]?.compromiso ? formatDateForInput(docSeleccionadoPendientes.turnados?.at(-1).compromiso) : "2023-07-10"}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
@@ -3179,48 +3181,6 @@ const moverAPendientes = () => {
                                   </div>
                                 )}
                               </div>
-                            </div>
-
-                            <div ref={refTemaSecundario} className="relative">
-                              <label className="text-xs text-gray-500">
-                                Tema secundario
-                              </label>
-
-                              <div className="flex items-center border rounded px-2">
-                                <Search size={16} className="text-gray-400" />
-                                <input
-                                  value={busquedaTemaSecundario}
-                                  onChange={(e) => {
-                                    setBusquedaTemaSecundario(e.target.value);
-                                    setMostrarOpcionesTemaSecundario(true);
-                                  }}
-                                  onFocus={() => setMostrarOpcionesTemaSecundario(true)}
-                                  className="w-full px-2 py-1 outline-none"
-                                  placeholder="Buscar y seleccionar opción"
-                                />
-                              </div>
-
-                              {mostrarOpcionesTemaSecundario && (
-                                <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                  {temasFiltradosSecundario.length > 0 ? (
-                                    temasFiltradosSecundario.map((t) => (
-                                      <div
-                                        key={t.value}
-                                        onClick={() => {
-                                          setFormEditar({ ...formEditar, temaSecundario: t.value });
-                                          setBusquedaTemaSecundario(t.label);
-                                          setMostrarOpcionesTemaSecundario(false);
-                                        }}
-                                        className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                      >
-                                        {t.label}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                  )}
-                                </div>
-                              )}
                             </div>
 
                             <div ref={refMaterial} className="relative">
@@ -4522,8 +4482,8 @@ const moverAPendientes = () => {
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
-                  { id: "materialAdicional", label: "Material adicional" },
-                  ...(!esValidador ? [{ id: "turnoRecibido", label: "Atender turno recibido" }] : []),
+                  ...(!docSeleccionadoPendientes.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
+                  ...(esEjecutor ? [{ id: "turnoRecibido", label: "Atender turno recibido" }] : []),
                   // pestaña exclusiva para validadores (solo en Mis pendientes)
                   ...(esValidador ? [{ id: "respuestaValidar", label: "Respuesta a validar" }] : []),
                   { id: "verTurnos", label: "Todos los turnos" },
@@ -4632,25 +4592,8 @@ const moverAPendientes = () => {
                               </label>
                               <input
                                 value={
-                                  docSeleccionadoPendientes.asunto ||
+                                  docSeleccionadoPendientes.temaPrincipal ||
                                   "Administrativo"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Tema secundario
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionadoPendientes.secundario?.descripcion ||
-                                  docSeleccionadoPendientes.temaSecundario?.descripcion ||
-                                  docSeleccionadoPendientes.secundario ||
-                                  docSeleccionadoPendientes.temaSecundario ||
-                                  ""
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -4755,7 +4698,7 @@ const moverAPendientes = () => {
                                 Remitente
                               </label>
                               <input
-                                value={safeText(docSeleccionadoPendientes.remitente, "")}
+                                value={safeText(docSeleccionadoPendientes.remitente.name, "")}
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
@@ -5356,14 +5299,7 @@ const moverAPendientes = () => {
                             </thead>
 
                             <tbody>
-                              {[
-                                "Víctor Manuel Enríquez Paniagua",
-                                "María Verónica Leal Camarena",
-                                "Guillermo Bonilla Tenorio",
-                                "Dirección de Administración",
-                                "Unidad de Correspondencia",
-                                "Órgano Interno de Control",
-                              ].map((funcionario, index) => (
+                              {copiasDocumento.map((funcionario, index) => (
                                 <tr
                                   key={index}
                                   className="border-t hover:bg-gray-50"
@@ -5443,8 +5379,8 @@ const moverAPendientes = () => {
                       
                               <div className="p-6 space-y-4">
                       
-                                {bitacora.length ? (
-                                  bitacora.map((movimiento, index) => {
+                                {bitacoraDocumento.length ? (
+                                  bitacoraDocumento.map((movimiento, index) => {
                                     const esPrincipal =
                                       movimiento.tipo === "registro" ||
                                       movimiento.tipo === "turnado" ||
@@ -6135,11 +6071,10 @@ const moverAPendientes = () => {
                               </tr>
                             </thead>
 
-                            {/* BODY */}
                             <tbody>
-
-                              <tr className="border-b hover:bg-gray-50 transition">
-
+                              {(docSeleccionadoPendientes?.respuestas || []).length > 0 ? (
+                                docSeleccionadoPendientes.respuestas.map((respuesta, index) => (
+                                  <tr key={index} className="border-b hover:bg-gray-50">
                                 {/* ELIMINAR */}
                                 <td className="px-3 py-3 text-center align-top">
                                   <button
@@ -6148,66 +6083,54 @@ const moverAPendientes = () => {
                                     <Trash2 size={15} />
                                   </button>
                                 </td>
+                                    <td className="px-3 py-3 text-gray-700 align-top">
+                                      {respuesta.registrador.nombre}
+                                    </td>
+                                    <td className="px-3 py-3 align-top">
+                                      {respuesta.ruta ? (
+                                        <a
+                                          href={`${BaseURL}${respuesta.ruta.replace(/^\.\./, '')}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-[#8B1538]/20 bg-[#8B1538]/5 hover:bg-[#8B1538] transition-all duration-200"
+                                        >
+                                          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                            <Download size={16} className="text-[#8B1538] group-hover:text-[#8B1538]" />
+                                          </div>
 
-                                {/* REGISTRADOR */}
-                                <td className="px-3 py-3 text-gray-700 align-top">
-                                  <div className="font-medium text-gray-800">
-                                    Dirección de Tecnologías de la Información
-                                  </div>
+                                          <div className="flex flex-col items-start">
+                                            <span className="text-[#8B1538] group-hover:text-white font-semibold text-xs">
+                                              {respuesta.nombre || 'Archivo adjunto'}
+                                            </span>
 
-                                  <div className="text-[11px] text-gray-500 mt-1">
-                                    Omar César Juárez
-                                  </div>
-                                </td>
-
-                                {/* MENSAJE */}
-                                <td className="px-3 py-3 text-gray-700 align-top leading-relaxed">
-                                  Se turna el documento para su atención y seguimiento conforme
-                                  a las instrucciones establecidas.
-                                </td>
-
-                                {/* DOCUMENTO ANEXO */}
-                                <td className="px-3 py-3 align-top">
-
-                                  <button
-                                    className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-[#8B1538]/20 bg-[#8B1538]/5 hover:bg-[#8B1538] transition-all duration-200"
-                                  >
-
-                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
-                                      <Download
-                                        size={16}
-                                        className="text-[#8B1538]"
-                                      />
-                                    </div>
-
-                                    <div className="flex flex-col items-start">
-
-                                      <span className="text-[#8B1538] group-hover:text-white font-semibold text-xs">
-                                        ficha_gestion.pdf
+                                            <span className="text-[10px] text-gray-500 group-hover:text-pink-100">
+                                              Descargar documento
+                                            </span>
+                                          </div>
+                                        </a>
+                                      ) : (
+                                        <span className="text-gray-500 text-[11px]">Sin documento adjunto</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-3 align-top">
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-[11px] font-medium">
+                                        {respuesta.nombre || 'Respuesta'}
                                       </span>
-
-                                      <span className="text-[10px] text-gray-500 group-hover:text-pink-100">
-                                        Descargar documento
-                                      </span>
-
-                                    </div>
-
-                                  </button>
-
-                                </td>
-
-                                {/* NOMBRE DOCUMENTO */}
-                                <td className="px-3 py-3 align-top">
-
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-[11px] font-medium">
-                                    Ficha de gestión Tec
-                                  </span>
-
-                                </td>
-
-                              </tr>
-
+                                    </td>
+                                    <td className="px-3 py-3 text-gray-700 align-top">
+                                      {respuesta.mensaje}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan="4" className="px-3 py-4 text-center text-gray-500">
+                                    No hay mensajes registrados.
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
+
 
                           </table>
 

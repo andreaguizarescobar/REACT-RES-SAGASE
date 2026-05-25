@@ -33,7 +33,6 @@ export function RegistrarDocumento() {
     remitenteExterno: "",
     tipoDocumento: "",
     temaPrincipal: "",
-    temaSecundario: "",
     sintesis: "",
     faltaInformacion: false,
     documentoInterno: false,
@@ -41,7 +40,7 @@ export function RegistrarDocumento() {
     relacionadoCon: false,
     relacionados: [],
     otroFuncionario: false,
-    materialAdicional: "",
+    materialAdicional: false,
   });
 
   const [tiposDocumento, setTiposDocumento] = useState([]);
@@ -216,7 +215,6 @@ export function RegistrarDocumento() {
         "tipoRemitente",
         "tipoDocumento",
         "temaPrincipal",
-        "temaSecundario",
         "materialAdicional",
         "sintesis",
       ],
@@ -364,10 +362,11 @@ export function RegistrarDocumento() {
             remitente: form.tipoRemitente === "interno" ? form.remitenteInterno : form.remitenteExterno,
             tipo: form.tipoDocumento,
             tema: form.temaPrincipal,
-            secundario: form.temaSecundario,
-            asunto: form.sintesis,
+            asunto: form.temaPrincipal,
+            sintesis: form.sintesis,
             observaciones: form.observaciones,
             relacionados: form.relacionados,
+            materialAdicional: form.materialAdicional,
           };
 
           const dataForm = new FormData();
@@ -391,9 +390,9 @@ export function RegistrarDocumento() {
 
               tipoDocumento: form.tipoDocumento,
               temaPrincipal: form.temaPrincipal,
-              temaSecundario: form.temaSecundario,
               materialAdicional: form.materialAdicional,
 
+              asunto: form.temaPrincipal,
               sintesis: form.sintesis,
               observaciones: form.observaciones,
 
@@ -458,11 +457,9 @@ export function RegistrarDocumento() {
       const fullDoc = await response.json();
       const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
       const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
-      const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
       const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
       const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
       const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
-      const selectedSecundarioValue = fullDoc.secundario?._id || fullDoc.secundario || "";
       const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
       const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
       const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
@@ -480,8 +477,8 @@ export function RegistrarDocumento() {
         remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
         tipoDocumento: selectedTipoValue,
         temaPrincipal: selectedTemaValue,
-        temaSecundario: selectedSecundarioValue,
-        sintesis: fullDoc.asunto,
+        asunto: selectedTemaValue,
+        sintesis: fullDoc.sintesis,
         observaciones: fullDoc.observaciones || "",
         documentoInterno: !!fullDoc.interno,
         faltaInformacion: !!fullDoc.faltaInformacion,
@@ -493,7 +490,6 @@ export function RegistrarDocumento() {
 
       setBusquedaTipoDoc(selectedTipoLabel);
       setBusquedaTemaPrincipal(selectedTemaLabel);
-      setBusquedaTemaSecundario(selectedSecundarioLabel);
       setBusquedaMaterial(selectedMaterialLabel);
       setBusquedaRemitenteExt(remitenteLabel);
       setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
@@ -1051,18 +1047,11 @@ export function RegistrarDocumento() {
   const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
   const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
 
-  const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
-  const [mostrarOpcionesTemaSecundario, setMostrarOpcionesTemaSecundario] = useState(false);
-
   const [busquedaAdicional, setBusquedaAdicional] = useState("");
   const [mostrarOpcionesAdicional, setMostrarOpcionesAdicional] = useState(false);
 
   const temasFiltradosPrincipal = temasPrincipales.filter((tema) =>
     tema.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
-  );
-
-  const temasFiltradosSecundario = temasPrincipales.filter((tema) =>
-    tema.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
   );
 
   const adicionalesFiltrados = adicionales.filter((adic) =>
@@ -1076,7 +1065,6 @@ const refRemitenteExt = useRef(null);
 const refMaterial = useRef(null);
 const refAsunto = useRef(null);
 const refTemaPrincipal = useRef(null);
-const refTemaSecundario = useRef(null);
 const refAdicional = useRef(null);
 
 useEffect(() => {
@@ -1099,10 +1087,6 @@ useEffect(() => {
 
     if (refTemaPrincipal.current && !refTemaPrincipal.current.contains(event.target)) {
       setMostrarOpcionesTemaPrincipal(false);
-    }
-
-    if (refTemaSecundario.current && !refTemaSecundario.current.contains(event.target)) {
-      setMostrarOpcionesTemaSecundario(false);
     }
 
     if (refAdicional.current && !refAdicional.current.contains(event.target)) {
@@ -1145,7 +1129,6 @@ const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
     remitenteExterno: "",
     tipoDocumento: "",
     temaPrincipal: "",
-    temaSecundario: "",
     sintesis: "",
     documentoInterno: false,
     faltaInformacion: false,
@@ -1231,9 +1214,6 @@ const obtenerLabel = (lista, id) => {
           }
           if (refTemaPrincipal.current && !refTemaPrincipal.current.contains(event.target)) {
             setMostrarOpcionesTemaPrincipal(false);
-          }
-          if (refTemaSecundario.current && !refTemaSecundario.current.contains(event.target)) {
-            setMostrarOpcionesTemaSecundario(false);
           }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -1397,20 +1377,6 @@ const obtenerLabel = (lista, id) => {
                   )}
                 </div>
 
-                {/* Toggle alta tipo */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    Alta tipo de documento:
-                  </span>
-                  <Toggle
-                    checked={form.altaTipoDocumento}
-                    onChange={(v) => {
-                      setForm({ ...form, altaTipoDocumento: v });
-                      if (v) setMostrarModalTipoDocumento(true);
-                    }}
-                  />
-                </div>
-
                 {/* Relacionado */}
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-gray-500">Relacionado con:</span>
@@ -1494,111 +1460,9 @@ const obtenerLabel = (lista, id) => {
                 </div>
               </div>
 
-              <div ref={refTemaSecundario} className="relative">
-                <label className="text-xs text-gray-500">
-                  Tema secundario *
-                </label>
-
-                <div className={`flex items-center border rounded px-2 ${
-                    errores.temaSecundario ? "border-red-500 bg-red-50" : ""
-                  }`}>
-                  <Search size={16} className="text-gray-400" />
-                  <input
-                    value={busquedaTemaSecundario}
-                    onChange={(e) => {
-                      setBusquedaTemaSecundario(e.target.value);
-                      setMostrarOpcionesTemaSecundario(true);
-
-                      if (errores.temaSecundario) {
-                        setErrores({
-                          ...errores,
-                          temaSecundario: false,
-                        });
-                      }
-                    }}
-                    onFocus={() => setMostrarOpcionesTemaSecundario(true)}
-                    className="w-full px-2 py-1 outline-none"
-                    placeholder="Buscar y seleccionar opción"
-                  />
-                </div>
-
-                {mostrarOpcionesTemaSecundario && (
-                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                    {temasFiltradosSecundario.length > 0 ? (
-                      temasFiltradosSecundario.map((t) => (
-                        <div
-                          key={t.value}
-                          onClick={() => {
-                            setForm({ ...form, temaSecundario: t.value });
-                            setBusquedaTemaSecundario(t.label);
-                            setMostrarOpcionesTemaSecundario(false);
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                        >
-                          {t.label}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                    )}
-                  </div>
-                )}
               </div>
-
-              <div ref={refAdicional} className="relative">
-                <label className="text-xs text-gray-500">
-                  Selecciona material adicional *
-                </label>
-
-                <div className={`flex items-center border rounded px-2 ${ 
-                  errores.materialAdicional ? "border-red-500 bg-red-50" : "" 
-                  }`}>
-                  <Search size={16} className="text-gray-400" />
-                  <input
-                    value={busquedaAdicional}
-                    onChange={(e) => {
-                      setBusquedaAdicional(e.target.value);
-                      setMostrarOpcionesAdicional(true);
-
-                      if (errores.materialAdicional) {
-                        setErrores({
-                          ...errores,
-                          materialAdicional: false,
-                        });
-                      }
-                    }}
-                    onFocus={() => setMostrarOpcionesAdicional(true)}
-                    className="w-full px-2 py-1 outline-none"
-                    placeholder="Buscar y seleccionar opción"
-                  />
-                </div>
-
-                {mostrarOpcionesAdicional && (
-                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                    {adicionalesFiltrados.length > 0 ? (
-                      adicionalesFiltrados.map((a) => (
-                        <div
-                          key={a.value}
-                          onClick={() => {
-                            setForm({ ...form, materialAdicional: a.value });
-                            setBusquedaAdicional(a.label);
-                            setMostrarOpcionesAdicional(false);
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                        >
-                          {a.label}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                    )}
-                  </div>
-                )}
-              </div>
-      
 
             </div>
-          </div>
 
           {/* DATOS GENERALES */}
           <div>
@@ -1662,16 +1526,6 @@ const obtenerLabel = (lista, id) => {
                 <Toggle
                   checked={form.faltaInformacion}
                   onChange={handleToggleFaltaInformacion}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">Documento interno:</span>
-                <Toggle
-                  checked={form.documentoInterno}
-                  onChange={(v) =>
-                    setForm({ ...form, documentoInterno: v })
-                  }
                 />
               </div>
 
@@ -1842,6 +1696,21 @@ const obtenerLabel = (lista, id) => {
               </div>
 
               <div className="col-span-1">
+                <label className="text-xs text-gray-500 flex items-center justify-between">
+                  <span>Material adicional</span>
+                  <span className="text-xs text-gray-500">
+                    {form.materialAdicional ? "Sí" : "No"}
+                  </span>
+                </label>
+                <div className="mt-2">
+                  <Toggle
+                    checked={form.materialAdicional}
+                    onChange={(value) => setForm({ ...form, materialAdicional: value })}
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-1">
                 <label className="text-xs text-gray-500">Observaciones</label>
                 <textarea className="w-full border rounded px-2 py-1" />
               </div>
@@ -1937,8 +1806,6 @@ const obtenerLabel = (lista, id) => {
           </div>
 
         </div>
-      </div>
-
       {/* MODAL REMITENTE EXTERNO */}
       <AnimatePresence>
         {mostrarModalRemitente && (
@@ -1982,12 +1849,7 @@ const obtenerLabel = (lista, id) => {
                   <input
                     className="w-full border rounded px-2 py-1"
                     value={nuevoRemitente.nombreCompleto}
-                    onChange={(e) =>
-                      setNuevoRemitente({
-                        ...nuevoRemitente,
-                        nombreCompleto: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, nombreCompleto: e.target.value })}
                   />
                 </div>
 
@@ -1996,12 +1858,7 @@ const obtenerLabel = (lista, id) => {
                   <input
                     className="w-full border rounded px-2 py-1"
                     value={nuevoRemitente.cargo}
-                    onChange={(e) =>
-                      setNuevoRemitente({
-                        ...nuevoRemitente,
-                        cargo: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, cargo: e.target.value })}
                   />
                 </div>
 
@@ -2012,12 +1869,7 @@ const obtenerLabel = (lista, id) => {
                   <input
                     className="w-full border rounded px-2 py-1"
                     value={nuevoRemitente.dependencia}
-                    onChange={(e) =>
-                      setNuevoRemitente({
-                        ...nuevoRemitente,
-                        dependencia: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, dependencia: e.target.value })}
                   />
                 </div>
               </div>
@@ -2083,105 +1935,6 @@ const obtenerLabel = (lista, id) => {
         )}
       </AnimatePresence>
 
-      {/* MODAL TIPO DOCUMENTO */}
-      <AnimatePresence>
-        {mostrarModalTipoDocumento && (
-          <motion.div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white w-[500px] rounded shadow-lg overflow-hidden"
-            >
-              
-              {/* HEADER */}
-              <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
-                <span className="text-white text-sm">
-                  Alta tipo de documento
-                </span>
-
-                <button
-                  onClick={() => {
-                    setMostrarModalTipoDocumento(false);
-                    setForm({ ...form, altaTipoDocumento: false });
-                  }}
-                  className="bg-[#8B1538] text-white p-2 rounded-full"
-                >
-                  <Minus size={16} />
-                </button>
-              </div>
-
-              {/* BODY */}
-              <div className="p-6">
-                <label className="text-xs text-gray-500">
-                  Descripción:
-                </label>
-                <input
-                  className="w-full border rounded px-2 py-1 mt-1"
-                  value={nuevoTipoDocumento}
-                  onChange={(e) => setNuevoTipoDocumento(e.target.value)}
-                />
-              </div>
-
-              {/* FOOTER */}
-              <div className="flex justify-end p-4">
-                <button
-                  onClick={async () => {
-                    if (!nuevoTipoDocumento.trim()) return;
-
-                    try {
-                      const response = await createTipoDocument({ tipo: nuevoTipoDocumento });
-                      if (response.ok) {  
-                        const nuevoTipo = await response.json();
-                        setTiposDocumento([...tiposDocumento, { value: nuevoTipo._id, label: nuevoTipo.tipo }]);
-
-                        // Seleccionarlo automáticamente
-                        setForm({ ...form, tipoDocumento: nuevoTipo._id });
-                        setBusquedaTipoDoc(nuevoTipo.tipo);
-
-                        setNuevoTipoDocumento("");
-                        setMostrarModalTipoDocumento(false);
-
-                        Swal.fire({
-                          toast: true,
-                          position: "top-end",
-                          icon: "success",
-                          title: "Tipo de documento agregado",
-                          showConfirmButton: false,
-                          timer: 2000,
-                        });
-                      } else {
-                        Swal.fire({
-                          icon: "error",
-                          title: "Error",
-                          text: "No se pudo agregar el tipo de documento",
-                        });
-                      }
-                    } catch (error) {
-                      console.error(error);
-                      Swal.fire({
-                        icon: "error",
-                        title: "Error de conexión",
-                        text: "No se pudo agregar el tipo de documento",
-                      });
-                    }
-                  }}
-                  className="bg-[#8B1538] text-white px-6 py-2 rounded"
-                >
-                  Guardar
-                </button>
-              </div>
-
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {mostrarModalRelacionado && (
@@ -2601,10 +2354,6 @@ const obtenerLabel = (lista, id) => {
                           <Toggle checked={formEditar.faltaInformacion} disabled />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">Documento interno:</span>
-                          <Toggle checked={formEditar.documentoInterno} disabled />
-                        </div>
                       </div>
                     </div>
                 
@@ -2703,7 +2452,7 @@ const obtenerLabel = (lista, id) => {
                           >
                             {/* <Search size={16} className="text-gray-400" /> */}
                             <input
-                              value={obtenerLabel(tiposDocumento, documentoEditar?.tipoDocumento)}
+                              value={obtenerLabel(tiposDocumento, documentoEditar?.tipo)}
                               disabled
                               className="w-full border rounded px-2 py-1 bg-gray-100"
                             />
@@ -2735,20 +2484,6 @@ const obtenerLabel = (lista, id) => {
                               ))}
                             </div>
                           )}
-                        </div>
-
-                        {/* Toggle alta tipo */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
-                            Alta tipo de documento:
-                          </span>
-                          <Toggle
-                            checked={formEditar.altaTipoDocumento}
-                            onChange={(v) => {
-                              setFormEditar({ ...formEditar, altaTipoDocumento: v });
-                              if (v) setMostrarModalTipoDocumento(true);
-                            }}
-                          />
                         </div>
 
                         {/* Relacionado */}
@@ -2799,7 +2534,6 @@ const obtenerLabel = (lista, id) => {
                               {/* <Search size={16} className="text-gray-400" /> */}
                               <input
                                 value={busquedaTemaPrincipal}
-                               
                                 disabled
                                 onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
                                 className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
@@ -2835,86 +2569,6 @@ const obtenerLabel = (lista, id) => {
                             )}
                           </div>
                         </div>
-
-                        <div ref={refTemaSecundario} className="relative">
-                          <label className="text-xs text-gray-500">
-                            Tema secundario *
-                          </label>
-
-                          <div className="flex items-center border rounded px-2">
-                            {/* <Search size={16} className="text-gray-400" /> */}
-                            <input
-                              value={busquedaTemaSecundario}
-                              disabled
-                              className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
-                              onFocus={() => setMostrarOpcionesTemaSecundario(true)}
-                              placeholder="Buscar y seleccionar opción"
-                            />
-                          </div>
-
-                          {mostrarOpcionesTemaSecundario && (
-                            <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                              {temasFiltradosSecundario.length > 0 ? (
-                                temasFiltradosSecundario.map((t) => (
-                                  <div
-                                    key={t.value}
-                                    onClick={() => {
-                                      setFormEditar({ ...formEditar, temaSecundario: t.value });
-                                      setBusquedaTemaSecundario(t.label);
-                                      setMostrarOpcionesTemaSecundario(false);
-                                    }}
-                                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                  >
-                                    {t.label}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div ref={refMaterial} className="relative">
-                          <label className="text-xs text-gray-500">
-                            Selecciona material adicional *
-                          </label>
-
-                          <div className="flex items-center border rounded px-2">
-                            <input
-                              value={obtenerLabel(materiales, documentoEditar?.materialAdicional)}
-                              disabled
-                              onFocus={() => setMostrarOpcionesMaterial(true)}
-                              className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
-                              placeholder="Buscar y seleccionar opción"
-                            />
-                          </div>
-
-                          {mostrarOpcionesMaterial && (
-                            <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                              {materialesFiltrados.length > 0 ? (
-                                materialesFiltrados.map((m) => (
-                                  <div
-                                    key={m.value}
-                                    onClick={() => {
-                                      setFormEditar({ ...formEditar, materialAdicional: m.value });
-                                      setBusquedaMaterial(m.label);
-                                      setMostrarOpcionesMaterial(false);
-                                    }}
-                                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                  >
-                                    {m.label}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="px-2 py-1 text-gray-400">
-                                  Sin resultados
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
 
                         <div className="col-span-4">
                           <label className="text-xs text-gray-500">
@@ -4181,6 +3835,7 @@ const obtenerLabel = (lista, id) => {
       )}
     </AnimatePresence>
 
+    </div>
     </div>
   );
 

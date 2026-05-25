@@ -71,8 +71,9 @@ const DocumentoSchema = new Schema({
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
   tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
   secundario: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
-  adicional: [AdicionalSchema],
+  adicional: [{tiene: {type: Boolean, default: false}, adicionales:[AdicionalSchema]}],
   asunto: String,
+  sintesis: String,
   observaciones: String,
 
   relacionados: [

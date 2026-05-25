@@ -1,212 +1,121 @@
 import { Minus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUsers, updateUser } from "../../services/user.service.js";
+import { getSolicitudes, approveSolicitud } from "../../services/user.service.js";
 import Swal from "sweetalert2";
 
 export function SolicitudAltaUsuarios() {
   const [criterio, setCriterio] = useState("");
-  const [users, setUsers] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [menu, setMenu] = useState({
     visible: false,
     x: 0,
     y: 0,
-    user: null,
+    request: null,
   });
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [approvedCredentials, setApprovedCredentials] = useState(null);
 
-  const [modalRol, setModalRol] = useState({
-    visible: false,
-    user: null,
-    modo: "asignar",
-  });
-
-  const [formRol, setFormRol] = useState({
-    proceso: "",
-    rol: "",
-  });
-
-  const procesos = [
-    "Correspondencia",
-    "Finanzas",
-    "Gestión de instrucciones y solicitudes",
-  ];
-
-  const roles = [
-    "Administrador",
-    "Ejecutor",
-    "Registrador Enrutador",
-    "Validador de respuesta",
-  ];
-
-  const fetchUsers = async () => {
+  const fetchSolicitudes = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const token = localStorage.getItem("token");
-      const response = await getUsers(token);
-
+      const response = await getSolicitudes(token);
+      console.log("Respuesta de getSolicitudes:", response);
       if (!response.ok) {
-        setError("No se pudieron cargar los usuarios.");
+        setError("No se pudieron cargar las solicitudes.");
         return;
       }
-
       const data = await response.json();
-      setUsers(Array.isArray(data) ? data : []);
+      console.log("Datos de solicitudes:", data);
+      setRequests(Array.isArray(data) ? data : []);
     } catch (fetchError) {
-      console.error("Error cargando usuarios:", fetchError);
-      setError("Error de red al cargar los usuarios.");
+      console.error("Error cargando solicitudes:", fetchError);
+      setError("Error de red al cargar las solicitudes.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchSolicitudes();
   }, []);
 
-  const getUserRole = (user) => {
-    const primaryRole = user.roles?.[0] || {};
-    return {
-      proceso: primaryRole.proceso || null,
-      rol: primaryRole.rol || null,
-    };
-  };
-
-  const filteredUsers = users.filter((user) => {
+  const filteredRequests = requests.filter((request) => {
     const texto = criterio.toLowerCase();
-    const { proceso, rol } = getUserRole(user);
-
     return (
-      (user.nombre?.toLowerCase().includes(texto) ||
-        user.sexo?.toLowerCase().includes(texto) ||
-        user.area?.toLowerCase().includes(texto) ||
-        user.telefono?.toLowerCase().includes(texto) ||
-        user.correo?.toLowerCase().includes(texto) ||
-        proceso?.toLowerCase().includes(texto) ||
-        rol?.toLowerCase().includes(texto))
+      request.nombre?.toLowerCase().includes(texto) ||
+      request.sexo?.toLowerCase().includes(texto) ||
+      request.telefono?.toLowerCase().includes(texto) ||
+      request.email?.toLowerCase().includes(texto) ||
+      request.area?.nombre?.toLowerCase().includes(texto) ||
+      String(request.area)?.toLowerCase().includes(texto)
     );
   });
 
-  const handleClick = (e, user) => {
+  const handleClick = (e, request) => {
     e.stopPropagation();
     setMenu({
       visible: true,
       x: e.clientX,
       y: e.clientY,
-      user,
+      request,
     });
   };
 
   const cerrarMenu = () => {
-    setMenu({ ...menu, visible: false, user: menu.user });
+    setMenu({ ...menu, visible: false });
   };
 
-  const handleAsignar = () => {
-    setModalRol({
-      visible: true,
-      user: menu.user,
-      modo: "asignar",
-    });
-    setFormRol({ proceso: "", rol: "" });
+  const handleOpenModal = () => {
+    setSelectedRequest(menu.request);
+    setModalVisible(true);
     cerrarMenu();
   };
 
-  const handleEditar = () => {
-    const { proceso, rol } = getUserRole(menu.user);
-    setModalRol({
-      visible: true,
-      user: menu.user,
-      modo: "editar",
-    });
-    setFormRol({ proceso: proceso || "", rol: rol || "" });
-    cerrarMenu();
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedRequest(null);
   };
 
-  const handleEliminar = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await updateUser(menu.user.userId, { roles: [] }, token);
-
-      if (!response.ok) {
-        console.error("Error eliminando rol:", response.statusText);
-        return;
-      }
-
-      await fetchUsers();
-      cerrarMenu();
-    } catch (error) {
-      console.error("Error eliminando rol:", error);
-    }
-  };
-    
-  const handleSaveRole = async () => {
-    if (!formRol.proceso || !formRol.rol) {
-      alert("Selecciona proceso y rol antes de guardar.");
-      return;
-    }
+  const handleApprove = async () => {
+    if (!selectedRequest) return;
 
     try {
       const token = localStorage.getItem("token");
-      const response = await updateUser(
-        modalRol.user.userId,
-        { roles: [{ rol: formRol.rol, proceso: formRol.proceso }] },
-        token
-      );
-
+      const response = await approveSolicitud(selectedRequest._id, token);
       if (!response.ok) {
-        console.error("Error guardando rol:", response.statusText);
-        alert("No se pudo guardar el rol. Revisa la consola.");
-        return;
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "No se pudo aprobar la solicitud.");
       }
 
-      await fetchUsers();
-      setModalRol({ visible: false, user: null, modo: "asignar" });
-      setMenu({ ...menu, visible: false, user: null });
-    } catch (saveError) {
-      console.error("Error guardando rol:", saveError);
-      alert("Ocurrió un error al guardar el rol.");
-    }
-  };
+      const data = await response.json();
+      setApprovedCredentials(data.credentials);
+      setRequests((prev) => prev.filter((item) => item._id !== selectedRequest._id));
+      handleCloseModal();
 
-  const handleConfirmAprobar = async () => {
-    const result = await Swal.fire({
-        title: "¿Aprobar alta de usuario?",
-        text: "El usuario quedará activo en el sistema para asignarle su rol.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#79142A",
-        cancelButtonColor: "#6b7280",
-        confirmButtonText: "Sí, aprobar",
-        cancelButtonText: "Cancelar",
-        backdrop: true,
-        heightAuto: false,
-        didOpen: () => {
-           const container = document.querySelector(".swal2-container");
-               if (container) {
-            container.style.zIndex = "20000";
-            }
-        }
-    });
-
-    if (result.isConfirmed) {
-        // 🔥 CERRAR MODAL AQUÍ
-        setModalRol({ visible: false, user: null, modo: "asignar" });
-        // await handleSaveRole();
-
-        Swal.fire({
+      Swal.fire({
         toast: true,
         position: "top-end",
-        title: "Aprobado",
-        text: "El usuario ha sido dado de alta correctamente.",
+        title: "Solicitud aprobada",
+        text: `Usuario generado: ${data.credentials.username}`,
         icon: "success",
         showConfirmButton: false,
         timer: 3000,
-        });
+      });
+    } catch (error) {
+      console.error("Error aprobando solicitud:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al aprobar",
+        text: error.message || "No se pudo aprobar la solicitud.",
+      });
     }
-};
+  };
 
   return (
     <div
@@ -251,67 +160,65 @@ export function SolicitudAltaUsuarios() {
             <tbody>
                 {loading ? (
                     <tr>
-                    <td colSpan="5" className="py-10 text-center">
-                        <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
-                        <Loader2 className="animate-spin" size={24} />
-                        <span>Cargando usuarios...</span>
-                        </div>
-                    </td>
+                        <td colSpan="5" className="py-10 text-center">
+                            <div className="flex flex-col items-center justify-center gap-2 text-gray-500">
+                                <Loader2 className="animate-spin" size={24} />
+                                <span>Cargando solicitudes...</span>
+                            </div>
+                        </td>
                     </tr>
-                ) : filteredUsers.length === 0 ? (
+                ) : filteredRequests.length === 0 ? (
                     <tr>
-                    <td colSpan="5" className="py-10 text-center text-gray-400 italic">
-                        No hay resultados
-                    </td>
+                        <td colSpan="5" className="py-10 text-center text-gray-400 italic">
+                            No hay resultados
+                        </td>
                     </tr>
                 ) : (
-                    filteredUsers.map((user, index) => {
-                    const sinAsignar = !user.proceso && !user.rol;
-
-                    return (
-                        <motion.tr
-                        key={index}
-                        onClick={(e) => handleClick(e, user)}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className={`border-t cursor-pointer ${
-                            sinAsignar
-                            ? "bg-gray-100 text-gray-400"
-                            : "hover:bg-gray-100"
-                        }`}
-                        >
-                        <td className="px-3 py-2">{user.nombre}</td>
-
-                        <td className="px-3 py-2">
-                            {user.sexo || <span className="italic">No disponible</span>}
-                        </td>
-
-                        <td className="px-3 py-2">
-                            {user.area || <span className="italic">No disponible</span>}
-                        </td>
-
-                        <td className="px-3 py-2">
-                            {user.telefono || (
-                            <span className="italic">No disponible</span>
-                            )}
-                        </td>
-
-                        <td className="px-3 py-2">
-                            {user.correo || (
-                            <span className="italic">No disponible</span>
-                            )}
-                        </td>
-                        </motion.tr>
-                    );
+                    filteredRequests.map((request, index) => {
+                        const areaLabel = request.area?.nombre || request.area || "No disponible";
+                        return (
+                            <motion.tr
+                                key={request._id}
+                                onClick={(e) => handleClick(e, request)}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.03 }}
+                                className="border-t cursor-pointer hover:bg-gray-100"
+                            >
+                                <td className="px-3 py-2">{request.nombre}</td>
+                                <td className="px-3 py-2">
+                                    {request.sexo || <span className="italic">No disponible</span>}
+                                </td>
+                                <td className="px-3 py-2">{areaLabel}</td>
+                                <td className="px-3 py-2">
+                                    {request.telefono || <span className="italic">No disponible</span>}
+                                </td>
+                                <td className="px-3 py-2">
+                                    {request.email || <span className="italic">No disponible</span>}
+                                </td>
+                            </motion.tr>
+                        );
                     })
                 )}
-                </tbody>
+            </tbody>
           </table>
         </div>
+
+        {approvedCredentials && (
+          <div className="bg-green-50 border border-green-200 rounded p-4 text-xs">
+            <p className="font-semibold text-green-700">Usuario creado</p>
+            <p className="mt-2">Nombre de usuario: <span className="font-medium">{approvedCredentials.username}</span></p>
+            <p>Contraseña: <span className="font-medium">{approvedCredentials.password}</span></p>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-xs">
+            {error}
+          </div>
+        )}
       </div>
 
-      {/* 🔥 MENÚ CONTEXTUAL */}
       <AnimatePresence>
         {menu.visible && (
           <motion.div
@@ -320,45 +227,20 @@ export function SolicitudAltaUsuarios() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed bg-white border shadow-md rounded text-xs z-50"
-            style={{
-              top: menu.y,
-              left: menu.x,
-            }}
+            style={{ top: menu.y, left: menu.x }}
           >
-            {/* SI NO TIENE ROL */}
-            {!menu.user?.rol && (
-              <button
-                onClick={handleAsignar}
-                className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-              >
-                Ver solicitud de alta
-              </button>
-            )}
-
-            {/* SI YA TIENE */}
-            {menu.user?.rol && (
-              <>
-                <button
-                  onClick={handleEditar}
-                  className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                >
-                  Editar rol
-                </button>
-
-                <button
-                  onClick={handleEliminar}
-                  className="block px-4 py-2 hover:bg-red-100 text-red-600 w-full text-left"
-                >
-                  Eliminar rol
-                </button>
-              </>
-            )}
+            <button
+              onClick={handleOpenModal}
+              className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+            >
+              Ver solicitud de alta
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {modalRol.visible && (
+        {modalVisible && selectedRequest && (
           <motion.div
             className="fixed inset-0 flex items-center justify-center z-[9999]"
             style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
@@ -367,132 +249,111 @@ export function SolicitudAltaUsuarios() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white w-[850px] rounded shadow-lg relative"
+              className="bg-white w-[700px] rounded shadow-lg relative"
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
             >
-              {/* HEADER */}
               <div className="bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">
-                Aprobar de alta de usuario.
+                Aprobar solicitud de alta
               </div>
-              {/* SUBTÍTULO */}
-              <div className="px-4 pt-3 pb-1">
-                <p className="text-xs text-gray-600 font-medium tracking-wide">
-                    Se presentan los detalles de la solicitud de alta de usuario. Revise la información y, si todo es correcto, haga clic en "Aprobar alta" para completar su registro en el sistema.
-                </p>
-              <div className="h-[1px] bg-gray-200 mt-1"></div>
-              </div>
-     
-              {/* CERRAR */}
               <button
-                onClick={() => setModalRol({ ...modalRol, visible: false })}
+                onClick={handleCloseModal}
                 className="absolute top-1 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white"
               >
                 <Minus size={14} />
               </button>
 
-              {/* CONTENIDO */}
-              <div className="p-6 space-y-4 text-xs ">
-
-                {/* FILA 1 */}
+              <div className="p-6 space-y-4 text-xs">
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2">
-                    <label className="block mb-1">Nombre Completo:</label>
+                  <div className="col-span-2">
+                    <label className="block mb-1">Nombre completo:</label>
                     <input
-                        value={modalRol.user?.nombre || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-1 bg-gray-100"
+                      value={selectedRequest.nombre || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 bg-gray-100"
                     />
-                    </div>
-
-                    <div className="col-span-1">
+                  </div>
+                  <div className="col-span-1">
                     <label className="block mb-1">Iniciales:</label>
                     <input
-                        value={modalRol.user?.iniciales || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-1 bg-gray-100"
+                      value={selectedRequest.iniciales || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 bg-gray-100"
                     />
-                    </div>
+                  </div>
                 </div>
 
-                {/* FILA 2 */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-1">
+                  <div className="col-span-1">
                     <label className="block mb-1">Sexo:</label>
                     <input
-                        value={modalRol.user?.sexo || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-2 bg-gray-100"
+                      value={selectedRequest.sexo || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-2 bg-gray-100"
                     />
-                    </div>
+                  </div>
                 </div>
 
-                {/* FILA 3 */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="col-span-2">
+                  <div className="col-span-2">
                     <label className="block mb-1">Área de destino:</label>
                     <input
-                        value={modalRol.user?.area || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-2 bg-gray-100"
+                      value={selectedRequest.area?.nombre || selectedRequest.area || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-2 bg-gray-100"
                     />
-                    </div>
+                  </div>
                 </div>
 
-                {/* FILA 4 */}
                 <div className="grid grid-cols-6 gap-4">
-                    <div className="col-span-2">
+                  <div className="col-span-2">
                     <label className="block mb-0">Teléfono institucional:</label>
                     <input
-                        value={modalRol.user?.telefono || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-1 bg-gray-100"
+                      value={selectedRequest.telefono || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 bg-gray-100"
                     />
-                    </div>
-
-                    <div className="col-span-1">
+                  </div>
+                  <div className="col-span-1">
                     <label className="block mb-0">Ext:</label>
                     <input
-                        value={modalRol.user?.ext || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-1 bg-gray-100"
+                      value={selectedRequest.ext || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 bg-gray-100"
                     />
-                    </div>
+                  </div>
                 </div>
 
-                {/* FILA 5 */}
                 <div className="grid grid-cols-2 gap-4 items-center">
-                    <div>
+                  <div>
                     <label className="block mb-1">Correo institucional:</label>
                     <input
-                        value={modalRol.user?.correo || ""}
-                        readOnly
-                        className="w-full border rounded px-2 py-1 bg-gray-100"
+                      value={selectedRequest.email || ""}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 bg-gray-100"
                     />
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-5">
+                  </div>
+                  <div className="flex items-center gap-2 mt-5">
                     <label>¿Recibe copia?</label>
                     <input
-                        type="checkbox"
-                        checked={modalRol.user?.copia || false}
-                        readOnly
-                        className="accent-[#8B1538]"
+                      type="checkbox"
+                      checked={selectedRequest.copia || false}
+                      readOnly
+                      className="accent-[#8B1538]"
                     />
-                    </div>
+                  </div>
                 </div>
 
-                    <div className="flex justify-center pt-2">
-                        <button
-                        onClick={handleConfirmAprobar }
-                        className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
-                        >
-                        Aprobar alta
-                        </button>
-                    </div>
-                   
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={handleApprove}
+                    className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
+                  >
+                    Aprobar alta
+                  </button>
                 </div>
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -29,5 +29,14 @@ router.get('/tareas/:userId', verifyToken, userController.getTareas);
 router.post('/move-tarea/:tareaId', verifyToken, userController.moveTarea);
 // user/concluir-tarea/:tareaId
 router.post('/concluir-tarea/:tareaId', verifyToken, userController.concluirTarea);
+// user/validar-tarea/:tareaId
+router.post('/validar-tarea/:tareaId', verifyToken, userController.validarTarea);
+// user/devolver-tarea/:tareaId
+router.post('/devolver-tarea/:tareaId', verifyToken, userController.devolverTarea);
+// user/solicitudes
+router.get('/solicitudes', userController.getSolicitudes);
+router.post('/solicitudes/approve/:id', verifyToken, authorizeRole('ADMIN'), userController.approveSolicitud);
 
+// user/solicitud
+router.post('/solicitud', userController.solicitud);
 export default router;

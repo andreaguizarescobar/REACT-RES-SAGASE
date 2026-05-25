@@ -13,7 +13,12 @@ export const createRemitente = async (remitenteData) => {
     if (remitenteExists) {
         throw new Error(`El remitente con id: ${remitenteData.remId} ya existe`);
     }
-    const newRemitente = await remitenteModel.create(remitenteData);
+    // crear remId automáticamente si no se proporciona
+    if (!remitenteData.remId) {
+        remitenteData.remId = `REM-${Date.now()}`;
+    }
+    const newRemitente = await remitenteModel(remitenteData);
+    await newRemitente.save();
     return newRemitente;
 };
 

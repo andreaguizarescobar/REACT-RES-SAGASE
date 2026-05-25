@@ -29,6 +29,7 @@ export const postRemitente = async (req, res) => {
         const newRemitente = await servicioRemitente.createRemitente(remitenteData);
         res.status(201).json(newRemitente);
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: error.message });
     }
 };

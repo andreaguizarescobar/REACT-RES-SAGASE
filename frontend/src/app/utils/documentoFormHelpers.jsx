@@ -40,7 +40,8 @@ export const validarDocumentoForm = (
   const nuevosErrores = {};
 
   required.forEach((field) => {
-    if (!form[field]) {
+    const value = form[field];
+    if (value === undefined || value === null || value === "") {
       nuevosErrores[field] = true;
     }
   });

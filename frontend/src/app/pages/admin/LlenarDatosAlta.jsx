@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import bgNayarit from "../../assets/images/personajenayarit2.jpg";
 import nayaritLogo from "../../assets/images/nayaritLogo.png";
+import { getAreas } from "../../services/catalogos.service.js";
+import { createSolicitud } from "../../services/user.service.js";
 
 export function LlenarDatosAlta() {
   const navigate = useNavigate();
@@ -19,20 +20,34 @@ export function LlenarDatosAlta() {
     copia: false,
   });
 
+  const generarIniciales = (nombre) => {
+    return nombre
+      .split(" ")
+      .filter((parte) => parte.trim().length > 0)
+      .map((parte) => parte[0].toUpperCase())
+      .join("");
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({
+    const nextForm = {
       ...form,
       [name]: type === "checkbox" ? checked : value,
-    });
+    };
+
+    if (name === "nombre") {
+      nextForm.iniciales = generarIniciales(value);
+    }
+
+    setForm(nextForm);
   };
 
   const validarFormulario = () => {
     return (
       form.nombre &&
-      form.iniciales &&
       form.sexo &&
       form.area &&
+      form.telefono &&
       form.correo
     );
   };
@@ -49,22 +64,40 @@ export function LlenarDatosAlta() {
       });
     }
 
-    // 🔥 Aquí iría tu servicio (createUserRequest)
-    console.log("Datos enviados:", form);
+    try {
+      const payload = {
+        ...form,
+        email: form.correo,
+      };
 
-    Swal.fire({
-      icon: "success",
-      title: "Solicitud enviada",
-      text: "Su solicitud de alta ha sido registrada. Espere aprobación.",
-      confirmButtonColor: "#8B1538",
-    });
+      const response = await createSolicitud(payload);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || "No se pudo enviar la solicitud");
+      }
 
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+      Swal.fire({
+        icon: "success",
+        title: "Solicitud enviada",
+        text: "Su solicitud de alta ha sido registrada. Espere aprobación.",
+        confirmButtonColor: "#8B1538",
+      });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Error enviando solicitud:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al enviar",
+        text: error.message || "Hubo un problema al enviar la solicitud",
+        confirmButtonColor: "#8B1538",
+      });
+    }
   };
 
-  const [errors, setErrors] = useState({});
+  const errors = {};
   const [areas, setAreas] = useState([]);
   const [loadingAreas, setLoadingAreas] = useState(false);
   
@@ -92,11 +125,7 @@ export function LlenarDatosAlta() {
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       <div className="flex-1 flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white w-[550px] p-6 rounded-xl shadow-lg"
-        >
+        <div className="bg-white w-[550px] p-6 rounded-xl shadow-lg">
           {/* HEADER */}
           <div className="text-center pt-1">
             <img
@@ -117,13 +146,23 @@ export function LlenarDatosAlta() {
           <div className="space-y-3 text-sm">
             <input
               name="nombre"
+              value={form.nombre}
               placeholder="Nombre completo"
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
             />
 
+            <input
+              name="iniciales"
+              value={form.iniciales}
+              readOnly
+              placeholder="Iniciales generadas"
+              className="w-full border rounded px-3 py-2 bg-gray-100"
+            />
+
             <select
               name="sexo"
+              value={form.sexo}
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
             >
@@ -145,7 +184,7 @@ export function LlenarDatosAlta() {
                 >
                 <option value="">{loadingAreas ? "Cargando áreas..." : "Seleccionar área de destino"}</option>
                 {areas.map((area) => (
-                <option key={area.nombre} value={area.nombre}>
+                <option key={area._id} value={area._id}>
                     {area.nombre}
                 </option>
                 ))}
@@ -155,12 +194,14 @@ export function LlenarDatosAlta() {
             <div className="flex gap-2">
               <input
                 name="telefono"
+                value={form.telefono}
                 placeholder="Teléfono"
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2"
               />
               <input
                 name="ext"
+                value={form.ext}
                 placeholder="Ext"
                 onChange={handleChange}
                 className="w-24 border rounded px-3 py-2"
@@ -169,6 +210,7 @@ export function LlenarDatosAlta() {
 
             <input
               name="correo"
+              value={form.correo}
               placeholder="Correo institucional"
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
@@ -181,21 +223,17 @@ export function LlenarDatosAlta() {
             Enviar solicitud
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* IMAGEN INFERIOR */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full h-[120px] overflow-hidden"
-      >
+      <div className="w-full h-[120px] overflow-hidden">
         <img
           src={bgNayarit}
           alt="Decoración"
           className="w-full h-full object-cover"
         />
-      </motion.div>
+      </div>
     </div>
   );
 }
