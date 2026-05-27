@@ -1242,6 +1242,7 @@ const documentosFiltrados = documentos.filter((d) =>
                 exit={{ scale: 0.9, opacity: 0, y: 40 }}
                 transition={{ duration: 0.25, ease: "easeInOut" }}
               >
+                {/* HEADER */}
                 <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
                   <span className="text-white text-sm">
                     Modificar registro: {documentoEditar?.folio || ""}
@@ -1287,7 +1288,7 @@ const documentosFiltrados = documentos.filter((d) =>
                       className={`px-4 py-2 whitespace-nowrap ${
                         tabActiva === tab.id
                           ? "border-b-2 border-[#8B1538] text-[#8B1538] font-semibold"
-                          : "text-gray-600"
+                          : "text-gray-600  hover:text-[#8B1538]"
                       }`}
                     >
                       {tab.label}
@@ -1297,7 +1298,16 @@ const documentosFiltrados = documentos.filter((d) =>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
+                 <AnimatePresence mode="wait">  
+
                   {tabActiva === "datosAsunto" && (
+                    <motion.div
+                      key="datosAsunto"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                     <div className="space-y-6">
                       <div>
                         <div className="flex items-center gap-4 mb-4">
@@ -1731,9 +1741,18 @@ const documentosFiltrados = documentos.filter((d) =>
 
                     </div>
 
+                    </motion.div>
                   )}
 
                   {tabActiva === "anexo" && (
+
+                    <motion.div
+                      key="anexo"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <div className="space-y-4">
 
                       <div className="flex items-center gap-2 mb-2">
@@ -2203,9 +2222,18 @@ const documentosFiltrados = documentos.filter((d) =>
 
                       </div>
                       
-                    )}
+                     </motion.div>   
+                  )}
 
-                    {tabActiva === "materialAdicional" && (
+                  {tabActiva === "materialAdicional" && (
+                    <motion.div
+                      key="materialAdicional"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
+
                     <div className="space-y-4">
 
                       {/* 🔥 HEADER */}
@@ -2418,10 +2446,18 @@ const documentosFiltrados = documentos.filter((d) =>
                       </AnimatePresence>
 
                     </div>
+                  
+                    </motion.div>
                   )}
-
                     
                   {tabActiva === "turnar" && (
+                    <motion.div
+                      key="turnar"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                     <div className="space-y-4">
                       
                       {/* Botón agregar */}
@@ -2475,9 +2511,18 @@ const documentosFiltrados = documentos.filter((d) =>
                       </div>
 
                     </div>
+                  
+                    </motion.div>
                   )}
                   
-                   {tabActiva === "verTurnos" && (
+                  {tabActiva === "verTurnos" && (
+                    <motion.div
+                      key="verTurnos"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <div className="space-y-4">
                         <div className="overflow-x-auto">
                           <div className="flex items-center gap-2 mb-4">
@@ -2769,10 +2814,18 @@ const documentosFiltrados = documentos.filter((d) =>
                         )}
 
                       </div>
-                      
-                    )}
+              
+                    </motion.div>
+                  )}
 
                   {tabActiva === "copias" && (
+                    <motion.div
+                      key="copias"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <div className="space-y-4">
                         {/* Botón agregar */}
                         <div className="flex justify-start">
@@ -2849,10 +2902,18 @@ const documentosFiltrados = documentos.filter((d) =>
                           </div>
                         </div>
                       </div>
-                    )}
 
-                  
-                    {tabActiva === "bitacora" && (
+                    </motion.div>
+                  )}
+
+                  {tabActiva === "bitacora" && (
+                    <motion.div
+                      key="bitacora"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
                         <div className="w-full max-w-4xl">
                     
@@ -2947,7 +3008,11 @@ const documentosFiltrados = documentos.filter((d) =>
                     
                         </div>
                       </div>
-                    )}
+                  
+                    </motion.div>
+                  )}
+                  
+                  </AnimatePresence>
 
                   </div>
               </motion.div>

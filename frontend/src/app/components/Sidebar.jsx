@@ -49,21 +49,32 @@ const tareasPorRol = {
     { label: "Generación de oficios", color: "text-[#79142A]", view: "generacion-oficios" },
     { label: "Control de oficios", color: "text-[#60595D]", view: "control-oficios" },
     { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+  ],
 
+  ADMIN: [
+    { label: "Proyectos", color: "text-[#79142A]", view: "proyectos-admin" },
+    { label: "Usuarios", color: "text-[#60595D]", view: "usuarios-admin" },
+    { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
+    { label: "Roles de Sistema", color: "text-[#60595D]", view: "roles-sistema-admin" },
+    { label: "Alta de Usuarios", color: "text-[#79142A]", view: "alta-usuarios-admin" },
+    { label: "Solicitudes de Usuarios", color: "text-[#79142A]", view: "solicitudes-usuarios-admin" },
+    { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
   ]
 };
 
 const nombreRoles = {
-  VALIDADOR: "Validador",
+  VALIDADOR: "Secretaria particular",
   REGISTRADOR: "Registrador Enrutador",
   EJECUTOR: "Ejecutor",
-  ADMIN: "Administrador"
+  ADMIN: "Archivo de correspondencia"
 };
 
 export function Sidebar({ isOpen, onSelectView }) {
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const rol = user?.roles?.length > 0 ? user.roles[0].rol : "REGISTRADOR";
+  const rol = user?.roles?.length > 0
+  ? user.roles[0].rol?.toUpperCase().trim()
+  : "REGISTRADOR";
 
   const tareas = tareasPorRol[rol] || [];
   
@@ -195,18 +206,42 @@ export function Sidebar({ isOpen, onSelectView }) {
             </div>
           )}
         </div>
-          
-        <div className="p-4 border-t border-gray-200">
-          <h2 className="text-sm text-[#60595D]-700 mb-2">Rol de su usuario</h2>
+       <div className="p-4 border-t border-gray-200 space-y-3">
+
+        {/* ROL */}
+        <div>
+          <h2 className="text-sm text-[#60595D]-700 mb-2">
+            Rol de su usuario
+          </h2>
 
           <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
             {user?.roles && user.roles.length > 0
-              ? user.roles.map((r) => nombreRoles[r.rol] || r.rol).join(", ")
+              ? user.roles
+                  .map((r) => {
+                    const rolNormalizado = r.rol?.toUpperCase().trim();
+                    return nombreRoles[rolNormalizado] || rolNormalizado;
+                  })
+                  .join(", ")
               : "Sin rol asignado"}
           </div>
-
         </div>
-     
+
+        {/* ÁREA SOLO PARA EJECUTOR */}
+        {rol === "EJECUTOR" && (
+          <div>
+            <h2 className="text-sm text-[#60595D]-700 mb-2">
+              Área del usuario
+            </h2>
+
+            <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
+              {user?.area || "Sin área asignada"}
+            </div>
+          </div>
+        )}
+
+      </div>
+              
+              
         </div>
       </div>
      

@@ -4,9 +4,9 @@ import bgSidebar from "../assets/images/fondogob.jpg";
 const generalTasks = [
   { label: "Proyectos", color: "text-[#79142A]", view: "proyectos-admin" },
   { label: "Usuarios", color: "text-[#60595D]", view: "usuarios-admin" },
-  { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
-  { label: "Roles de Sistema", color: "text-[#60595D]", view: "roles-sistema-admin" },
-  { label: "Alta de Usuarios", color: "text-[#79142A]", view: "alta-usuarios-admin" },
+  // { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
+  { label: "Roles de Sistema", color: "text-[#79142A]", view: "roles-sistema-admin" },
+  { label: "Alta de Usuarios", color: "text-[#60595D]", view: "alta-usuarios-admin" },
   { label: "Solicitudes de Usuarios", color: "text-[#79142A]", view: "solicitudes-usuarios-admin" },
   { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
 ];
@@ -64,7 +64,17 @@ export function SidebarAdmin({ isOpen, onSelectView }) {
 
         <div className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 text-gray-700">
           {user?.roles && user.roles.length > 0
-            ? user.roles.map((r) => r.rol).join(", ")
+            ? user.roles
+                .map((r) => {
+                  const rol = r.rol?.toUpperCase().trim();
+
+                  if (rol === "ADMIN") {
+                    return "Archivo de correspondencia";
+                  }
+
+                  return rol;
+                })
+                .join(", ")
             : "Sin rol asignado"}
         </div>
       </div>

@@ -1056,11 +1056,18 @@ const moverAPendientes = () => {
             });
           
   const pageTransition = {
-    initial: { opacity: 0, y: 10 },
+    initial: { opacity: 0.96, y: 8 },
     animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -10 },
-    transition: { duration: 0.2, ease: "easeInOut" },
+    exit: { opacity: 0.98, y: -6 },
+    transition: { duration: 0.16, ease: "easeInOut" },
   };
+
+    // const pageTransition = {
+    //   initial: { opacity: 0},
+    //   animate: { opacity: 1},
+    //   exit: { opacity: 0},
+    //   transition: { duration: 0.12, ease: "easeOut" },
+    // };
 
   const renderView = () => {
     switch (currentView) {
@@ -1740,7 +1747,7 @@ const moverAPendientes = () => {
 
   return (
     <div className="flex-1 overflow-y-auto overflow-x-auto p-4 md:p-2">
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
       <motion.div
         key={currentView}
         {...pageTransition}
