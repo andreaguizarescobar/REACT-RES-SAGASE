@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Trash2, Search, Inbox, ListTodo, Send,  Eye, ThumbsUp, Minus, ClipboardCheck, MapPin, Check, Upload, ChevronDown, Download, ArrowRight, CheckCircle2 } from "lucide-react";
+import { FileText, Trash2, Search, Inbox, ListTodo, Send,  Eye, ThumbsUp, Minus, ClipboardCheck, MapPin, Check, Upload, ChevronDown, Download, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Switch } from "./ui/switch";
 import Swal from "sweetalert2";
+import jsPDF from "jspdf";
 
 import { TableroControl } from "../pages/user/TableroControl";
 import { RegistrarDocumento } from "../pages/user/RegistrarDocumento.jsx";
@@ -17,12 +18,13 @@ import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroContro
 import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
 import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
-  import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
-  import { getAreas, getInstrucciones, getAdicional, getTemaPrincipal } from "../services/catalogos.service.js";
-  import { getRemitentes } from "../services/remitente.service.js";
-  import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTarea } from "../services/user.service.js";
+import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
+import { getAreas, getInstrucciones, getAdicional, getTemaPrincipal } from "../services/catalogos.service.js";
+import { getRemitentes } from "../services/remitente.service.js";
+import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTarea } from "../services/user.service.js";
 
 import { motion, AnimatePresence } from "framer-motion";
+import logoGobierno from "../assets/images/nayaritLogo.png";
 
 export function MainContent({ currentView }) {
 
@@ -237,6 +239,69 @@ console.log("Tareas obtenidas del servicio:", tareasLista);
       const data = await response.json();
       const fullDoc = data.documento || data;
       setDocSeleccionadoPendientes({ ...fullDoc, tareaId });
+
+      setDocumentoSeleccionado(fullDoc);
+
+      setDocumentoAnexos(fullDoc.anexos || []);
+      setTurnosDocumento(fullDoc.turnados || []);
+      setCopiasDocumento(fullDoc.copias || []);
+      setBitacoraDocumento(fullDoc.bitacora || []);
+      setMaterialesAdicionales(fullDoc.adicional || []);
+
+      setRelacionadosDocumento(
+        (fullDoc.relacionados || [])
+          .map(normalizeRelacionadoItem)
+          .filter(Boolean)
+      );
+
+      // Cargar información al formulario de atención
+      setFormEditar({
+        ejercicio: fullDoc.ejercicio || "",
+        noDocumento: fullDoc.docId || "",
+        fechaDocumento: formatDateForInput(fullDoc.fechaDoc),
+        fechaAcuse: formatDateForInput(fullDoc.acuse),
+        fechaRegistro: formatDateForInput(fullDoc.registro),
+        tipoRemitente: fullDoc.interno ? "interno" : "externo",
+        remitenteInterno: fullDoc.interno
+          ? fullDoc.remitente?._id || fullDoc.remitente || ""
+          : "",
+        remitenteExterno: !fullDoc.interno
+          ? fullDoc.remitente?._id || fullDoc.remitente || ""
+          : "",
+        tipoDocumento: fullDoc.tipo?._id || fullDoc.tipo || "",
+        temaPrincipal: fullDoc.tema?._id || fullDoc.tema || "",
+        temaSecundario:
+          fullDoc.secundario?._id || fullDoc.secundario || "",
+        sintesis: fullDoc.asunto || "",
+        observaciones: fullDoc.observaciones || "",
+        documentoInterno: !!fullDoc.interno,
+        faltaInformacion: !!fullDoc.faltaInformacion,
+        otroFuncionario: !!fullDoc.otroFuncionario,
+        altaTipoDocumento: false,
+        relacionadoCon: !!fullDoc.relacionadoCon,
+        materialAdicional:
+          fullDoc.adicional?._id || fullDoc.adicional || "",
+      });
+
+      // Reflejar labels visibles en inputs de búsqueda
+      setBusquedaTipoDoc(
+        fullDoc.tipo?.tipo ||
+        fullDoc.tipo?.descripcion ||
+        ""
+      );
+
+      setBusquedaTemaPrincipal(
+        fullDoc.tema?.descripcion || ""
+      );
+
+      setBusquedaTemaSecundario(
+        fullDoc.secundario?.descripcion || ""
+      );
+
+      setBusquedaMaterial(
+        fullDoc.adicional?.descripcion || ""
+      );
+
     } catch (error) {
       console.error("Error cargando documento completo:", error);
     }
@@ -423,7 +488,6 @@ const moverAPendientes = () => {
     window.print();
   };
   
-
   const bitacora = [
     {
       usuario: "Víctor Manuel Enríquez Paniagua",
@@ -1164,10 +1228,34 @@ const moverAPendientes = () => {
 
                         {/* VISUALIZAR */}
                         <button
-                          onClick={() => {
-                            setDocSeleccionado(doc);
-                            setMostrarModal(true);
-                          }}
+                          onClick={async () => { 
+                            try { 
+                              const token = localStorage.getItem("token"); 
+                              const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio; 
+                              
+                              if (!docId) { 
+                                setDocSeleccionado(doc); 
+                                setMostrarModal(true); 
+                                
+                                return; 
+                              } 
+                              const response = await getDocumentById(docId, token); 
+                              if (!response.ok) { 
+                                throw new Error("No se pudo obtener el documento"); 
+                              } 
+                              
+                              const data = await response.json(); 
+                              const fullDoc = data.documento || data; setDocSeleccionado(fullDoc); 
+                              setDocumentoAnexos(fullDoc.anexos || []); 
+                              setTurnosDocumento(fullDoc.turnados || []); 
+                              setCopiasDocumento(fullDoc.copias || []); 
+                              setBitacoraDocumento(fullDoc.bitacora || []); 
+                              setRelacionadosDocumento( (fullDoc.relacionados || []) .map(normalizeRelacionadoItem) .filter(Boolean) ); 
+                              setMostrarModal(true); } catch (error) { 
+                                console.error("Error cargando documento:", error); 
+                                Swal.fire({ icon: "error", title: "Error", text: "No se pudo cargar el documento completo.", confirmButtonColor: "#8B1538", }); } 
+                              }
+                            }
                           className="p-1 rounded hover:bg-gray-100 text-[#8B1538]"
                           title="Visualizar documento"
                         >
@@ -1745,6 +1833,536 @@ const moverAPendientes = () => {
 
   };
 
+  const [htmlTurno, setHtmlTurno] = useState("");
+  const [modalVerTurno, setModalVerTurno] = useState(false);
+const [mostrarVisorTurno, setMostrarVisorTurno] = useState(false);
+const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+
+const obtenerTextoPlano = (valor, fallback = "-") => {
+  if (!valor) return fallback;
+
+  // Si ya es string o número
+  if (typeof valor === "string" || typeof valor === "number") {
+    return String(valor);
+  }
+
+  // Si es objeto
+  if (typeof valor === "object") {
+    return (
+      valor.nombre ||
+      valor.descripcion ||
+      valor.label ||
+      valor.value ||
+      fallback
+    );
+  }
+
+  return fallback;
+};
+
+const generarDocumentoTurno = async (turno) => {
+  
+  console.log("TURNO COMPLETO:", JSON.stringify(turno, null, 2));
+
+    // ===== OBTENER ID DEL DOCUMENTO =====
+
+  const documentoId =
+    turno?.documento?._id ||
+    turno?.documento ||
+    turno?.turna?.tareas?.[0]?.documento ||
+    turno?.dirigido?.tareas?.[0]?.documento;
+
+  console.log("DOCUMENTO ID:", documentoId);
+
+  let documentoCompleto = {};
+
+  // ===== CONSULTAR DOCUMENTO =====
+
+  if (documentoId) {
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const response = await getDocumentById(documentoId, token);
+
+      if (response.ok) {
+        const data = await response.json();
+
+        documentoCompleto = data.documento || data;
+
+        console.log("DOCUMENTO COMPLETO:", documentoCompleto);
+      }
+
+    } catch (error) {
+      console.error("Error obteniendo documento:", error);
+    }
+  }
+  
+  const doc = new jsPDF();
+
+  // ===== PALETA OFICIAL =====
+  const COLORS = {
+    grisPrincipal: [96, 89, 93],      // #60595D
+    beige1: [197, 176, 153],          // #C5B099
+    beige2: [205, 177, 156],          // #CDB19C
+    beige3: [218, 206, 192],          // #DACEC0
+    vino: [121, 20, 42],              // #79142A
+    blanco: [255, 255, 255],
+    negro: [0, 0, 0],
+    grisBorde: [180, 180, 180],
+  };
+
+  const fechaHoy = new Date().toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+
+  // ===== TIPOGRAFÍA =====
+  // jsPDF no incluye Gotham Rounded ni Montserrat por defecto.
+  // Aquí usamos helvetica simulando:
+  // - bold = Gotham Rounded Bold
+  // - normal = Montserrat Regular
+
+  // ===== HEADER =====
+
+  // Línea superior decorativa
+  doc.setDrawColor(...COLORS.vino);
+  doc.setLineWidth(2.5);
+  doc.line(margin, 10, pageWidth - margin, 10);
+
+  // Fondo decorativo header
+  doc.setFillColor(...COLORS.beige3);
+  doc.rect(margin, 12, contentWidth, 18, "F");
+
+  // ===== LOGO INSTITUCIONAL =====
+
+  // IMPORTANTE:
+  // logoGobierno debe ser una imagen en base64 o importada
+
+  doc.addImage(
+    logoGobierno, // imagen
+    "PNG",        // formato
+    margin + 2,   // X
+    12,           // Y
+    85,           // ancho
+    18            // alto
+  );
+
+  // ===== FECHA =====
+  doc.setFillColor(...COLORS.vino);
+  doc.roundedRect(130, 13, 25, 8, 2, 2, "F");
+
+  doc.setTextColor(...COLORS.blanco);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("FECHA", 142.5, 19, { align: "center" });
+
+  doc.setTextColor(...COLORS.grisPrincipal);
+  doc.setFont("helvetica", "normal");
+  doc.text(fechaHoy, 175, 19, { align: "center" });
+
+  // ===== LÍNEA SEPARADORA =====
+  doc.setDrawColor(...COLORS.beige2);
+  doc.setLineWidth(0.7);
+  doc.line(margin, 35, pageWidth - margin, 35);
+
+  // ===== TABLA =====
+  let y = 42;
+  const col1 = margin;
+  const col2 = 68;
+  const col3 = 110;
+  const col4 = 142;
+  const rowHeight = 10;
+
+  const dibujarFila = (label1, val1, label2, val2, yPos) => {
+    // Fondo fila
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+
+    // Label 1
+    doc.setFillColor(...COLORS.grisPrincipal);
+    doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(label1, col1 + 2, yPos);
+
+    // Valor 1
+    doc.setTextColor(...COLORS.negro);
+    doc.setFont("helvetica", "normal");
+    doc.text(obtenerTextoPlano(val1, "-"), col2, yPos);
+
+    if (label2) {
+      // Label 2
+      doc.setFillColor(...COLORS.vino);
+      doc.rect(col3, yPos - 6, 28, rowHeight, "F");
+
+      doc.setTextColor(...COLORS.blanco);
+      doc.setFont("helvetica", "bold");
+      doc.text(label2, col3 + 2, yPos);
+
+      // Valor 2
+      doc.setTextColor(...COLORS.negro);
+      doc.setFont("helvetica", "normal");
+      doc.text(obtenerTextoPlano(val2, "-"), col4 + 3, yPos);
+    }
+
+    // Borde
+    doc.setDrawColor(...COLORS.beige1);
+    doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+  };
+
+  const dibujarFilaSimple = (label, valor, yPos) => {
+    // Fondo fila
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+
+    // Label
+    doc.setFillColor(...COLORS.grisPrincipal);
+    doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(label, col1 + 2, yPos);
+
+    // Valor
+    doc.setTextColor(...COLORS.negro);
+    doc.setFont("helvetica", "normal");
+    doc.text(obtenerTextoPlano(valor, "-"), col2, yPos);
+
+    // Borde
+    doc.setDrawColor(...COLORS.beige1);
+    doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+  };
+
+  // ===== DATOS =====
+
+  dibujarFilaSimple(
+    "ÁREA DE ATENCIÓN",
+      turno?.areaDestino?.nombre ||
+      turno?.destinatario?.nombre ||
+      "COORDINACIÓN DE ARCHIVO",
+    y
+  );
+  y += rowHeight;
+
+  dibujarFila(
+    "TURNO NÚMERO",
+    turno?.numeroTurno || "000000",
+    "FOLIO",
+    documentoCompleto?.folio ||
+    documentoCompleto?.numeroFolio ||
+    "N/A",
+    y
+  );
+  y += rowHeight;
+
+  dibujarFila(
+    "FECHA DOCUMENTO",
+    formatDateForInput(
+      documentoCompleto?.fechaDocumento ||
+      documentoCompleto?.fechaDoc
+    ) || formatDateForInput(turno?.fecha) || fechaHoy,
+    "DOCUMENTO",
+    documentoCompleto?.documento ||
+    documentoCompleto?.numeroDocumento ||
+    documentoCompleto?.docId ||
+    "N/A",
+    y
+  );
+  y += rowHeight;
+
+  // RECIBIDO EN
+  doc.setFillColor(...COLORS.beige3);
+  doc.rect(col1, y - 6, contentWidth, rowHeight, "F");
+
+  doc.setDrawColor(...COLORS.beige1);
+  doc.rect(col1, y - 6, contentWidth, rowHeight);
+
+  doc.setFillColor(...COLORS.vino);
+  doc.rect(col3, y - 6, 28, rowHeight, "F");
+
+  doc.setTextColor(...COLORS.blanco);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("RECIBIDO EN", col3 + 2, y);
+
+  doc.setTextColor(...COLORS.negro);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    formatDateForInput(turno?.fechaAcuse) || formatDateForInput(turno?.fechaTurnado) || fechaHoy,
+    col4 + 3,
+    y
+  );
+
+  y += rowHeight;
+
+  dibujarFilaSimple(
+    "PROCEDENCIA",
+    safeText(
+      turno?.remitente?.nombre ||
+      turno?.remitente?.name ||
+      turno?.quienTurna?.nombre ||
+      turno?.turna?.nombre,
+      ""
+    ),
+    y
+  );
+  y += rowHeight;
+
+  dibujarFilaSimple(
+    "REFERENCIA",
+    turno?.referencia ||
+    turno?.instruccion?.descripcion ||
+    turno?.instruccion ||
+    "INFORMA",
+    y
+  );
+
+  y += rowHeight;
+
+dibujarFila(
+  "PRIORIDAD",
+  turno?.prioridad || "-",
+  "ESTATUS",
+  turno?.status || turno?.estatus || "-",
+  y
+);
+
+y += rowHeight;
+
+dibujarFila(
+  "ÁREA TURNA",
+  turno?.turna?.area?.nombre ||
+  turno?.areaTurna ||
+  turno?.turna ||
+  "-",
+  "QUIÉN TURNA",
+  turno?.quienTurna || turno?.turna,
+  y
+);
+
+y += rowHeight;
+
+dibujarFilaSimple(
+  "FECHA TÉRMINO",
+  formatDateForInput(turno?.compromiso) ||
+  formatDateForInput(turno?.fechaTurnado) ||
+  "-",
+  y
+);
+
+  y += rowHeight + 8;
+
+  // ===== ASUNTO =====
+
+  doc.setFillColor(...COLORS.vino);
+  doc.roundedRect(col1, y - 6, 32, 8, 2, 2, "F");
+
+  doc.setTextColor(...COLORS.blanco);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("ASUNTO", col1 + 2, y);
+
+  y += 10;
+
+  const asuntoTexto =
+    documentoCompleto?.asunto ||
+    turno?.asunto ||
+    turno?.descripcion ||
+    turno?.comentario ||
+    turno?.instruccion?.descripcion ||
+    "Sin asunto especificado.";
+
+  const asuntoLineas = doc.splitTextToSize(
+    asuntoTexto,
+    contentWidth - 10
+  );
+
+  const asuntoHeight = asuntoLineas.length * 5 + 10;
+
+  doc.setFillColor(...COLORS.beige3);
+  doc.rect(col1, y - 4, contentWidth, asuntoHeight, "F");
+
+  doc.setDrawColor(...COLORS.beige1);
+  doc.rect(col1, y - 4, contentWidth, asuntoHeight);
+
+  doc.setTextColor(...COLORS.negro);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(asuntoLineas, col1 + 5, y + 4);
+
+  y += asuntoHeight + 10;
+
+  // ===== ACUERDO =====
+
+  doc.setFillColor(...COLORS.grisPrincipal);
+  doc.roundedRect(col1, y - 6, 35, 8, 2, 2, "F");
+
+  doc.setTextColor(...COLORS.blanco);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("OBSERVACIONES", col1 + 2, y);
+
+  y += 10;
+
+  const acuerdoTexto =
+    documentoCompleto?.observaciones || 
+    turno?.observaciones || "";
+  const acuerdoLineas = doc.splitTextToSize(
+    acuerdoTexto,
+    contentWidth - 10
+  );
+console.log(
+  "DOCUMENTO STRING:",
+  JSON.stringify(documentoCompleto, null, 2)
+);
+  const acuerdoHeight = acuerdoLineas.length * 5 + 10;
+
+  doc.setFillColor(...COLORS.beige3);
+  doc.rect(col1, y - 4, contentWidth, acuerdoHeight, "F");
+
+  doc.setDrawColor(...COLORS.beige1);
+  doc.rect(col1, y - 4, contentWidth, acuerdoHeight);
+
+  doc.setTextColor(...COLORS.negro);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(acuerdoLineas, col1 + 5, y + 4);
+
+  y += acuerdoHeight + 30;
+
+  // ===== FIRMA =====
+
+  doc.setTextColor(...COLORS.grisPrincipal);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+
+  doc.text(
+    "GOBIERNO DEL ESTADO DE NAYARIT",
+    margin + 40,
+    y,
+    { align: "center" }
+  );
+
+  // Línea firma
+  doc.setDrawColor(...COLORS.vino);
+  doc.setLineWidth(1);
+  doc.line(margin + 5, y + 15, margin + 75, y + 15);
+
+  // Firmante
+  const firmante =
+  turno?.remitente?.name ||
+  turno?.remitente?.nombre ||
+  turno?.turna?.nombre ||
+  "MTRA. NOMBRE DEL TITULAR";
+
+  doc.setTextColor(...COLORS.vino);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+
+  doc.text(
+    firmante.toUpperCase(),
+    margin + 40,
+    y + 22,
+    { align: "center" }
+  );
+
+  // Cargo
+  doc.setTextColor(...COLORS.grisPrincipal);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+
+  doc.text(
+    "SECRETARÍA DE EDUCACIÓN",
+    margin + 40,
+    y + 28,
+    { align: "center" }
+  );
+
+  // ===== SELLO =====
+
+  doc.setDrawColor(...COLORS.vino);
+  doc.setLineWidth(1.2);
+
+  doc.roundedRect(
+    pageWidth - 65,
+    y - 5,
+    50,
+    35,
+    3,
+    3
+  );
+
+  doc.setTextColor(...COLORS.vino);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+
+  doc.text(
+    "RECIBIDO",
+    pageWidth - 40,
+    y + 5,
+    { align: "center" }
+  );
+
+  doc.setTextColor(...COLORS.grisPrincipal);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+
+  doc.text(
+    turno?.destinatario?.nombre ||
+      "COORDINACIÓN DE ARCHIVOS",
+    pageWidth - 40,
+    y + 13,
+    {
+      align: "center",
+      maxWidth: 45,
+    }
+  );
+
+  doc.text(
+    "RECIBE: _______________",
+    pageWidth - 40,
+    y + 25,
+    { align: "center" }
+  );
+
+  // ===== PDF =====
+  const nombrePDF = `Turno_${
+    turno?.numeroTurno || "SIN_NUMERO"
+  }_${
+    turno?.folio ||
+    turno?.numeroFolio ||
+    "SIN_FOLIO"
+  }.pdf`;
+
+  doc.setProperties({
+    title: nombrePDF,
+  });
+
+  
+  const pdfBlob = doc.output("blob");
+
+const pdfUrl = URL.createObjectURL(pdfBlob);
+
+  // ===== DESCARGAR PDF =====
+  doc.save(nombrePDF);
+
+  // Guardar también el nombre
+return {
+  url: pdfUrl,
+  nombre: nombrePDF,
+};
+
+};
+
   return (
     <div className="flex-1 overflow-y-auto overflow-x-auto p-4 md:p-2">
       <AnimatePresence mode="wait">
@@ -2001,10 +2619,12 @@ const moverAPendientes = () => {
                                 Tipo de remitente*
                               </label>
                               <input
-                                value={
-                                  docSeleccionado.tipoRemitente ||
+                                value={safeText(
+                                  docSeleccionadoPendientes?.remitente?.tipo ||
+                                  docSeleccionadoPendientes?.remitente?.role ||
+                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.tipo ||
                                   "Interno"
-                                }
+                                )}
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
@@ -2012,12 +2632,18 @@ const moverAPendientes = () => {
 
                             <div className="md:col-span-2">
                               <label className="block text-gray-500 mb-1">
-                                Remitente *TIPO*
+                                Nombre del remitente
                               </label>
+
                               <input
-                                value={
-                                  docSeleccionado.remitenteInterno
-                                }
+                                value={safeText(
+                                  docSeleccionadoPendientes?.remitente?.name ||
+                                  docSeleccionadoPendientes?.remitente?.nombre ||
+                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.name ||
+                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.nombre ||
+                                  docSeleccionadoPendientes?.remitente ||
+                                  ""
+                                )}
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
@@ -2152,7 +2778,7 @@ const moverAPendientes = () => {
                                         key={anexo._id || anexo.nombre}
                                         className="border-t hover:bg-gray-50"
                                       >
-                                        {/* 🗑 ELIMINAR */}
+                                        {/* ELIMINAR */}
                                         <td className="px-3 py-2">
                                           <button
                                             onClick={() => handleRemoveAnexo(anexo._id)}
@@ -2162,31 +2788,31 @@ const moverAPendientes = () => {
                                           </button>
                                         </td>
     
-                                        {/* 👤 REGISTRADOR */}
+                                        {/* REGISTRADOR */}
                                         <td className="px-3 py-2 text-gray-700">
                                           {anexo.registrador?.nombre ? anexo.registrador.nombre : "N/A"}
                                         </td>
     
-                                        {/* 💬 MENSAJE */}
+                                        {/*  MENSAJE */}
                                         <td className="px-3 py-2 text-gray-700">
                                           {anexo.mensaje || "Sin mensaje"}
                                         </td>
     
-                                        {/* 📄 BOTÓN ARCHIVO */}
-                                        <td className="px-3 py-2">
-                                            <button
-                                            onClick={() => {
-                                              console.log("Ruta del anexo:", anexo.ruta);
-                                              openAnexo(anexo);
-                                            }}
-                                            className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                          >
-                                            Ver Archivo
-                                          </button>
+                                        {/* BOTÓN ARCHIVO */} 
+                                        <td className="px-3 py-2"> 
+                                          <button 
+                                          title="Ver archivo"
+                                          onClick={() => { 
+                                            console.log("Ruta del anexo:", anexo.ruta); 
+                                            openAnexo(anexo);
+                                          }} 
+                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
+                                            <Eye size={14} /> 
+                                          </button> 
                                         </td>
     
     
-                                        {/* 📑 NOMBRE */}
+                                        {/* NOMBRE */}
                                         <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
                                           {anexo.nombre || "Sin nombre"}
                                         </td>
@@ -2263,9 +2889,64 @@ const moverAPendientes = () => {
     
                               </table>
                             </div>
-    
+                              
+                              {/* Modal ver archivo */}
+                              <AnimatePresence>
+                                {mostrarVisor && (
+                                  <motion.div
+                                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                  >
+                                    <motion.div
+                                      className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+                                      initial={{ scale: 0.8 }}
+                                      animate={{ scale: 1 }}
+                                      exit={{ scale: 0.8 }}
+                                    >
+                                      {/* Botón cerrar */} <button onClick={() => setMostrarVisor(false)} className="absolute top-2 right-2 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition" > <Minus size={18} /> </button>
+        
+                                      {/* Contenido */}
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      {typeof archivoVista === "string" ? (
+                                        archivoVista.endsWith(".pdf") ? (
+                                          <iframe
+                                            src={archivoVista}
+                                            className="w-full h-full rounded"
+                                          />
+                                        ) : (
+                                          <img
+                                            src={archivoVista}
+                                            alt="preview"
+                                            className="max-h-full rounded"
+                                          />
+                                        )
+                                      ) : archivoVista?.type?.includes("image") ? (
+                                        <img
+                                          src={URL.createObjectURL(archivoVista)}
+                                          alt="preview"
+                                          className="max-h-full rounded"
+                                        />
+                                      ) : archivoVista?.type === "application/pdf" ? (
+                                        <iframe
+                                          src={URL.createObjectURL(archivoVista)}
+                                          className="w-full h-full rounded"
+                                        />
+                                      ) : (
+                                        <p className="text-gray-500">
+                                          No se puede previsualizar este archivo
+                                        </p>
+                                      )}
+                                    </div>
+        
+                                    </motion.div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
     
                           </div>
+                    
                     )}
 
                     {tabActiva === "materialAdicional" && (
@@ -2323,6 +3004,7 @@ const moverAPendientes = () => {
                           <table className="min-w-[1200px] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
+                                <th className="px-3 py-2 text-left">Turno</th>
                                 <th className="px-3 py-2 text-left">Instrucción</th>
                                 <th className="px-3 py-2 text-left">Funcionario que turna</th>
                                 <th className="px-3 py-2 text-left">Área de destino</th>
@@ -2335,9 +3017,34 @@ const moverAPendientes = () => {
                             </thead>
 
                             <tbody>
+                              
                               {turnosVerFiltrados.length > 0 ? (
                                 turnosVerFiltrados.map((turno, index) => (
-                                  <tr key={index} className="border-t hover:bg-gray-50">
+                                  <tr
+                                      key={turno._id}
+                                      className="border-t hover:bg-gray-50"
+                                    >
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center justify-center">
+
+                                        {/* VER TURNO */}
+                                        <button
+                                          title="Descargar turno"
+                                          onClick={async () => {
+                                            await generarDocumentoTurno(turno);
+                                            
+                                            const pdfData = await generarDocumentoTurno(turno);
+
+                                            setArchivoVista(pdfData);
+                                            setMostrarVisorTurno(true);
+                                          }}
+                                          className="bg-[#8B1538] hover:bg-[#74112F] text-white p-2 rounded transition"
+                                        >
+                                          <Download size={14} />
+                                        </button>
+
+                                      </div>
+                                    </td>
                                     <td className="px-3 py-2">{safeText(turno.instruccion?.descripcion || turno.instruccion, "-")}</td>
                                     <td className="px-3 py-2">{safeText(turno.remitente, "-")}</td>
                                     <td className="px-3 py-2">{safeText(turno.areaDestino, "-")}</td>
@@ -2350,7 +3057,7 @@ const moverAPendientes = () => {
                                 ))
                               ) : (
                                 <tr>
-                                  <td colSpan={8} className="text-center py-4 text-gray-400">
+                                  <td colSpan={9} className="text-center py-4 text-gray-400">
                                     Sin datos en la tabla.
                                   </td>
                                 </tr>
@@ -2372,6 +3079,41 @@ const moverAPendientes = () => {
                             </button>
                           </div>
                         </div>
+
+                        <AnimatePresence>
+                          {mostrarVisorTurno && (
+                            <motion.div
+                              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <motion.div
+                                className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative overflow-hidden"
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                exit={{ scale: 0.8 }}
+                              >
+
+                                {/* CERRAR */}
+                                <button
+                                  onClick={() => setMostrarVisorTurno(false)}
+                                  className="absolute top-2 right-2 z-50 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
+                                >
+                                  <Minus size={18} />
+                                </button>
+
+                                {/* VISTA */}
+                                <iframe
+                                  title="Vista previa turno"
+                                  src={`${archivoVista.url}#toolbar=1&navpanes=0&scrollbar=1`}
+                                  className="w-full h-full border-0 rounded"
+                                />
+
+                              </motion.div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     )}
 
@@ -2532,31 +3274,31 @@ const moverAPendientes = () => {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Área remitente :
+                                Área remitente
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
+                                {docSeleccionado?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
                               </div>
                             </div>
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Remitente :
+                                Remitente
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes?.turnados?.[0]?.remitente?.nombre || docSeleccionadoPendientes?.turnados?.[0]?.remitente?.name || "Omar César Juárez"}
+                                {docSeleccionado?.turnados?.[0]?.remitente?.nombre || docSeleccionado?.turnados?.[0]?.remitente?.name || "Omar César Juárez"}
                               </div>
                             </div>
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Instrucción :
+                                Instrucción
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes?.turnados?.[0]?.instruccion?.descripcion || docSeleccionadoPendientes?.turnados?.[0]?.instruccion || "Atender conforme proceda"}
+                                {docSeleccionado?.turnados?.[0]?.instruccion?.descripcion || docSeleccionado?.turnados?.[0]?.instruccion || "Atender conforme proceda"}
                               </div>
                             </div>
 
@@ -2567,22 +3309,22 @@ const moverAPendientes = () => {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Área destino :
+                                Área destino
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
+                                {docSeleccionado?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
                               </div>
                             </div>
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Fecha de acuse :
+                                Fecha de acuse
                               </label>
 
                               <input
                                 type="date"
-                                value={docSeleccionadoPendientes?.acuse ? formatDateForInput(docSeleccionadoPendientes.acuse) : (docSeleccionadoPendientes?.fechaAcuse ? formatDateForInput(docSeleccionadoPendientes.fechaAcuse) : "2023-07-04")}
+                                value={docSeleccionado?.turnados?.[0]?.acuse ? formatDateForInput(docSeleccionado?.turnados?.[0]?.acuse) : (docSeleccionado?.turnados?.[0]?.fechaAcuse ? formatDateForInput(docSeleccionado?.turnados?.[0]?.fechaAcuse) : "2023-07-04")}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
@@ -2590,12 +3332,12 @@ const moverAPendientes = () => {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Fecha de termino * :
+                                Fecha de termino
                               </label>
 
                               <input
                                 type="date"
-                                value={docSeleccionadoPendientes?.turnados?.[0]?.compromiso ? formatDateForInput(docSeleccionadoPendientes.turnados?.at(-1).compromiso) : "2023-07-10"}
+                                value={docSeleccionado?.turnados?.[0]?.compromiso ? formatDateForInput(docSeleccionado?.turnados?.[0]?.compromiso) : "2023-07-10"}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
