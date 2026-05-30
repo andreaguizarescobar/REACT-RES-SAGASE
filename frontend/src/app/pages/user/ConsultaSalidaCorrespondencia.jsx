@@ -1,10 +1,13 @@
 import { Minus, FileText, FileSpreadsheet } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Swal from "sweetalert2";
+import { getCorrespondencias } from "../../services/correspondencia.service";
 
 export function ConsultaSalidaCorrespondencia() {
   const [criterio, setCriterio] = useState("");
-  const [resultados, setResultados] = useState([]);
+  const [correspondencias, setCorrespondencias] = useState([]);
+  const [cargando, setCargando] = useState(false);
   const [menuContextual, setMenuContextual] = useState({
     visible: false,
     x: 0,
@@ -13,41 +16,53 @@ export function ConsultaSalidaCorrespondencia() {
   });
   const [modalVisible, setModalVisible] = useState(false);
 
-  const dataMock = [
-    {
-      folioSalida: "1-2023",
-      fechaRegistro: "2023-03-06T10:00",
-      nivelImportancia: "urgente",
-      folioSAGA: "4-2023",
-      destinatario:
-        "Leticia Solís Ramírez Administración Portuaria Integral de Tampico",
-    },
-    {
-      folioSalida: "2-2023",
-      fechaRegistro: "2023-03-28T19:36",
-      nivelImportancia: "urgente",
-      folioSAGA: "1212",
-      destinatario:
-        "Luis Pérez Sánchez Administración Portuaria Integral Dos Bocas",
-    },
-    {
-      folioSalida: "3-2023",
-      fechaRegistro: "2023-04-18T12:30",
-      nivelImportancia: "normal",
-      folioSAGA: "220",
-      destinatario:
-        "ANTONIO AGUILAR OLARTE INSTITUTO PARA DEVOLVER AL PUEBLO LO ROBADO",
-    },
-  ];
+  // Cargar correspondencias al montar el componente
+  useEffect(() => {
+    cargarCorrespondencias();
+  }, []);
 
-  const resultadosFiltrados = dataMock.filter((item) => {
+  const cargarCorrespondencias = async () => {
+    setCargando(true);
+    try {
+      const response = await getCorrespondencias();
+      if (!response.ok) {
+        console.log('Error cargando correspondencias:', await response.json());
+        throw new Error('Error al cargar correspondencias');
+      }
+      const datos = await response.json();
+      // Mapear datos a estructura esperada por la tabla
+      const correspondenciasFormateadas = (datos || []).map((item) => ({
+        _id: item._id,
+        folioSalida: item.folio || '',
+        fechaRegistro: item.fecha ? new Date(item.fecha).toLocaleString() : '',
+        nivelImportancia: item.importancia || '',
+        folioSAGA: item.doc ? item.doc.docId || 'Sin datos' : 'Sin datos',
+        asunto: item.asunto || '',
+        soporte: item.soporte || '',
+        destinatario: item.destinatario ? item.destinatario.name || 'Sin datos' : 'Sin datos',
+      }));
+      setCorrespondencias(correspondenciasFormateadas);
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudieron cargar las correspondencias',
+      });
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const resultadosFiltrados = correspondencias.filter((item) => {
     const texto = criterio.toLowerCase();
 
     return (
-      item.folioSalida.toLowerCase().includes(texto) ||
-      item.destinatario.toLowerCase().includes(texto) ||
-      item.folioSAGA.toLowerCase().includes(texto) ||
-      item.nivelImportancia.toLowerCase().includes(texto)
+      (item.folioSalida && item.folioSalida.toLowerCase().includes(texto)) ||
+      (item.destinatario && item.destinatario.toLowerCase().includes(texto)) ||
+      (item.folioSAGA && item.folioSAGA.toLowerCase().includes(texto)) ||
+      (item.nivelImportancia && item.nivelImportancia.toLowerCase().includes(texto)) ||
+      (item.asunto && item.asunto.toLowerCase().includes(texto))
     );
   });
 
@@ -66,6 +81,11 @@ export function ConsultaSalidaCorrespondencia() {
   const handleConsultar = () => {
     setModalVisible(true);
     setMenuContextual({ ...menuContextual, visible: false });
+  };
+
+  const handleCerrarModal = () => {
+    setModalVisible(false);
+    setMenuContextual({ ...menuContextual, visible: false, registro: null });
   };
 
   const exportToCSV = () => {
@@ -178,29 +198,33 @@ export function ConsultaSalidaCorrespondencia() {
               </thead>
 
               <tbody>
-                {resultadosFiltrados.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4 text-gray-500">
-                      Sin resultados
-                    </td>
-                  </tr>
-                )}
-
-                {resultadosFiltrados.map((registro, index) => (
-                  <tr
-                    key={index}
-                    onContextMenu={(e) => handleRightClick(e, registro)}
-                    className="border-t hover:bg-gray-100 cursor-context-menu"
-                  >
-                    <td className="px-3 py-2">{registro.folioSalida}</td>
-                    <td className="px-3 py-2">{registro.fechaRegistro}</td>
-                    <td className="px-3 py-2 capitalize">
-                      {registro.nivelImportancia}
-                    </td>
-                    <td className="px-3 py-2">{registro.folioSAGA}</td>
-                    <td className="px-3 py-2">{registro.destinatario}</td>
-                  </tr>
-                ))}
+        {cargando ? (
+          <div className="text-center py-4 text-gray-500">Cargando correspondencias...</div>
+        ) : resultadosFiltrados.length === 0 ? (
+          <tr>
+            <td colSpan="5" className="text-center py-4 text-gray-500">
+              Sin resultados
+            </td>
+          </tr>
+        ) : (
+          <>
+            {resultadosFiltrados.map((registro, index) => (
+              <tr
+                key={registro._id || index}
+                onContextMenu={(e) => handleRightClick(e, registro)}
+                className="border-t hover:bg-gray-100 cursor-context-menu"
+              >
+                <td className="px-3 py-2">{registro.folioSalida}</td>
+                <td className="px-3 py-2">{registro.fechaRegistro}</td>
+                <td className="px-3 py-2 capitalize">
+                  {registro.nivelImportancia}
+                </td>
+                <td className="px-3 py-2">{registro.folioSAGA}</td>
+                <td className="px-3 py-2">{registro.destinatario}</td>
+              </tr>
+            ))}
+          </>
+        )}
               </tbody>
             </table>
           </motion.div>
@@ -231,6 +255,62 @@ export function ConsultaSalidaCorrespondencia() {
         )}
       </AnimatePresence>
 
+      {/* Modal de consulta */}
+      <AnimatePresence>
+        {modalVisible && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 flex items-center justify-center bg-transparent z-50"
+          >
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h2 className="text-lg font-semibold mb-4">
+                Detalles de la correspondencia
+              </h2>
+
+              <div className="mb-4">
+                <p>
+                  <span className="font-medium">Folio de salida:</span>{" "}
+                  {menuContextual.registro?.folioSalida}
+                </p>
+                <p>
+                  <span className="font-medium">Fecha de registro:</span>{" "}
+                  {menuContextual.registro?.fechaRegistro}
+                </p>
+                <p>
+                  <span className="font-medium">Nivel de importancia:</span>{" "}
+                  {menuContextual.registro?.nivelImportancia}
+                </p>
+                <p>
+                  <span className="font-medium">Soporte:</span>{" "}
+                  {menuContextual.registro?.soporte}
+                </p>
+                <p>
+                  <span className="font-medium">Folio SAGA:</span>{" "}
+                  {menuContextual.registro?.folioSAGA || 'Sin datos'}
+                </p>
+                <p>
+                  <span className="font-medium">Asunto:</span>{" "}
+                  {menuContextual.registro?.asunto}
+                </p>
+                <p>
+                  <span className="font-medium">Destinatario:</span>{" "}
+                  {menuContextual.registro?.destinatario}
+                </p>
+              </div>
+
+              <button
+                onClick={handleCerrarModal}
+                className="px-4 py-2 bg-[#79142A] text-white rounded"
+              >
+                Cerrar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

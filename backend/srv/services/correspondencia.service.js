@@ -1,7 +1,7 @@
 import model from '../models/correspondencia.model.js';
 
 const getCorrespondenciaList = async () => {
-    return await model.find();
+    return await model.find().populate('remitente', 'name cargo').populate('destinatario', 'name cargo').populate('doc', 'docId');
 };
 
 const getCorrespondenciaItem = async (id) => {
@@ -21,4 +21,4 @@ const deleteCorrespondenciaItem = async (id) => {
     return await model.findByIdAndDelete(id);
 };
 
-export default { getCorrespondenciaList };
+export default { getCorrespondenciaList, getCorrespondenciaItem, postCorrespondenciaItem, putCorrespondenciaItem, deleteCorrespondenciaItem };

@@ -549,6 +549,23 @@ const patchRespuestaDocumento = async (docId, respuestaData, user, ruta) => {
     .populate('respuestas.registrador', 'nombre');
 };
 
+const searchDocumentos = async (query) => {
+    const searchQuery = {
+        eliminado: false,
+        $or: [
+            { folio: { $regex: query, $options: 'i' } },
+            { docId: { $regex: query, $options: 'i' } },
+            { asunto: { $regex: query, $options: 'i' } }
+        ]
+    };
+
+    return await documentoModel.find(searchQuery)
+        .populate('remitente', 'name')
+        .populate('tipo', 'nombre')
+        .select('folio docId asunto fechaDoc remitente tipo status')
+        .limit(20);
+};
+
 export default {
     getAll,
     getById,
@@ -565,5 +582,6 @@ export default {
     deleteDocumento,
     reporteAcuerdos,
     reporteAsuntos,
-    patchRespuestaDocumento
+    patchRespuestaDocumento,
+    searchDocumentos
 };

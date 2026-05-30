@@ -1862,15 +1862,11 @@ const obtenerTextoPlano = (valor, fallback = "-") => {
 
 const generarDocumentoTurno = async (turno) => {
   
-  console.log("TURNO COMPLETO:", JSON.stringify(turno, null, 2));
+  console.log("TURNO COMPLETO:", turno);
 
     // ===== OBTENER ID DEL DOCUMENTO =====
 
-  const documentoId =
-    turno?.documento?._id ||
-    turno?.documento ||
-    turno?.turna?.tareas?.[0]?.documento ||
-    turno?.dirigido?.tareas?.[0]?.documento;
+  const documentoId = docSeleccionado?._id || docSeleccionado?.docId || docSeleccionadoPendientes?._id || docSeleccionadoPendientes?.docId;
 
   console.log("DOCUMENTO ID:", documentoId);
 
@@ -2140,7 +2136,7 @@ y += rowHeight;
 
 dibujarFila(
   "ÁREA TURNA",
-  turno?.turna?.area?.nombre ||
+  turno?.turna?.area ||
   turno?.areaTurna ||
   turno?.turna ||
   "-",
@@ -2245,13 +2241,13 @@ console.log(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
 
-  doc.text(
+/*  doc.text(
     "GOBIERNO DEL ESTADO DE NAYARIT",
     margin + 40,
     y,
     { align: "center" }
   );
-
+*/
   // Línea firma
   doc.setDrawColor(...COLORS.vino);
   doc.setLineWidth(1);
@@ -2289,47 +2285,14 @@ console.log(
 
   // ===== SELLO =====
 
-  doc.setDrawColor(...COLORS.vino);
-  doc.setLineWidth(1.2);
-
-  doc.roundedRect(
-    pageWidth - 65,
-    y - 5,
-    50,
-    35,
-    3,
-    3
-  );
-
   doc.setTextColor(...COLORS.vino);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-
-  doc.text(
-    "RECIBIDO",
-    pageWidth - 40,
-    y + 5,
-    { align: "center" }
-  );
-
-  doc.setTextColor(...COLORS.grisPrincipal);
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
 
-  doc.text(
-    turno?.destinatario?.nombre ||
-      "COORDINACIÓN DE ARCHIVOS",
-    pageWidth - 40,
-    y + 13,
-    {
-      align: "center",
-      maxWidth: 45,
-    }
-  );
 
   doc.text(
-    "RECIBE: _______________",
-    pageWidth - 40,
+    "RECIBE: ____________________________",
+    pageWidth - 50,
     y + 25,
     { align: "center" }
   );
@@ -3031,8 +2994,6 @@ return {
                                         <button
                                           title="Descargar turno"
                                           onClick={async () => {
-                                            await generarDocumentoTurno(turno);
-                                            
                                             const pdfData = await generarDocumentoTurno(turno);
 
                                             setArchivoVista(pdfData);

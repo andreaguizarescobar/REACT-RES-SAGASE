@@ -278,6 +278,19 @@ export const patchRespuestaDocumento = async (req, res) => {
     }
 };
 
+export const searchDocumentos = async (req, res) => {
+    try {
+        const { query } = req.body;
+        if (!query || query.trim().length < 2) {
+            return res.status(400).json({ error: 'La búsqueda debe tener al menos 2 caracteres' });
+        }
+        const resultados = await documentoService.searchDocumentos(query);
+        res.status(200).json(resultados);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export default {
     getAll,
     getById,
@@ -293,5 +306,6 @@ export default {
     patchRemoverRelacionadoDocumento,
     deleteDocumento,
     reporteAcuerdos,
-    reporteAsuntos
+    reporteAsuntos,
+    searchDocumentos
 };
