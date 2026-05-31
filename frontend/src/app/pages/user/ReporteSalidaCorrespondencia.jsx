@@ -1,75 +1,75 @@
-import { Minus, Printer, FileSpreadsheet, Download } from "lucide-react";
+import { Minus, Printer, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
+import { getCorrespondencias } from "../../services/correspondencia.service";
 
 export function ReporteSalidaCorrespondencia() {
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
-  const [resultados, setResultados] = useState([]);
+  const [form, setForm] = useState({
+    fechaInicio: "",
+    fechaFin: "",
+  });
+  const [datosCorrespondencia, setDatosCorrespondencia] = useState([]);
+  const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
-  // Simulación de área del usuario logueado
-  const areaUsuario = "Dirección General";
+  const handleConsultar = async () => {
+    if (!form.fechaInicio || !form.fechaFin) return;
 
-  const dataMock = [
-    {
-      folio: "1-2023",
-      tipoDocumento: "Oficio",
-      numeroDocumento: "DG-001",
-      estatus: "Enviado",
-      remitente: "Dirección General",
-      asunto: "Solicitud de información",
-      instruccion: "Dar seguimiento",
-      fecha: "2023-03-06",
-      area: "Dirección General",
-    },
-    {
-      folio: "2-2023",
-      tipoDocumento: "Informe",
-      numeroDocumento: "DG-002",
-      estatus: "Entregado",
-      remitente: "Dirección General",
-      asunto: "Reporte mensual",
-      instruccion: "Archivar",
-      fecha: "2023-03-20",
-      area: "Dirección General",
-    },
-    {
-      folio: "3-2023",
-      tipoDocumento: "Oficio",
-      numeroDocumento: "ADM-001",
-      estatus: "Enviado",
-      remitente: "Administración",
-      asunto: "Solicitud interna",
-      instruccion: "Revisar",
-      fecha: "2023-03-15",
-      area: "Administración",
-    },
-  ];
+    setCargando(true);
 
-  const handleConsultar = () => {
-    if (!fechaInicio || !fechaFin) return;
+    try {
+      const response = await getCorrespondencias({
+        fechaInicio: form.fechaInicio,
+        fechaFin: form.fechaFin,
+      });
 
-    const filtrado = dataMock.filter(
-      (item) =>
-        item.area === areaUsuario &&
-        item.fecha >= fechaInicio &&
-        item.fecha <= fechaFin
-    );
+      if (!response.ok) {
+        throw new Error("Error al consultar correspondencias");
+      }
 
-    setResultados(filtrado);
+      const datos = await response.json();
+      setDatosCorrespondencia(datos);
+      setMostrarReporte(true);
+    } catch (error) {
+      console.error(error);
+      setDatosCorrespondencia([]);
+      setMostrarReporte(true);
+    } finally {
+      setCargando(false);
+    }
   };
 
-  const exportToExcel = () => {
-    const headers =
-      "Folio,Tipo Documento,Número Documento,Estatus,Remitente,Asunto,Instrucción\n";
+  const exportarExcel = () => {
+    const encabezados = [
+      "Folio",
+      "Fecha",
+      "Folio SAGA",
+      "Destinatario",
+      "Asunto",
+      "Soporte",
+      "Importancia",
+      "Estatus",
+    ];
 
-    const rows = resultados
-      .map(
-        (r) =>
-          `${r.folio},${r.tipoDocumento},${r.numeroDocumento},${r.estatus},"${r.remitente}","${r.asunto}","${r.instruccion}"`
-      )
-      .join("\n");
+    const filas = datosCorrespondencia.map((item) => {
+      const fecha = item.fecha ? item.fecha.split("T")[0] : "";
+      const folioSAGA = item.doc?.docId || "Sin datos";
+      const destinatario = item.destinatario?.name || "Sin datos";
+      return [
+        item.folio || "",
+        fecha,
+        folioSAGA,
+        destinatario,
+        item.asunto || "",
+        item.soporte || "",
+        item.importancia || "",
+        item.status || "",
+      ]
+        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+        .join(",");
+    });
 
-    const blob = new Blob([headers + rows], {
+    const csvContenido = encabezados.join(",") + "\n" + filas.join("\n");
+    const blob = new Blob([csvContenido], {
       type: "text/csv;charset=utf-8;",
     });
 
@@ -79,17 +79,12 @@ export function ReporteSalidaCorrespondencia() {
     link.click();
   };
 
-  const imprimir = () => {
+  const exportarPDF = () => {
     window.print();
-  };
-
-  const descargar = () => {
-    exportToExcel();
   };
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
-      {/* Header */}
       <div className="bg-gray-300 rounded-t-md flex items-center justify-between px-4 py-2">
         <h1 className="text-sm font-semibold text-gray-800">
           Reporte Salida de Correspondencia
@@ -100,14 +95,13 @@ export function ReporteSalidaCorrespondencia() {
       </div>
 
       <div className="bg-white p-6 rounded-b-md shadow-sm space-y-8 text-xs">
-        {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           <div>
             <label className="block mb-1">Fecha de inicio:</label>
             <input
               type="date"
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
+              value={form.fechaInicio}
+              onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
               className="w-full border rounded px-2 py-1"
             />
           </div>
@@ -116,8 +110,8 @@ export function ReporteSalidaCorrespondencia() {
             <label className="block mb-1">Fecha fin:</label>
             <input
               type="date"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
+              value={form.fechaFin}
+              onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
               className="w-full border rounded px-2 py-1"
             />
           </div>
@@ -132,64 +126,97 @@ export function ReporteSalidaCorrespondencia() {
           </div>
         </div>
 
-        {/* Resultados */}
-        {resultados.length > 0 && (
-          <>
-            {/* Acciones */}
-            <div className="flex gap-4">
-              <button
-                onClick={imprimir}
-                className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-              >
-                <Printer size={16} /> Imprimir
-              </button>
+        {mostrarReporte && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-6xl bg-white rounded shadow-xl overflow-hidden">
+              <div className="bg-gray-600 text-white flex items-center justify-between px-4 py-2 text-xs">
+                <div className="flex gap-2">
+                  <button
+                    onClick={exportarPDF}
+                    className="bg-red-600 px-2 py-1 rounded"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={exportarExcel}
+                    className="bg-green-600 px-2 py-1 rounded"
+                  >
+                    Excel
+                  </button>
+                </div>
+                <div className="font-semibold">Página 1 de 1</div>
+                <button
+                  onClick={() => setMostrarReporte(false)}
+                  className="bg-[#8B1538] w-6 h-6 rounded-full flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
 
-              <button
-                onClick={descargar}
-                className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-              >
-                <Download size={16} /> Descargar
-              </button>
+              <div className="p-8 bg-gray-100 overflow-y-auto max-h-[80vh]">
+                <div className="bg-white p-8 shadow">
+                  <div className="text-center space-y-1 mb-6 text-xs">
+                    <h2 className="font-semibold">
+                      Sistema Automatizado de Gestión y Archivo de la Secretaría de Educación SAGASE
+                    </h2>
+                    <p>Reporte de Salida de Correspondencia</p>
+                    <p>Dirección de Tecnologías de la Información y Comunicaciones</p>
+                    <p className="font-semibold">
+                      Del {form.fechaInicio || "NO ESPECIFICADO"} al {form.fechaFin || "NO ESPECIFICADO"}
+                    </p>
+                  </div>
 
-              <button
-                onClick={exportToExcel}
-                className="flex items-center gap-2 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-              >
-                <FileSpreadsheet size={16} /> Exportar Excel
-              </button>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px] border border-[#8B1538]">
+                      <thead className="bg-[#8B1538] text-white">
+                        <tr>
+                          <th className="px-2 py-2 border">FOLIO</th>
+                          <th className="px-2 py-2 border">FECHA</th>
+                          <th className="px-2 py-2 border">FOLIO SAGA</th>
+                          <th className="px-2 py-2 border">DESTINATARIO</th>
+                          <th className="px-2 py-2 border">ASUNTO</th>
+                          <th className="px-2 py-2 border">SOPORTE</th>
+                          <th className="px-2 py-2 border">IMPORTANCIA</th>
+                          <th className="px-2 py-2 border">ESTATUS</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {cargando ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-8 text-gray-500">
+                              Cargando correspondencias...
+                            </td>
+                          </tr>
+                        ) : datosCorrespondencia.length > 0 ? (
+                          datosCorrespondencia.map((item, index) => (
+                            <tr key={item._id || index} className="border-t">
+                              <td className="px-2 py-2 border">{item.folio || "-"}</td>
+                              <td className="px-2 py-2 border">
+                                {item.fecha ? item.fecha.split("T")[0] : "-"}
+                              </td>
+                              <td className="px-2 py-2 border">{item.doc?.docId || "Sin datos"}</td>
+                              <td className="px-2 py-2 border">{item.destinatario?.name || "Sin datos"}</td>
+                              <td className="px-2 py-2 border">{item.asunto || "-"}</td>
+                              <td className="px-2 py-2 border">{item.soporte || "-"}</td>
+                              <td className="px-2 py-2 border">{item.importancia || "-"}</td>
+                              <td className="px-2 py-2 border">{item.status || "-"}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={8} className="text-center py-8 text-gray-400">
+                              No se encontraron correspondencias para ese rango de fechas.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            {/* Tabla */}
-            <div className="overflow-x-auto border rounded">
-              <table className="min-w-full text-xs">
-                <thead className="bg-[#8B1538] text-white">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Folio</th>
-                    <th className="px-3 py-2 text-left">Tipo Documento</th>
-                    <th className="px-3 py-2 text-left">Número Documento</th>
-                    <th className="px-3 py-2 text-left">Estatus</th>
-                    <th className="px-3 py-2 text-left">Remitente</th>
-                    <th className="px-3 py-2 text-left">Asunto</th>
-                    <th className="px-3 py-2 text-left">Instrucción</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {resultados.map((r, i) => (
-                    <tr key={i} className="border-t hover:bg-gray-100">
-                      <td className="px-3 py-2">{r.folio}</td>
-                      <td className="px-3 py-2">{r.tipoDocumento}</td>
-                      <td className="px-3 py-2">{r.numeroDocumento}</td>
-                      <td className="px-3 py-2">{r.estatus}</td>
-                      <td className="px-3 py-2">{r.remitente}</td>
-                      <td className="px-3 py-2">{r.asunto}</td>
-                      <td className="px-3 py-2">{r.instruccion}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -17,7 +17,7 @@ const CorrespondenciaSchema = new Schema({
   mensajero: String,
   guia: String,
   adjunto: String,
-  status: String
+  status: { type: String, default: 'registrado' },
 }, { timestamps: true });
 
 export default model('Correspondencia', CorrespondenciaSchema);

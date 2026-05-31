@@ -55,6 +55,25 @@ console.log("Tareas obtenidas del servicio:", tareasLista);
           pendientes.push(tarea);
         }
       });
+       // Ordenar pendientes por fecha de término del último turno si es ejecutor o validador
+      const usuarioData = JSON.parse(localStorage.getItem("user"));
+      const esValidador = usuarioData?.roles?.some((r) => r.rol === "VALIDADOR");
+      const esEjecutor = usuarioData?.roles?.some((r) => r.rol === "EJECUTOR");
+      
+      if ((esValidador || esEjecutor) && pendientes.length > 0) {
+        pendientes.sort((a, b) => {
+          const fechaA = a.documento?.turnados?.at(-1)?.compromiso;
+          const fechaB = b.documento?.turnados?.at(-1)?.compromiso;
+
+          // Si alguno no tiene fecha, enviar al final
+          if (!fechaA && !fechaB) return 0;
+          if (!fechaA) return 1;
+          if (!fechaB) return -1;
+
+          // Ordenar ascendente: primero los que vencen antes
+          return new Date(fechaA) - new Date(fechaB);
+        });
+      }
       console.log("Tareas cargadas:", { entradas, salidas, pendientes });
       setEntradas(entradas);
       setSalidas(salidas);
@@ -322,6 +341,23 @@ const tiempoTranscurrido = (fecha) => {
   if (minutos > 0) return `hace ${minutos} minuto${minutos > 1 ? "s" : ""}`;
 
   return "hace unos segundos";
+};
+
+const tiempoRestante = (fecha) => {
+  const ahora = new Date();
+  const fechaObj = new Date(fecha);
+
+  const diffMs = fechaObj - ahora;
+
+  const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const horas = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutos = Math.floor(diffMs / (1000 * 60));
+
+  if (dias > 0) return `Tiempo restante: ${dias} dia${dias > 1 ? "s" : ""} `;
+  if (horas > 0) return `Tiempo restante: ${horas} hora${horas > 1 ? "s" : ""} `;
+  if (minutos > 0) return `Tiempo restante: ${minutos} minuto${minutos > 1 ? "s" : ""} `;
+
+  return `Finalizó ${tiempoTranscurrido(fecha)}`;
 };
 
 const moverAPendientes = () => {
@@ -1321,7 +1357,28 @@ const moverAPendientes = () => {
                             {safeText(doc.documento.tipo.tipo, "No disponible")} / {doc.tarea}
                           </p>
                         </div>
-
+                        { doc.documento.turnados && doc.documento.turnados.length > 0 && (
+                          <div className="text-right" >
+                            {(() => {
+                              const prioridad = (doc.documento.turnados.at(-1).prioridad || '').toLowerCase();
+                              let colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
+                              
+                              if (prioridad.includes('extra-urgente')) {
+                                colorClass = 'bg-red-100 text-red-800 border-red-300';
+                              } else if (prioridad.includes('urgente')) {
+                                colorClass = 'bg-orange-100 text-orange-800 border-orange-300';
+                              } else if (prioridad.includes('normal')) {
+                                colorClass = 'bg-blue-100 text-green-800 border-green-300';
+                              }
+                              
+                              return (
+                                <span className={`text-[11px] px-3 py-1 rounded border font-medium ${colorClass}`}>
+                                  {doc.documento.turnados.at(-1).prioridad}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        )}
                         {/* ICONOS LATERALES */}
                         <div className="flex flex-col gap-2">
                           {/* Ver documento */}
@@ -1381,7 +1438,7 @@ const moverAPendientes = () => {
                       {/* FOOTER */}
                       <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
                         {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
-                          <span>Creado {tiempoTranscurrido(doc.documento.turnados?.at(-1).fechaTurnado)}</span>
+                          <span>{tiempoRestante(doc.documento.turnados?.at(-1).compromiso)}</span>
                         ) : (
                           <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
                         )}
@@ -3553,10 +3610,10 @@ return {
                         id: "anexo",
                         label: "Anexos",
                       },
-                      {
+                      ...(documentoEditar?.adicional.tiene ? [{
                         id: "materialAdicional",
                         label: "Material adicional",
-                      },
+                      }] : []),
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
@@ -5192,7 +5249,7 @@ return {
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
-                  ...(!docSeleccionadoPendientes.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
+                  ...(docSeleccionadoPendientes.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
                   ...(esEjecutor ? [{ id: "turnoRecibido", label: "Atender turno recibido" }] : []),
                   // pestaña exclusiva para validadores (solo en Mis pendientes)
                   ...(esValidador ? [{ id: "respuestaValidar", label: "Respuesta a validar" }] : []),
@@ -6945,10 +7002,10 @@ return {
                         id: "anexo",
                         label: "Anexos",
                       },
-                      {
+                      ...documentoEditar?.adicional.tiene ? [{
                         id: "materialAdicional",
                         label: "Material adicional",
-                      },
+                      }] : [],
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",

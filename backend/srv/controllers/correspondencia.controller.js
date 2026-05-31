@@ -2,7 +2,8 @@ import correspondenciaService from '../services/correspondencia.service.js';
 
 export const getCorrespondenciaList = async (req, res) => {
     try {
-        const correspondenciaList = await correspondenciaService.getCorrespondenciaList();
+        const { fechaInicio, fechaFin } = req.query;
+        const correspondenciaList = await correspondenciaService.getCorrespondenciaList({ fechaInicio, fechaFin });
         res.status(200).json(correspondenciaList);
     } catch (error) {
         res.status(500).json({ error: error.message });

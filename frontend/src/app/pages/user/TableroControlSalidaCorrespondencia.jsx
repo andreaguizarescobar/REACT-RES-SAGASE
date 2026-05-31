@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -6,45 +6,50 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-
-const registrosMock = [
-  {
-    folio: "SC-001",
-    asunto: "Solicitud de información",
-    destinatario: "Dirección General",
-    fecha: "2026-02-20",
-    estatus: "registrado",
-  },
-  {
-    folio: "SC-002",
-    asunto: "Entrega de reporte",
-    destinatario: "Recursos Humanos",
-    fecha: "2026-02-18",
-    estatus: "entregado",
-    acuse: "Recibido por Juan Pérez",
-  },
-  {
-    folio: "SC-003",
-    asunto: "Oficio administrativo",
-    destinatario: "Finanzas",
-    fecha: "2026-02-15",
-    estatus: "entregado",
-    acuse: "Recibido por María López",
-  },
-];
+import { getCorrespondencias } from "../../services/correspondencia.service";
 
 export function TableroControlSalidaCorrespondencia() {
-
+  const [correspondencias, setCorrespondencias] = useState([]);
   const [estatusSeleccionado, setEstatusSeleccionado] = useState(null);
-
   const [menuContextual, setMenuContextual] = useState(null);
+  const [cargando, setCargando] = useState(false);
 
-  const totalRegistrado = registrosMock.filter(
-    (r) => r.estatus === "registrado"
+  useEffect(() => {
+    cargarCorrespondencias();
+  }, []);
+
+  const cargarCorrespondencias = async () => {
+    setCargando(true);
+    try {
+      const response = await getCorrespondencias();
+      if (!response.ok) {
+        throw new Error("Error al cargar correspondencia");
+      }
+      const datos = await response.json();
+      setCorrespondencias(datos || []);
+    } catch (error) {
+      console.error(error);
+      setCorrespondencias([]);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return "N/A";
+    const dateObj = new Date(fecha);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${day}/${month}/${year}`;
+  };
+
+  const totalRegistrado = correspondencias.filter(
+    (r) => (r.status || "").toLowerCase() === "registrado"
   ).length;
 
-  const totalEntregado = registrosMock.filter(
-    (r) => r.estatus === "entregado"
+  const totalEntregado = correspondencias.filter(
+    (r) => (r.status || "").toLowerCase() === "entregado"
   ).length;
 
   const data = [
@@ -55,7 +60,9 @@ export function TableroControlSalidaCorrespondencia() {
   const COLORS = ["#d4c29a", "#b89d5d"];
 
   const registrosFiltrados = estatusSeleccionado
-    ? registrosMock.filter((r) => r.estatus === estatusSeleccionado)
+    ? correspondencias.filter(
+        (r) => (r.status || "").toLowerCase() === estatusSeleccionado
+      )
     : [];
 
   const handleContextMenu = (e, registro) => {
@@ -209,9 +216,9 @@ export function TableroControlSalidaCorrespondencia() {
 
                     <td className="p-3">{registro.asunto}</td>
 
-                    <td className="p-3">{registro.destinatario}</td>
+                    <td className="p-3">{registro.destinatario?.name || "N/A"}</td>
 
-                    <td className="p-3">{registro.fecha}</td>
+                    <td className="p-3">{formatearFecha(registro.fecha)}</td>
 
                   </tr>
 
