@@ -362,7 +362,7 @@ export function RegistrarDocumento() {
             remitente: form.tipoRemitente === "interno" ? form.remitenteInterno : form.remitenteExterno,
             tipo: form.tipoDocumento,
             tema: form.temaPrincipal,
-            asunto: form.temaPrincipal,
+            asunto: busquedaTemaPrincipal || form.temaPrincipal.descripcion || "",
             sintesis: form.sintesis,
             observaciones: form.observaciones,
             relacionados: form.relacionados,
@@ -392,7 +392,7 @@ export function RegistrarDocumento() {
               temaPrincipal: form.temaPrincipal,
               materialAdicional: form.materialAdicional,
 
-              asunto: form.temaPrincipal,
+              asunto: form.temaPrincipal.descripcion,
               sintesis: form.sintesis,
               observaciones: form.observaciones,
 
@@ -1162,41 +1162,6 @@ const obtenerLabel = (lista, id) => {
         nombre: "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
       },
     ];
-
-  
-    const anexosSubidos = [
-      {
-        registrador: "Omar César Juárez",
-        mensaje: "Anexo 1",
-        folio: "A-001",
-        nombre: "Anexo 1 DG_DPPD_0811_2022.pdf",
-      },
-      {
-        registrador: "Andrea Guizar",
-        mensaje: "Solicitud",
-        folio: "A-002",
-        nombre: "Solicitud usuarios SAGA.pdf",
-      },
-      {
-        registrador: "Erik Moreno",
-        mensaje: "Materiales",
-        folio: "A-003",
-        nombre: "Distribución de materiales.pdf",
-      },
-      {
-        registrador: "Yves Portugal",
-        mensaje: "Respuesta",
-        folio: "A-004",
-        nombre: "Respuesta al interesado.pdf",
-      },
-    ];
-  
-    const anexosSubirVerFiltrados = anexosSubidos.filter((item) =>
-      Object.values(item)
-        .join(" ")
-        .toLowerCase()
-        .includes(busquedaSubirAnexo.toLowerCase())
-    );
     
       useEffect(() => {
         const handleClickOutside = (event) => {

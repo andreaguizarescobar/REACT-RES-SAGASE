@@ -74,7 +74,6 @@ console.log("Tareas obtenidas del servicio:", tareasLista);
           return new Date(fechaA) - new Date(fechaB);
         });
       }
-      console.log("Tareas cargadas:", { entradas, salidas, pendientes });
       setEntradas(entradas);
       setSalidas(salidas);
       setPendientes(pendientes);
@@ -2489,7 +2488,7 @@ return {
                           <div className="w-80">
                             <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
                             <select name="ejercicio"className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
-                              <option value="">Seleccionar</option>
+                              <option value={docSeleccionado.ejercicio}>{docSeleccionado.ejercicio}</option>
                               <option value="2024">2024</option>
                               <option value="2025">2025</option>
                               <option value="2026">2026</option>
@@ -2531,22 +2530,6 @@ return {
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
                             </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Anexos
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionado.anexo ||
-                                  "No"
-                                
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
                             
                             <div>
                               <label className="block text-gray-500 mb-1">
@@ -2554,7 +2537,7 @@ return {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.temaPrincipal ||
+                                  docSeleccionado.tema.descripcion ||
                                   "Administrativo"
                                 }
                                 disabled
@@ -2568,7 +2551,7 @@ return {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.materialAdicional ? "Sí" : "No"
+                                  docSeleccionado.adicional?.tiene ? "Sí" : "No"
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2602,8 +2585,9 @@ return {
                               <input
                                 type="date"
                                 value={
-                                  docSeleccionado.fechaDocumento ||
-                                  docSeleccionado.fecha
+                                  formatDateForInput(docSeleccionado.fechaDoc) ||
+                                  formatDateForInput(docSeleccionado.fechaDocumento) ||
+                                  formatDateForInput(docSeleccionado.registro)
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2617,8 +2601,7 @@ return {
                               <input
                                 type="date"
                                 value={
-                                  docSeleccionado.fechaAcuse ||
-                                  docSeleccionado.fecha
+                                  formatDateForInput(docSeleccionado.acuse)
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2640,9 +2623,9 @@ return {
                               </label>
                               <input
                                 value={safeText(
-                                  docSeleccionadoPendientes?.remitente?.tipo ||
-                                  docSeleccionadoPendientes?.remitente?.role ||
-                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.tipo ||
+                                  docSeleccionado?.remitente?.tipo ||
+                                  docSeleccionado?.remitente?.role ||
+                                  docSeleccionado?.turnados?.at(-1)?.remitente?.tipo ||
                                   "Interno"
                                 )}
                                 disabled
@@ -2657,11 +2640,11 @@ return {
 
                               <input
                                 value={safeText(
-                                  docSeleccionadoPendientes?.remitente?.name ||
-                                  docSeleccionadoPendientes?.remitente?.nombre ||
-                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.name ||
-                                  docSeleccionadoPendientes?.turnados?.at(-1)?.remitente?.nombre ||
-                                  docSeleccionadoPendientes?.remitente ||
+                                  docSeleccionado?.remitente?.name ||
+                                  docSeleccionado?.remitente?.nombre ||
+                                  docSeleccionado?.turnados?.at(-1)?.remitente?.name ||
+                                  docSeleccionado?.turnados?.at(-1)?.remitente?.nombre ||
+                                  docSeleccionado?.remitente ||
                                   ""
                                 )}
                                 disabled
@@ -2685,7 +2668,9 @@ return {
                               </label>
                               <textarea
                                 value={
-                                  docSeleccionado.temaPrincipal
+                                  safeText(docSeleccionado.sintesis, "") ||
+                                  safeText(docSeleccionado.tema.descripcion, "") ||
+                                  ""
                                 }
                                 disabled
                                 rows={3}
@@ -2699,7 +2684,7 @@ return {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.observaciones ||
+                                  safeText(docSeleccionado.observaciones, "") ||
                                   ""
                                 }
                                 disabled
@@ -2729,7 +2714,7 @@ return {
 
                                 {/* Nombre archivo */}
                                 <p className="text-sm text-gray-700 text-center font-medium break-all">
-                                  {archivo ? archivo.name : "No hay archivo cargado"}
+                                  {docSeleccionado.anexos[0].nombre ? docSeleccionado.anexos[0].nombre : "No hay archivo cargado"}
                                 </p>
 
                                 {/* Información */}
@@ -3610,7 +3595,7 @@ return {
                         id: "anexo",
                         label: "Anexos",
                       },
-                      ...(documentoEditar?.adicional.tiene ? [{
+                      ...(documentoEditar?.adicional?.tiene ? [{
                         id: "materialAdicional",
                         label: "Material adicional",
                       }] : []),
@@ -5465,7 +5450,7 @@ return {
                                 Remitente
                               </label>
                               <input
-                                value={safeText(docSeleccionadoPendientes.remitente.name, "")}
+                                value={safeText(docSeleccionado.remitente.name, "")}
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
@@ -7002,7 +6987,7 @@ return {
                         id: "anexo",
                         label: "Anexos",
                       },
-                      ...documentoEditar?.adicional.tiene ? [{
+                      ...documentoEditar?.adicional?.tiene ? [{
                         id: "materialAdicional",
                         label: "Material adicional",
                       }] : [],
