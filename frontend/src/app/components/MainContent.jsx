@@ -3,7 +3,6 @@ import { FileText, Trash2, Search, Inbox, ListTodo, Send,  Eye, ThumbsUp, Minus,
 import { Switch } from "./ui/switch";
 import Swal from "sweetalert2";
 import jsPDF from "jspdf";
-
 import { TableroControl } from "../pages/user/TableroControl";
 import { RegistrarDocumento } from "../pages/user/RegistrarDocumento.jsx";
 import BuscadorDocumentos from "../pages/user/BuscadorDocumentos.jsx";
@@ -18,6 +17,7 @@ import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroContro
 import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
 import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
+
 import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
 import { getAreas, getInstrucciones, getAdicional, getTemaPrincipal } from "../services/catalogos.service.js";
 import { getRemitentes } from "../services/remitente.service.js";
@@ -25,6 +25,11 @@ import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTa
 
 import { motion, AnimatePresence } from "framer-motion";
 import logoGobierno from "../assets/images/nayaritLogo.png";
+
+import GothamRoundedBold from "../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../styles/fonts/Montserrat-Regular.ttf";
 
 export function MainContent({ currentView }) {
 
@@ -45,7 +50,8 @@ export function MainContent({ currentView }) {
       const entradas = [];
       const salidas = [];
       const pendientes = [];
-console.log("Tareas obtenidas del servicio:", tareasLista);
+  
+    console.log("Tareas obtenidas del servicio:", tareasLista);
       tareasLista.forEach((tarea) => {
         if (tarea.status === "entrada") {
           entradas.push(tarea);
@@ -1918,13 +1924,25 @@ const obtenerTextoPlano = (valor, fallback = "-") => {
 
 const generarDocumentoTurno = async (turno) => {
   
+  const formatearFechaPDF = (fecha) => {
+    if (!fecha) return "-";
+
+    const date = new Date(fecha);
+
+    if (isNaN(date.getTime())) return fecha;
+
+    const dia = String(date.getDate()).padStart(2, "0");
+    const mes = String(date.getMonth() + 1).padStart(2, "0");
+    const anio = date.getFullYear();
+
+    return `${dia}/${mes}/${anio}`;
+  };
+
   console.log("TURNO COMPLETO:", turno);
 
-    // ===== OBTENER ID DEL DOCUMENTO =====
+  // ===== OBTENER ID DEL DOCUMENTO =====
 
   const documentoId = docSeleccionado?._id || docSeleccionado?.docId || docSeleccionadoPendientes?._id || docSeleccionadoPendientes?.docId;
-
-  console.log("DOCUMENTO ID:", documentoId);
 
   let documentoCompleto = {};
 
@@ -1952,6 +1970,19 @@ const generarDocumentoTurno = async (turno) => {
   
   const doc = new jsPDF();
 
+  // =========================
+  // FUENTES PERSONALIZADAS
+  // =========================
+
+  // Gotham
+  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+  // Montserrat
+  doc.addFont(MontserratRegular, "Montserrat", "normal");
+  doc.addFont(MontserratBold, "Montserrat", "bold");
+
+  
   // ===== PALETA OFICIAL =====
   const COLORS = {
     grisPrincipal: [96, 89, 93],      // #60595D
@@ -1964,11 +1995,7 @@ const generarDocumentoTurno = async (turno) => {
     grisBorde: [180, 180, 180],
   };
 
-  const fechaHoy = new Date().toLocaleDateString("es-MX", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  });
+  const fechaHoy = formatearFechaPDF(new Date());
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -1981,11 +2008,6 @@ const generarDocumentoTurno = async (turno) => {
   // - normal = Montserrat Regular
 
   // ===== HEADER =====
-
-  // Línea superior decorativa
-  doc.setDrawColor(...COLORS.vino);
-  doc.setLineWidth(2.5);
-  doc.line(margin, 10, pageWidth - margin, 10);
 
   // Fondo decorativo header
   doc.setFillColor(...COLORS.beige3);
@@ -2007,16 +2029,16 @@ const generarDocumentoTurno = async (turno) => {
 
   // ===== FECHA =====
   doc.setFillColor(...COLORS.vino);
-  doc.roundedRect(130, 13, 25, 8, 2, 2, "F");
+  doc.roundedRect(130, 17, 25, 8, 2, 2, "F");
 
   doc.setTextColor(...COLORS.blanco);
   doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("FECHA", 142.5, 19, { align: "center" });
+  doc.setFont("GothamRounded", "bold");
+  doc.text("FECHA", 142.5, 22, { align: "center" });
 
   doc.setTextColor(...COLORS.grisPrincipal);
-  doc.setFont("helvetica", "normal");
-  doc.text(fechaHoy, 175, 19, { align: "center" });
+  doc.setFont("GothamRounded", "bold");
+  doc.text(fechaHoy, 175, 22, { align: "center" });
 
   // ===== LÍNEA SEPARADORA =====
   doc.setDrawColor(...COLORS.beige2);
@@ -2032,80 +2054,113 @@ const generarDocumentoTurno = async (turno) => {
   const rowHeight = 10;
 
   const dibujarFila = (label1, val1, label2, val2, yPos) => {
-    // Fondo fila
-    doc.setFillColor(...COLORS.beige3);
-    doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+    const texto1 = obtenerTextoPlano(val1, "-");
+    const texto2 = obtenerTextoPlano(val2, "-");
 
-    // Label 1
+    // Anchuras disponibles
+    const anchoValor1 = 38;
+    const anchoValor2 = 48;
+
+    const lineas1 = doc.splitTextToSize(texto1, anchoValor1);
+    const lineas2 = doc.splitTextToSize(texto2, anchoValor2);
+      
+    const maxLineas = Math.max(
+      lineas1.length,
+      lineas2.length,
+      1
+    );
+
+    const alturaFila = Math.max(
+      rowHeight,
+      maxLineas * 5 + 4
+    );
+
+    // Fondo
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, yPos - 6, contentWidth, alturaFila, "F");
+
+    // Label izquierda
     doc.setFillColor(...COLORS.grisPrincipal);
-    doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+    doc.rect(col1, yPos - 6, 50, alturaFila, "F");
 
     doc.setTextColor(...COLORS.blanco);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFont("GothamRounded", "bold");
+    doc.setFontSize(10);
     doc.text(label1, col1 + 2, yPos);
 
-    // Valor 1
+    // Valor izquierda
     doc.setTextColor(...COLORS.negro);
-    doc.setFont("helvetica", "normal");
-    doc.text(obtenerTextoPlano(val1, "-"), col2, yPos);
+    doc.setFont("Montserrat", "normal");
+    doc.text(lineas1, col2, yPos);
 
     if (label2) {
-      // Label 2
+      // Label derecha
       doc.setFillColor(...COLORS.vino);
-      doc.rect(col3, yPos - 6, 28, rowHeight, "F");
+      doc.rect(col3, yPos - 6, 28, alturaFila, "F");
 
       doc.setTextColor(...COLORS.blanco);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("GothamRounded", "bold");
       doc.text(label2, col3 + 2, yPos);
 
-      // Valor 2
+      // Valor derecha
       doc.setTextColor(...COLORS.negro);
-      doc.setFont("helvetica", "normal");
-      doc.text(obtenerTextoPlano(val2, "-"), col4 + 3, yPos);
+      doc.setFont("Montserrat", "normal");
+      doc.text(lineas2, col4 + 3, yPos);
     }
 
-    // Borde
     doc.setDrawColor(...COLORS.beige1);
-    doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+    doc.rect(col1, yPos - 6, contentWidth, alturaFila);
+
+    return alturaFila;
   };
 
   const dibujarFilaSimple = (label, valor, yPos) => {
-    // Fondo fila
-    doc.setFillColor(...COLORS.beige3);
-    doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+    const texto = obtenerTextoPlano(valor, "-");
 
-    // Label
+    const anchoDisponible = 130;
+
+    const lineas = doc.splitTextToSize(
+      texto,
+      anchoDisponible
+    );
+
+    const alturaFila = Math.max(
+      rowHeight,
+      lineas.length * 5 + 4
+    );
+
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, yPos - 6, contentWidth, alturaFila, "F");
+
     doc.setFillColor(...COLORS.grisPrincipal);
-    doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+    doc.rect(col1, yPos - 6, 50, alturaFila, "F");
 
     doc.setTextColor(...COLORS.blanco);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFont("GothamRounded", "bold");
+    doc.setFontSize(10);
     doc.text(label, col1 + 2, yPos);
 
-    // Valor
     doc.setTextColor(...COLORS.negro);
-    doc.setFont("helvetica", "normal");
-    doc.text(obtenerTextoPlano(valor, "-"), col2, yPos);
+    doc.setFont("Montserrat", "normal");
+    doc.text(lineas, col2, yPos);
 
-    // Borde
     doc.setDrawColor(...COLORS.beige1);
-    doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+    doc.rect(col1, yPos - 6, contentWidth, alturaFila);
+
+    return alturaFila;
   };
 
   // ===== DATOS =====
 
-  dibujarFilaSimple(
+  y += dibujarFilaSimple(
     "ÁREA DE ATENCIÓN",
-      turno?.areaDestino?.nombre ||
-      turno?.destinatario?.nombre ||
-      "COORDINACIÓN DE ARCHIVO",
+    turno?.areaDestino?.nombre ||
+    turno?.destinatario?.nombre ||
+    "COORDINACIÓN DE ARCHIVO",
     y
   );
-  y += rowHeight;
 
-  dibujarFila(
+  y += dibujarFila(
     "TURNO NÚMERO",
     turno?.numeroTurno || "000000",
     "FOLIO",
@@ -2114,14 +2169,13 @@ const generarDocumentoTurno = async (turno) => {
     "N/A",
     y
   );
-  y += rowHeight;
 
-  dibujarFila(
+  y +=dibujarFila(
     "FECHA DOCUMENTO",
-    formatDateForInput(
+    formatearFechaPDF(
       documentoCompleto?.fechaDocumento ||
       documentoCompleto?.fechaDoc
-    ) || formatDateForInput(turno?.fecha) || fechaHoy,
+    ) || formatearFechaPDF(turno?.fecha) || fechaHoy,
     "DOCUMENTO",
     documentoCompleto?.documento ||
     documentoCompleto?.numeroDocumento ||
@@ -2129,7 +2183,6 @@ const generarDocumentoTurno = async (turno) => {
     "N/A",
     y
   );
-  y += rowHeight;
 
   // RECIBIDO EN
   doc.setFillColor(...COLORS.beige3);
@@ -2142,22 +2195,22 @@ const generarDocumentoTurno = async (turno) => {
   doc.rect(col3, y - 6, 28, rowHeight, "F");
 
   doc.setTextColor(...COLORS.blanco);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("RECIBIDO EN", col3 + 2, y);
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(10);
+  doc.text("RECIBIDO EL", col3 + 2, y);
 
   doc.setTextColor(...COLORS.negro);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("Montserrat", "normal");
   doc.text(
-    formatDateForInput(turno?.fechaAcuse) || formatDateForInput(turno?.fechaTurnado) || fechaHoy,
+    formatearFechaPDF(turno?.fechaAcuse) ||
+    formatearFechaPDF(turno?.fechaTurnado) ||
+    fechaHoy,
     col4 + 3,
     y
   );
 
-  y += rowHeight;
-
-  dibujarFilaSimple(
-    "PROCEDENCIA",
+  y += dibujarFilaSimple(
+    "ÁREA DE PROCEDENCIA",
     safeText(
       turno?.remitente?.nombre ||
       turno?.remitente?.name ||
@@ -2167,10 +2220,9 @@ const generarDocumentoTurno = async (turno) => {
     ),
     y
   );
-  y += rowHeight;
 
-  dibujarFilaSimple(
-    "REFERENCIA",
+  y +=dibujarFilaSimple(
+    "INSTRUCCIÓN",
     turno?.referencia ||
     turno?.instruccion?.descripcion ||
     turno?.instruccion ||
@@ -2178,40 +2230,42 @@ const generarDocumentoTurno = async (turno) => {
     y
   );
 
-  y += rowHeight;
 
-dibujarFila(
-  "PRIORIDAD",
-  turno?.prioridad || "-",
-  "ESTATUS",
-  turno?.status || turno?.estatus || "-",
-  y
-);
+  y +=dibujarFila(
+    "PRIORIDAD",
+    turno?.prioridad || "-",
+    "ESTATUS",
+    turno?.status || turno?.estatus || "-",
+    y
+  );
 
-y += rowHeight;
+  y += dibujarFila(
+    "ÁREA TURNA",
+    turno?.turna?.area ||
+    turno?.areaTurna ||
+    turno?.turna ||
+    "-",
+    "QUIÉN TURNA",
+    turno?.quienTurna || turno?.turna,
+    y
+  );
+  
+  const esUrgente =
+    String(turno?.prioridad || "")
+      .toUpperCase()
+      .trim() === "URGENTE";
 
-dibujarFila(
-  "ÁREA TURNA",
-  turno?.turna?.area ||
-  turno?.areaTurna ||
-  turno?.turna ||
-  "-",
-  "QUIÉN TURNA",
-  turno?.quienTurna || turno?.turna,
-  y
-);
+  if (esUrgente) {
+    y += dibujarFilaSimple(
+      "FECHA TÉRMINO",
+      formatearFechaPDF(turno?.compromiso) ||
+      formatearFechaPDF(turno?.fechaTurnado) ||
+      "-",
+      y
+    );
+  }
 
-y += rowHeight;
-
-dibujarFilaSimple(
-  "FECHA TÉRMINO",
-  formatDateForInput(turno?.compromiso) ||
-  formatDateForInput(turno?.fechaTurnado) ||
-  "-",
-  y
-);
-
-  y += rowHeight + 8;
+  y += 3;
 
   // ===== ASUNTO =====
 
@@ -2219,11 +2273,11 @@ dibujarFilaSimple(
   doc.roundedRect(col1, y - 6, 32, 8, 2, 2, "F");
 
   doc.setTextColor(...COLORS.blanco);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFont("Montserrat", "bold");
+  doc.setFontSize(10);
   doc.text("ASUNTO", col1 + 2, y);
 
-  y += 10;
+  y += 7;
 
   const asuntoTexto =
     documentoCompleto?.asunto ||
@@ -2247,8 +2301,8 @@ dibujarFilaSimple(
   doc.rect(col1, y - 4, contentWidth, asuntoHeight);
 
   doc.setTextColor(...COLORS.negro);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFont("Montserrat", "normal");
+  doc.setFontSize(10);
   doc.text(asuntoLineas, col1 + 5, y + 4);
 
   y += asuntoHeight + 10;
@@ -2259,11 +2313,11 @@ dibujarFilaSimple(
   doc.roundedRect(col1, y - 6, 35, 8, 2, 2, "F");
 
   doc.setTextColor(...COLORS.blanco);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFont("Montserrat", "bold");
+  doc.setFontSize(10);
   doc.text("OBSERVACIONES", col1 + 2, y);
 
-  y += 10;
+  y += 7;
 
   const acuerdoTexto =
     documentoCompleto?.observaciones || 
@@ -2285,7 +2339,7 @@ console.log(
   doc.rect(col1, y - 4, contentWidth, acuerdoHeight);
 
   doc.setTextColor(...COLORS.negro);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("GothamRounded", "normal");
   doc.setFontSize(9);
   doc.text(acuerdoLineas, col1 + 5, y + 4);
 
@@ -2294,7 +2348,7 @@ console.log(
   // ===== FIRMA =====
 
   doc.setTextColor(...COLORS.grisPrincipal);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("GothamRounded", "normal");
   doc.setFontSize(7);
 
 /*  doc.text(
@@ -2317,7 +2371,7 @@ console.log(
   "MTRA. NOMBRE DEL TITULAR";
 
   doc.setTextColor(...COLORS.vino);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("Montserrat", "bold");
   doc.setFontSize(9);
 
   doc.text(
@@ -2329,7 +2383,7 @@ console.log(
 
   // Cargo
   doc.setTextColor(...COLORS.grisPrincipal);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("Montserrat", "normal");
   doc.setFontSize(8);
 
   doc.text(
@@ -2342,7 +2396,7 @@ console.log(
   // ===== SELLO =====
 
   doc.setTextColor(...COLORS.vino);
-  doc.setFont("helvetica", "bold");
+  doc.setFont("Montserrat", "bold");
   doc.setFontSize(7);
 
 
@@ -2354,31 +2408,21 @@ console.log(
   );
 
   // ===== PDF =====
-  const nombrePDF = `Turno_${
-    turno?.numeroTurno || "SIN_NUMERO"
-  }_${
-    turno?.folio ||
-    turno?.numeroFolio ||
-    "SIN_FOLIO"
-  }.pdf`;
+  const nombrePDF =
+    `Turno_${documentoCompleto?.folio || "SIN_FOLIO"}_${
+      turno?.numeroTurno || "000000"
+    }.pdf`;
 
-  doc.setProperties({
-    title: nombrePDF,
-  });
-
-  
   const pdfBlob = doc.output("blob");
 
-const pdfUrl = URL.createObjectURL(pdfBlob);
+  const pdfUrl = URL.createObjectURL(pdfBlob);
 
-  // ===== DESCARGAR PDF =====
   doc.save(nombrePDF);
 
-  // Guardar también el nombre
-return {
-  url: pdfUrl,
-  nombre: nombrePDF,
-};
+  return {
+    url: pdfUrl,
+    nombre: nombrePDF,
+  };
 
 };
 
@@ -3038,7 +3082,7 @@ return {
                                           onClick={async () => {
                                             const pdfData = await generarDocumentoTurno(turno);
 
-                                            setArchivoVista(pdfData);
+                                            setTurnoSeleccionado(pdfData);
                                             setMostrarVisorTurno(true);
                                           }}
                                           className="bg-[#8B1538] hover:bg-[#74112F] text-white p-2 rounded transition"
@@ -3053,7 +3097,7 @@ return {
                                     <td className="px-3 py-2">{safeText(turno.areaDestino, "-")}</td>
                                     <td className="px-3 py-2">{turno.prioridad || "-"}</td>
                                     <td className="px-3 py-2">{formatDateForInput(turno.compromiso) || formatDateForInput(turno.fechaTurnado) || "-"}</td>
-                                    <td className="px-3 py-2">{safeText(turno.areaTurna || turno.turna, "-")}</td>
+                                    <td className="px-3 py-2">{safeText(turno.dirigido?.area || turno.turna, "-")}</td>
                                     <td className="px-3 py-2">{safeText(turno.quienTurna || turno.turna, "-")}</td>
                                     <td className="px-3 py-2 font-medium">{turno.status || turno.estatus || "-"}</td>
                                   </tr>
@@ -3084,7 +3128,7 @@ return {
                         </div>
 
                         <AnimatePresence>
-                          {mostrarVisorTurno && (
+                          {mostrarVisorTurno && turnoSeleccionado && (
                             <motion.div
                               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
                               initial={{ opacity: 0 }}
@@ -3098,19 +3142,23 @@ return {
                                 exit={{ scale: 0.8 }}
                               >
 
-                                {/* CERRAR */}
-                                <button
-                                  onClick={() => setMostrarVisorTurno(false)}
-                                  className="absolute top-2 right-2 z-50 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
-                                >
-                                  <Minus size={18} />
-                                </button>
+                                <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
+                                  <span>{turnoSeleccionado.nombre}</span>
+
+                                  {/* CERRAR */}
+                                    <button
+                                      onClick={() => setMostrarVisorTurno(false)}
+                                      className="absolute top-2 right-2 z-50 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
+                                    >
+                                      <Minus size={18} />
+                                    </button>
+                                </div>
 
                                 {/* VISTA */}
                                 <iframe
                                   title="Vista previa turno"
-                                  src={`${archivoVista.url}#toolbar=1&navpanes=0&scrollbar=1`}
-                                  className="w-full h-full border-0 rounded"
+                                  src={turnoSeleccionado.url}
+                                  className="w-full h-[calc(100%-56px)]"
                                 />
 
                               </motion.div>
@@ -4770,7 +4818,7 @@ return {
                                       {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
                                     </td>
                                     <td className="px-3 py-2 text-gray-700">
-                                      {turno.dirigido?.area || "-"}
+                                      {safeText(turno.turna || "-"  || turno.dirigido?.area)}
                                     </td>
                                     <td className="px-3 py-2 text-gray-700">
                                       {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
@@ -5450,7 +5498,7 @@ return {
                                 Remitente
                               </label>
                               <input
-                                value={safeText(docSeleccionado.remitente.name, "")}
+                                value={safeText(docSeleccionadoPendientes.remitente.name, "")}
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
@@ -5821,8 +5869,8 @@ return {
                                     <td className="px-3 py-2">{safeText(turno.areaDestino, "-")}</td>
                                     <td className="px-3 py-2">{turno.prioridad || "-"}</td>
                                     <td className="px-3 py-2">{formatDateForInput(turno.fechaTurnado) || "-"}</td>
-                                    <td className="px-3 py-2">{safeText(turno.turna, "-")}</td>
-                                    <td className="px-3 py-2">{safeText(turno.turna, "-")}</td>
+                                    <td className="px-3 py-2">{safeText(turno.dirigido?.area, turno.turna, "-")}</td>
+                                    <td className="px-3 py-2">{safeText(turno.turna || "-"  || turno.dirigido?.area)}</td>
                                     <td className="px-3 py-2 font-medium">
                                       {turno.status || turno.estatus || "-"}
                                     </td>

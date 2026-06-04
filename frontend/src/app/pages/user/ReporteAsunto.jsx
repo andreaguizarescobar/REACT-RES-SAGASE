@@ -2,6 +2,17 @@ import { Minus } from 'lucide-react';
 import { useState } from 'react';
 import { reporteAsuntos } from '../../services/document.service';
 
+import Swal from "sweetalert2";
+import jsPDF from "jspdf";
+
+import logoGobierno from "../../assets/images/nayaritLogo.png";
+import { AnimatePresence, motion } from "framer-motion";
+
+import GothamRoundedBold from "../../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
+
   const Toggle = ({ label, checked, onChange, className = '' }) => (
     <div className={`flex items-center justify-between gap-4 w-full ${className}`}>
       <span className="flex-1 text-xs sm:text-sm">
@@ -23,6 +34,7 @@ import { reporteAsuntos } from '../../services/document.service';
       </button>
     </div>
   );
+
 export function ReporteAsuntos() {
 
   const [form, setForm] = useState({
@@ -41,6 +53,8 @@ export function ReporteAsuntos() {
   const [datosReporte, setDatosReporte] = useState([]);
 
   const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [mostrarVisorReporte, setMostrarVisorReporte] = useState(false);
+  const [archivoReporte, setArchivoReporte] = useState(null);
 
   const handleToggle = (name) => {
     setForm((prev) => ({
@@ -57,11 +71,49 @@ export function ReporteAsuntos() {
   };
 
   const handleSubmit = async () => {
-    const response = await reporteAsuntos(form, localStorage.getItem("token"));
-    const data = await response.json();
-    setDatosReporte(data);
-    setMostrarReporte(true);
-  } 
+    try {
+      const response = await reporteAsuntos(
+        form,
+        localStorage.getItem("token")
+      );
+
+      const data = await response.json();
+
+      if (!data || data.length === 0) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "info",
+          title: "No se encontraron asuntos.",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+
+        return;
+      }
+
+      setDatosReporte(data);
+
+      const pdfData = await generarDocumentoReporteAsuntos(data);
+
+      setArchivoReporte(pdfData);
+      setMostrarVisorReporte(true);
+
+    } catch (error) {
+      console.error(error);
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Ocurrió un error al generar el reporte.",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
+  };
 
   const exportarExcel = () => {
     const encabezados = [
@@ -104,8 +156,340 @@ export function ReporteAsuntos() {
     link.click();
   };
 
-  const exportarPDF = () => {
-    window.print();
+  const generarDocumentoReporteAsuntos = async (datos) => {
+    const doc = new jsPDF("p", "mm", "a4");
+
+    // FUENTES
+    doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+    doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+    doc.addFont(MontserratRegular, "Montserrat", "normal");
+    doc.addFont(MontserratBold, "Montserrat", "bold");
+
+    const COLORS = {
+      grisPrincipal: [96, 89, 93],
+      beige1: [197, 176, 153],
+      beige2: [205, 177, 156],
+      beige3: [218, 206, 192],
+      vino: [121, 20, 42],
+      blanco: [255, 255, 255],
+      negro: [0, 0, 0],
+    };
+  
+    const hoy = new Date();
+  
+    const fechaHoy =
+      String(hoy.getDate()).padStart(2, "0") +
+      "/" +
+      String(hoy.getMonth() + 1).padStart(2, "0") +
+      "/" +
+      hoy.getFullYear();
+  
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+    
+      const margin = 10;
+      const contentWidth = pageWidth - margin * 2;
+    
+      // =========================
+      // HEADER
+      // =========================
+    
+    const dibujarEncabezadoPagina = () => {
+
+      doc.setLineWidth(0.2);
+
+      doc.setFillColor(...COLORS.beige3);
+
+      doc.rect(
+        margin,
+        12,
+        contentWidth,
+        18,
+        "F"
+      );
+
+      doc.addImage(
+        logoGobierno,
+        "PNG",
+        margin + 2,
+        12,
+        75,
+        18
+      );
+
+      doc.setFillColor(...COLORS.vino);
+
+      doc.roundedRect(
+        pageWidth - 60,
+        17,
+        25,
+        8,
+        2,
+        2,
+        "F"
+      );
+
+      doc.setTextColor(...COLORS.blanco);
+
+      doc.setFont("GothamRounded", "bold");
+      doc.setFontSize(9);
+
+      doc.text(
+        "FECHA",
+        pageWidth - 47,
+        22,
+        {
+          align: "center"
+        }
+      );
+
+      doc.setTextColor(...COLORS.grisPrincipal);
+
+      doc.text(
+        fechaHoy,
+        pageWidth - 22,
+        22,
+        {
+          align: "center"
+        }
+      );
+    };
+
+    // DIBUJAR HEADER EN LA PRIMERA PÁGINA
+      dibujarEncabezadoPagina();
+
+        
+  // =========================
+  // TITULO
+  // =========================
+
+    let y = 40;
+
+    doc.setFont("GothamRounded", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...COLORS.vino);
+
+    doc.text(
+      "REPORTE DE ASUNTOS",
+      pageWidth / 2,
+      y,
+      { align: "center" }
+    );
+
+    y += 6;
+
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    const formatearFecha = (fecha) => {
+      if (!fecha) return "-";
+
+      const d = new Date(fecha);
+
+      return (
+        String(d.getDate()).padStart(2, "0") +
+        "/" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "/" +
+        d.getFullYear()
+      );
+    };
+
+    doc.text(
+      `Periodo: ${formatearFecha(form.fechaInicio)} al ${formatearFecha(form.fechaFin)}`,
+      pageWidth / 2,
+      y,
+      { align: "center" }
+    );
+
+    y += 10;
+
+    const columnas = [
+      "FOLIO",
+      "NO DOC.",
+      "ORIGEN",
+      "TURNADO A",
+      "ASUNTO",
+      "COMPROMISO",
+      "INSTRUCCIÓN",
+      "ESTATUS"
+    ];
+
+    const anchos = [
+      18,
+      20,
+      25,
+      25,
+      40,
+      20,
+      28,
+      20
+    ];
+
+    const dibujarEncabezadoTabla = () => {
+
+      let x = margin;
+
+      columnas.forEach((titulo, index) => {
+
+        doc.setFillColor(...COLORS.vino);
+
+        doc.rect(
+          x,
+          y,
+          anchos[index],
+          10,
+          "F"
+        );
+
+        doc.setTextColor(...COLORS.blanco);
+
+        doc.setFont("Montserrat", "bold");
+        doc.setFontSize(8);
+
+        doc.text(
+          titulo,
+          x + anchos[index] / 2,
+          y + 6,
+          { align: "center" }
+        );
+
+        x += anchos[index];
+      });
+
+      y += 10;
+    };
+
+    dibujarEncabezadoTabla();
+
+    let fila = 0;
+
+    datos.forEach((item) => {
+
+      (item.turnados || []).forEach((turnado) => {
+
+        const valores = [
+          item.folio || "-",
+          item.docId || "-",
+          item.remitente?.name || "-",
+          item.remitente?.area || "-",
+          item.asunto || "-",
+          formatearFecha(turnado.compromiso),
+          turnado.instruccion?.descripcion || "-",
+          turnado.status || "-"
+        ];
+
+        const lineasPorCelda = valores.map(
+          (valor, i) =>
+            doc.splitTextToSize(
+              String(valor),
+              anchos[i] - 3
+            )
+        );
+
+        const maxLineas = Math.max(
+          ...lineasPorCelda.map(
+            l => l.length
+          )
+        );
+
+        const rowHeight =
+          Math.max(10, maxLineas * 4 + 4);
+
+        if (y + rowHeight > 270) {
+
+          doc.addPage();
+
+          dibujarEncabezadoPagina();
+
+          y = 40;
+
+          dibujarEncabezadoTabla();
+        }
+
+        const fondo =
+          fila % 2 === 0
+            ? COLORS.beige3
+            : COLORS.blanco;
+
+        let x = margin;
+
+        lineasPorCelda.forEach((lineas, i) => {
+
+          doc.setFillColor(...fondo);
+
+          doc.rect(
+            x,
+            y,
+            anchos[i],
+            rowHeight,
+            "F"
+          );
+
+          doc.setDrawColor(...COLORS.beige1);
+
+          doc.rect(
+            x,
+            y,
+            anchos[i],
+            rowHeight
+          );
+
+          doc.setTextColor(...COLORS.negro);
+
+          doc.setFont("Montserrat", "normal");
+          doc.setFontSize(8);
+
+          doc.text(
+            lineas,
+            x + 1.5,
+            y + 4
+          );
+
+          x += anchos[i];
+        });
+
+        y += rowHeight;
+
+        fila++;
+      });
+
+    });
+
+    const footerY = pageHeight - 15;
+
+    doc.setDrawColor(...COLORS.vino);
+
+    doc.line(
+      margin,
+      footerY,
+      pageWidth - margin,
+      footerY
+    );
+
+    doc.setFontSize(8);
+
+    doc.text(
+      "Sistema Automatizado de Gestión y Archivo de la Secretaría de Educación (SAGASE)",
+      pageWidth / 2,
+      footerY + 5,
+      { align: "center" }
+    );
+
+    const nombrePDF =
+      `Reporte_Asuntos_${Date.now()}.pdf`;
+
+    const pdfBlob = doc.output("blob");
+
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    doc.save(nombrePDF);
+
+    return {
+      url: pdfUrl,
+      nombre: nombrePDF,
+    };
   };
 
   return (
@@ -223,93 +607,40 @@ export function ReporteAsuntos() {
             Generar
           </button>
 
-          {mostrarReporte && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <AnimatePresence>
+            {mostrarVisorReporte && archivoReporte && (
+              <motion.div
+                className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  className="bg-white w-[90%] h-[90%] rounded-lg overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
+                    <span>{archivoReporte.nombre}</span>
 
-              <div className="w-[95%] max-w-6xl bg-white rounded shadow-xl overflow-hidden">
-
-                <div className="bg-gray-600 text-white flex items-center justify-between px-4 py-2 text-xs">
-                  <div className="flex gap-2">
-                    <button onClick={exportarPDF} className="bg-red-600 px-2 py-1 rounded">PDF</button>
-                    <button onClick={exportarExcel} className="bg-green-600 px-2 py-1 rounded">Excel</button>
+                    <button
+                      onClick={() => setMostrarVisorReporte(false)}
+                      className="px-3 py-1 bg-white text-[#8B1538] rounded"
+                    >
+                      Cerrar
+                    </button>
                   </div>
 
-                  <div className="font-semibold">Página 1 de 1</div>
-
-                  <button
-                    onClick={() => setMostrarReporte(false)}
-                    className="bg-[#8B1538] w-6 h-6 rounded-full flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="p-8 bg-gray-100 overflow-y-auto max-h-[80vh]">
-                  <div className="bg-white p-8 shadow">
-
-                    <div className="text-center space-y-1 mb-6 text-xs">
-                      <h2 className="font-semibold">
-                        Sistema Automatizado de Gestión y Archivo de la Secretaría de Salud SAGASE
-                      </h2>
-                      <p>Reporte de Asuntos</p>
-                      <p>Dirección de Desarrollo Archivístico Nacional</p>
-                      <p className="font-semibold">
-                        Del NO ESPECIFICADO al NO ESPECIFICADO
-                      </p>
-                    </div>
-
-                    <div className="text-[11px] mb-4 space-y-1">
-                      <p><strong>Origen del Turno:</strong> {form.origen ? form.origen.toUpperCase() : "NO ESPECIFICADO"}</p>
-
-                      <p>
-                        <strong>Estatus:</strong>{" "}
-                        {[
-                          form.Registrado && "Registrados",
-                          form.autorizadoYTurnado && "Autorizados y turnados",
-                          form.Recibido && "Recibidos en ejecución",
-                          form.Concluido && "Con atención concluida",
-                          form.Validado && "Con atención validada",
-                          form.cerrados && "Cerrados"
-                        ].filter(Boolean).join(", ") || "NO ESPECIFICADO"}
-                      </p>
-                    </div>
-
-                    <table className="w-full text-[11px] border border-[#8B1538]">
-                      <thead className="bg-[#8B1538] text-white">
-                        <tr>
-                          <th className="px-2 py-2 border">FOLIO</th>
-                          <th className="px-2 py-2 border">N° DE DOCUMENTO</th>
-                          <th className="px-2 py-2 border">ORIGEN DE TURNO</th>
-                          <th className="px-2 py-2 border">TURNADO A</th>
-                          <th className="px-2 py-2 border">ASUNTO</th>
-                          <th className="px-2 py-2 border">FECHA COMPROMISO</th>
-                          <th className="px-2 py-2 border">INSTRUCCIÓN</th>
-                          <th className="px-2 py-2 border">ESTATUS</th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {datosReporte.map((item) => ( item.turnados.map((turnado, index) => (
-                          <tr key={index}>
-                            <td className="px-2 py-2 border">{item.folio}</td>
-                            <td className="px-2 py-2 border">{item.docId}</td>
-                            <td className="px-2 py-2 border">{item.remitente.name}</td>
-                            <td className="px-2 py-2 border">{item.remitente.area}</td>
-                            <td className="px-2 py-2 border">{item.asunto}</td>
-                            <td className="px-2 py-2 border">{turnado.compromiso.split("T")[0]}</td>
-                            <td className="px-2 py-2 border">{turnado.instruccion.descripcion}</td>
-                            <td className="px-2 py-2 border">{turnado.status}</td>
-                          </tr>
-                        ))))}
-                      </tbody>
-                    </table>
-
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
+                  <iframe
+                    src={archivoReporte.url}
+                    className="w-full h-[calc(100%-56px)]"
+                    title="Reporte Asuntos"
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
 
