@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import Swal from "sweetalert2";
 import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service.js";
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAdicional, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
 import { getUsers } from "../../services/user.service.js";
+import jsPDF from "jspdf";
+import logoGobierno from "../../assets/images/nayaritLogo.png";
 
 import {
   Toggle,
@@ -1027,6 +1029,547 @@ const documentosFiltrados = documentos.filter((d) =>
     tipo: "",
     descripcion: "",
   });
+
+  const formatDateForInput = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? ""
+      : date.toISOString().split("T")[0];
+  };
+
+  const safeText = (value, fallback = "") => {
+    if (value === undefined || value === null || value === "") {
+      return fallback;
+    }
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        return value
+          .map((item) => safeText(item))
+          .filter(Boolean)
+          .join(", ");
+      }
+      return (
+        value.descripcion ||
+        value.tipo ||
+        value.name ||
+        value.nombre ||
+        value.area ||
+        value.dependencia ||
+        value.cargo ||
+        value.label ||
+        JSON.stringify(value)
+      );
+    }
+    return String(value);
+  };
+  
+  const [mostrarVisorTurno, setMostrarVisorTurno] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
+
+  const obtenerTextoPlano = (valor, fallback = "-") => {
+  if (!valor) return fallback;
+
+  // Si ya es string o número
+  if (typeof valor === "string" || typeof valor === "number") {
+    return String(valor);
+  }
+
+  // Si es objeto
+  if (typeof valor === "object") {
+    return (
+      valor.nombre ||
+      valor.descripcion ||
+      valor.label ||
+      valor.value ||
+      fallback
+    );
+  }
+
+  return fallback;
+};
+
+  const generarDocumentoTurno = async (turno) => {
+    
+    console.log("TURNO COMPLETO:", turno);
+  
+      // ===== OBTENER ID DEL DOCUMENTO =====
+
+    const documentoId = documentoSeleccionado?._id || documentoSeleccionado?.docId || documentoSeleccionadoPendientes?._id || documentoSeleccionadoPendientes?.docId;
+
+    console.log("DOCUMENTO ID:", documentoId);
+  
+    let documentoCompleto = {};
+  
+    // ===== CONSULTAR DOCUMENTO =====
+  
+    if (documentoId) {
+      try {
+  
+        const token = localStorage.getItem("token");
+  
+        const response = await getDocumentById(documentoId, token);
+  
+        if (response.ok) {
+          const data = await response.json();
+  
+          documentoCompleto = data.documento || data;
+  
+          console.log("DOCUMENTO COMPLETO:", documentoCompleto);
+        }
+  
+      } catch (error) {
+        console.error("Error obteniendo documento:", error);
+      }
+    }
+    
+    const doc = new jsPDF();
+  
+    // ===== PALETA OFICIAL =====
+    const COLORS = {
+      grisPrincipal: [96, 89, 93],      // #60595D
+      beige1: [197, 176, 153],          // #C5B099
+      beige2: [205, 177, 156],          // #CDB19C
+      beige3: [218, 206, 192],          // #DACEC0
+      vino: [121, 20, 42],              // #79142A
+      blanco: [255, 255, 255],
+      negro: [0, 0, 0],
+      grisBorde: [180, 180, 180],
+    };
+  
+    const fechaHoy = new Date().toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    });
+  
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+  
+    // ===== TIPOGRAFÍA =====
+    // jsPDF no incluye Gotham Rounded ni Montserrat por defecto.
+    // Aquí usamos helvetica simulando:
+    // - bold = Gotham Rounded Bold
+    // - normal = Montserrat Regular
+  
+    // ===== HEADER =====
+  
+    // Línea superior decorativa
+    doc.setDrawColor(...COLORS.vino);
+    doc.setLineWidth(2.5);
+    doc.line(margin, 10, pageWidth - margin, 10);
+  
+    // Fondo decorativo header
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(margin, 12, contentWidth, 18, "F");
+  
+    // ===== LOGO INSTITUCIONAL =====
+  
+    // IMPORTANTE:
+    // logoGobierno debe ser una imagen en base64 o importada
+  
+    doc.addImage(
+      logoGobierno, // imagen
+      "PNG",        // formato
+      margin + 2,   // X
+      12,           // Y
+      85,           // ancho
+      18            // alto
+    );
+  
+    // ===== FECHA =====
+    doc.setFillColor(...COLORS.vino);
+    doc.roundedRect(130, 13, 25, 8, 2, 2, "F");
+  
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("FECHA", 142.5, 19, { align: "center" });
+  
+    doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setFont("helvetica", "normal");
+    doc.text(fechaHoy, 175, 19, { align: "center" });
+  
+    // ===== LÍNEA SEPARADORA =====
+    doc.setDrawColor(...COLORS.beige2);
+    doc.setLineWidth(0.7);
+    doc.line(margin, 35, pageWidth - margin, 35);
+  
+    // ===== TABLA =====
+    let y = 42;
+    const col1 = margin;
+    const col2 = 68;
+    const col3 = 110;
+    const col4 = 142;
+    const rowHeight = 10;
+  
+    const dibujarFila = (label1, val1, label2, val2, yPos) => {
+      // Fondo fila
+      doc.setFillColor(...COLORS.beige3);
+      doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+  
+      // Label 1
+      doc.setFillColor(...COLORS.grisPrincipal);
+      doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+  
+      doc.setTextColor(...COLORS.blanco);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text(label1, col1 + 2, yPos);
+  
+      // Valor 1
+      doc.setTextColor(...COLORS.negro);
+      doc.setFont("helvetica", "normal");
+      doc.text(obtenerTextoPlano(val1, "-"), col2, yPos);
+  
+      if (label2) {
+        // Label 2
+        doc.setFillColor(...COLORS.vino);
+        doc.rect(col3, yPos - 6, 28, rowHeight, "F");
+  
+        doc.setTextColor(...COLORS.blanco);
+        doc.setFont("helvetica", "bold");
+        doc.text(label2, col3 + 2, yPos);
+  
+        // Valor 2
+        doc.setTextColor(...COLORS.negro);
+        doc.setFont("helvetica", "normal");
+        doc.text(obtenerTextoPlano(val2, "-"), col4 + 3, yPos);
+      }
+  
+      // Borde
+      doc.setDrawColor(...COLORS.beige1);
+      doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+    };
+  
+    const dibujarFilaSimple = (label, valor, yPos) => {
+      // Fondo fila
+      doc.setFillColor(...COLORS.beige3);
+      doc.rect(col1, yPos - 6, contentWidth, rowHeight, "F");
+  
+      // Label
+      doc.setFillColor(...COLORS.grisPrincipal);
+      doc.rect(col1, yPos - 6, 50, rowHeight, "F");
+  
+      doc.setTextColor(...COLORS.blanco);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text(label, col1 + 2, yPos);
+  
+      // Valor
+      doc.setTextColor(...COLORS.negro);
+      doc.setFont("helvetica", "normal");
+      doc.text(obtenerTextoPlano(valor, "-"), col2, yPos);
+  
+      // Borde
+      doc.setDrawColor(...COLORS.beige1);
+      doc.rect(col1, yPos - 6, contentWidth, rowHeight);
+    };
+  
+    // ===== DATOS =====
+  
+    dibujarFilaSimple(
+      "ÁREA DE ATENCIÓN",
+        turno?.areaDestino?.nombre ||
+        turno?.destinatario?.nombre ||
+        "COORDINACIÓN DE ARCHIVO",
+      y
+    );
+    y += rowHeight;
+  
+    dibujarFila(
+      "TURNO NÚMERO",
+      turno?.numeroTurno || "000000",
+      "FOLIO",
+      documentoCompleto?.folio ||
+      documentoCompleto?.numeroFolio ||
+      "N/A",
+      y
+    );
+    y += rowHeight;
+  
+    dibujarFila(
+      "FECHA DOCUMENTO",
+      formatDateForInput(
+        documentoCompleto?.fechaDocumento ||
+        documentoCompleto?.fechaDoc
+      ) || formatDateForInput(turno?.fecha) || fechaHoy,
+      "DOCUMENTO",
+      documentoCompleto?.documento ||
+      documentoCompleto?.numeroDocumento ||
+      documentoCompleto?.docId ||
+      "N/A",
+      y
+    );
+    y += rowHeight;
+  
+    // RECIBIDO EN
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, y - 6, contentWidth, rowHeight, "F");
+  
+    doc.setDrawColor(...COLORS.beige1);
+    doc.rect(col1, y - 6, contentWidth, rowHeight);
+  
+    doc.setFillColor(...COLORS.vino);
+    doc.rect(col3, y - 6, 28, rowHeight, "F");
+  
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("RECIBIDO EN", col3 + 2, y);
+  
+    doc.setTextColor(...COLORS.negro);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      formatDateForInput(turno?.fechaAcuse) || formatDateForInput(turno?.fechaTurnado) || fechaHoy,
+      col4 + 3,
+      y
+    );
+  
+    y += rowHeight;
+  
+    dibujarFilaSimple(
+      "PROCEDENCIA",
+      safeText(
+        turno?.remitente?.nombre ||
+        turno?.remitente?.name ||
+        turno?.quienTurna?.nombre ||
+        turno?.turna?.nombre,
+        ""
+      ),
+      y
+    );
+    y += rowHeight;
+  
+    dibujarFilaSimple(
+      "REFERENCIA",
+      turno?.referencia ||
+      turno?.instruccion?.descripcion ||
+      turno?.instruccion ||
+      "INFORMA",
+      y
+    );
+  
+    y += rowHeight;
+  
+  dibujarFila(
+    "PRIORIDAD",
+    turno?.prioridad || "-",
+    "ESTATUS",
+    turno?.status || turno?.estatus || "-",
+    y
+  );
+  
+  y += rowHeight;
+  
+  dibujarFila(
+    "ÁREA TURNA",
+    turno?.turna?.area ||
+    turno?.areaTurna ||
+    turno?.turna ||
+    "-",
+    "QUIÉN TURNA",
+    turno?.quienTurna || turno?.turna,
+    y
+  );
+  
+  y += rowHeight;
+  
+  dibujarFilaSimple(
+    "FECHA TÉRMINO",
+    formatDateForInput(turno?.compromiso) ||
+    formatDateForInput(turno?.fechaTurnado) ||
+    "-",
+    y
+  );
+  
+    y += rowHeight + 8;
+  
+    // ===== ASUNTO =====
+  
+    doc.setFillColor(...COLORS.vino);
+    doc.roundedRect(col1, y - 6, 32, 8, 2, 2, "F");
+  
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("ASUNTO", col1 + 2, y);
+  
+    y += 10;
+  
+    const asuntoTexto =
+      documentoCompleto?.asunto ||
+      turno?.asunto ||
+      turno?.descripcion ||
+      turno?.comentario ||
+      turno?.instruccion?.descripcion ||
+      "Sin asunto especificado.";
+  
+    const asuntoLineas = doc.splitTextToSize(
+      asuntoTexto,
+      contentWidth - 10
+    );
+  
+    const asuntoHeight = asuntoLineas.length * 5 + 10;
+  
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, y - 4, contentWidth, asuntoHeight, "F");
+  
+    doc.setDrawColor(...COLORS.beige1);
+    doc.rect(col1, y - 4, contentWidth, asuntoHeight);
+  
+    doc.setTextColor(...COLORS.negro);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(asuntoLineas, col1 + 5, y + 4);
+  
+    y += asuntoHeight + 10;
+  
+    // ===== ACUERDO =====
+  
+    doc.setFillColor(...COLORS.grisPrincipal);
+    doc.roundedRect(col1, y - 6, 35, 8, 2, 2, "F");
+  
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("OBSERVACIONES", col1 + 2, y);
+  
+    y += 10;
+  
+    const acuerdoTexto =
+      documentoCompleto?.observaciones || 
+      turno?.observaciones || "";
+    const acuerdoLineas = doc.splitTextToSize(
+      acuerdoTexto,
+      contentWidth - 10
+    );
+  console.log(
+    "DOCUMENTO STRING:",
+    JSON.stringify(documentoCompleto, null, 2)
+  );
+    const acuerdoHeight = acuerdoLineas.length * 5 + 10;
+  
+    doc.setFillColor(...COLORS.beige3);
+    doc.rect(col1, y - 4, contentWidth, acuerdoHeight, "F");
+  
+    doc.setDrawColor(...COLORS.beige1);
+    doc.rect(col1, y - 4, contentWidth, acuerdoHeight);
+  
+    doc.setTextColor(...COLORS.negro);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(acuerdoLineas, col1 + 5, y + 4);
+  
+    y += acuerdoHeight + 30;
+  
+    // ===== FIRMA =====
+  
+    doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+  
+  /*  doc.text(
+      "GOBIERNO DEL ESTADO DE NAYARIT",
+      margin + 40,
+      y,
+      { align: "center" }
+    );
+  */
+    // Línea firma
+    doc.setDrawColor(...COLORS.vino);
+    doc.setLineWidth(1);
+    doc.line(margin + 5, y + 15, margin + 75, y + 15);
+  
+    // Firmante
+    const firmante =
+    turno?.remitente?.name ||
+    turno?.remitente?.nombre ||
+    turno?.turna?.nombre ||
+    "MTRA. NOMBRE DEL TITULAR";
+  
+    doc.setTextColor(...COLORS.vino);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+  
+    doc.text(
+      firmante.toUpperCase(),
+      margin + 40,
+      y + 22,
+      { align: "center" }
+    );
+  
+    // Cargo
+    doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+  
+    doc.text(
+      "SECRETARÍA DE EDUCACIÓN",
+      margin + 40,
+      y + 28,
+      { align: "center" }
+    );
+  
+    // ===== SELLO =====
+  
+    doc.setTextColor(...COLORS.vino);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+  
+  
+    doc.text(
+      "RECIBE: ____________________________",
+      pageWidth - 50,
+      y + 25,
+      { align: "center" }
+    );
+  
+    // ===== PDF =====
+    const formatearFechaNombre = (fecha) => {
+      if (!fecha) return "SIN_FECHA";
+
+      const d = new Date(fecha);
+
+      return (
+        String(d.getDate()).padStart(2, "0") +
+        "-" +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        d.getFullYear()
+      );
+    };
+
+    const numeroTurno =
+      turno?.numeroTurno || "SIN_NUMERO";
+
+    const fechaTurno =
+      formatearFechaNombre(
+        turno?.fechaTurnado ||
+        turno?.fechaAcuse ||
+        turno?.fecha
+      );
+
+    const nombrePDF =
+      `Turno_${numeroTurno}_${fechaTurno}.pdf`;
+
+    doc.setProperties({
+      title: nombrePDF,
+    });
+
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    // DESCARGA CON NOMBRE PERSONALIZADO
+    doc.save(nombrePDF);
+
+    return {
+      url: pdfUrl,
+      nombre: nombrePDF,
+    };
+      
+  };
 
   return (
     <main
@@ -2550,6 +3093,7 @@ const documentosFiltrados = documentos.filter((d) =>
                           <table className="min-w-[1200px] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
+                                <th className="px-3 py-2 text-left">Turno</th>
                                 <th className="px-3 py-2 text-left">
                                   Instrucción
                                 </th>
@@ -2584,6 +3128,25 @@ const documentosFiltrados = documentos.filter((d) =>
                                     key={index}
                                     className="border-t hover:bg-gray-50"
                                   >
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center justify-center">
+
+                                        {/* VER TURNO */}
+                                        <button
+                                          title="Descargar turno"
+                                          onClick={async () => {
+                                            const pdfData = await generarDocumentoTurno(turno);
+
+                                            setArchivoVista(pdfData);
+                                            setMostrarVisorTurno(true);
+                                          }}
+                                          className="bg-[#8B1538] hover:bg-[#74112F] text-white p-2 rounded transition"
+                                        >
+                                          <Download size={14} />
+                                        </button>
+
+                                      </div>
+                                    </td>
                                     <td className="px-3 py-2 text-gray-700">
                                       {turno.instruccion?.descripcion || turno.instruccion?.label || turno.instruccion || "Sin instrucción"}
                                     </td>
@@ -2815,7 +3378,46 @@ const documentosFiltrados = documentos.filter((d) =>
 
                       </div>
               
+                        <AnimatePresence>
+                          {mostrarVisorTurno && turnoSeleccionado && (
+                            <motion.div
+                              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <motion.div
+                                className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative overflow-hidden"
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                exit={{ scale: 0.8 }}
+                              >
+
+                                <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
+                                  <span>{turnoSeleccionado.nombre}</span>
+
+                                  {/* CERRAR */}
+                                  <button
+                                    onClick={() => setMostrarVisorTurno(false)}
+                                    className="absolute top-2 right-2 z-50 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
+                                  >
+                                    <Minus size={18} />
+                                  </button>
+                                </div>
+
+                                {/* VISTA */}
+                                <iframe
+                                  title="Vista previa turno"
+                                  src={turnoSeleccionado.url}
+                                  className="w-full h-[calc(100%-56px)]"
+                                />
+
+                              </motion.div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                     </motion.div>
+                  
                   )}
 
                   {tabActiva === "copias" && (
