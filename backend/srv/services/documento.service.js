@@ -479,6 +479,7 @@ const reporteAcuerdos = async (fechaInicio, fechaFin) => {
 }
 
 const reporteAsuntos = async (filtro) => {
+    console.log('Generando reporte de asuntos con filtro:', filtro);
     const filtroAsuntos = {}
     const status = [];
     if(filtro.autorizadoYTurnado) {
@@ -499,6 +500,7 @@ const reporteAsuntos = async (filtro) => {
     if (filtro.Registrado){
         status = [];
     }
+    console.log('Status para filtro:', status);
     if (filtro.fechaInicio) {
         filtroAsuntos.$gte = new Date(filtro.fechaInicio);
       }
@@ -509,7 +511,7 @@ const reporteAsuntos = async (filtro) => {
 
     // buscar todos los documentos con los status marcados
     const query = Object.keys(filtroAsuntos).length > 0 ? {turnados: {$elemMatch: {fechaTurnado: filtroAsuntos, status: { $in: status }} }}
-    : (status.length > 0) ? {turnados: { $elemMatch: { status: { $in: status }} }} : {};
+    : ((status.length > 0) ? {turnados: { $elemMatch: { status: { $in: status }} }} : {});
 
     return await documentoModel.find(query)
     .populate('remitente')
