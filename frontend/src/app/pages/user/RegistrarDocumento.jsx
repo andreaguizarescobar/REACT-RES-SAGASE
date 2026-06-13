@@ -2,17 +2,16 @@ import { Minus, Search, Trash2, Upload, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
-import { getTipoDocument, createTipoDocument } from "../../services/tipoDocumento.service";
-import { getTemaPrincipal, getAdicional } from "../../services/catalogos.service";
+import { getTipoDocument } from "../../services/tipoDocumento.service";
+import { getTemaPrincipal } from "../../services/catalogos.service";
 import { getRemitentes, createRemitente } from "../../services/remitente.service";
-import { getDocuments, createDocument, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service";
+import { getDocuments, createDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional } from "../../services/document.service";
 import { getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getUsers } from "../../services/user.service.js";
 import {
   Toggle,
   handleChangeForm,
   validarDocumentoForm,
-  handleToggleFaltaInformacion as handleToggleFaltaInformacionHelper,
   showValidationError,
 } from "../../utils/documentoFormHelpers.jsx";
 
@@ -35,6 +34,7 @@ export function RegistrarDocumento() {
     temaPrincipal: "",
     sintesis: "",
     faltaInformacion: false,
+    electronica: false,
     documentoInterno: false,
     altaTipoDocumento: false,
     relacionadoCon: false,
@@ -53,22 +53,13 @@ export function RegistrarDocumento() {
   const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
   const [token, setToken] = useState(localStorage.getItem("token") || "");
 
-  const [menuContextual, setMenuContextual] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-    documento: null,
-  });
-
   const [tabActiva, setTabActiva] = useState("datosAsunto");
   const [documentoEditar, setDocumentoEditar] = useState(null);
-  const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [folioGenerado, setFolioGenerado] = useState("");
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
   const [documentoAnexos, setDocumentoAnexos] = useState([]);
   const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
   const [bitacoraDocumento, setBitacoraDocumento] = useState([]);
-  const [materialesAdicionalesState, setMaterialesAdicionalesState] = useState([]);
   const [areas, setAreas] = useState([]);
   const [instrucciones, setInstrucciones] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -105,11 +96,6 @@ export function RegistrarDocumento() {
         if (temasRes.ok) {
           const temas = await temasRes.json();
           setTemasPrincipales(temas.map(t => ({ value: t._id, label: t.descripcion })));
-        }
-        const adicsRes = await getAdicional();
-        if (adicsRes.ok) {
-          const adics = await adicsRes.json();
-          setAdicionales(adics.map(a => ({ value: a._id, label: a.descripcion })));
         }
         const remsRes = await getRemitentes();
         if (remsRes.ok) {
@@ -165,7 +151,7 @@ export function RegistrarDocumento() {
             const users = await usersRes.json();
             setUsuarios(users.map((u) => ({
               value: u._id,
-              label: `${u.name || u.nombre || ""}`.trim(),
+              label: `${u.name || u.nombre || ""}`.trim(),areaId: u.areaId
             })));
           }
         }
@@ -228,9 +214,6 @@ export function RegistrarDocumento() {
       ],
     });
 
-  const handleToggleFaltaInformacion = (value) =>
-    handleToggleFaltaInformacionHelper(value, setForm, setFolioGenerado);
-
   const usuariosInstitucion = [
     { id: 1, nombre: "Juan Pérez - Dirección General" },
     { id: 2, nombre: "María López - Jurídico" },
@@ -245,10 +228,6 @@ export function RegistrarDocumento() {
   );
 
   const [mostrarModalRemitente, setMostrarModalRemitente] = useState(false);
-  const [mostrarModalTipoDocumento, setMostrarModalTipoDocumento] =
-    useState(false);
-
-  const [nuevoTipoDocumento, setNuevoTipoDocumento] = useState("");
 
   const [nuevoRemitente, setNuevoRemitente] = useState({
     nombreCompleto: "",
@@ -283,15 +262,7 @@ export function RegistrarDocumento() {
     descripcion: "",
   });
 
-  const [erroresAsunto, setErroresAsunto] = useState({});
-
   const [busquedaAsunto, setBusquedaAsunto] = useState("");
-
-  const asuntosFiltrados = asuntos.filter((a) =>
-    a.numero?.toLowerCase().includes(busquedaAsunto.toLowerCase()) ||
-    a.descripcion?.toLowerCase().includes(busquedaAsunto.toLowerCase()) ||
-    a.fecha?.toLowerCase().includes(busquedaAsunto.toLowerCase())
-  );
 
   const [busquedaClaveAsunto, setBusquedaClaveAsunto] = useState("");
   const [mostrarOpcionesClave, setMostrarOpcionesClave] = useState(false);
@@ -309,28 +280,6 @@ export function RegistrarDocumento() {
   );
 
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
-  const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] =
-    useState(false);
-
-  const materialesAdicionales = [
-    { value: "carpeta", label: "Carpeta" },
-    { value: "catalogo", label: "Catálogo" },
-    { value: "cd_dvd", label: "CD-DVD" },
-    { value: "copia", label: "Copia" },
-    { value: "curriculum_vitae", label: "Curriculum Vitae" },
-    { value: "engargolado", label: "Engargolado" },
-    { value: "folleto", label: "Folleto" },
-  ];
-
-  const materialesFiltrados = materialesAdicionales.filter((m) =>
-    m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
-  );
-
-  const [mostrarModalConfirmacion, setMostrarModalConfirmacion] =
-    useState(false);
-
-  const [mostrarMensajeGuardado, setMostrarMensajeGuardado] =
-    useState(false);
 
   const handleSave = () => {
 
@@ -364,6 +313,7 @@ export function RegistrarDocumento() {
             tema: form.temaPrincipal,
             asunto: busquedaTemaPrincipal || form.temaPrincipal.descripcion || "",
             sintesis: form.sintesis,
+            electronica: form.electronica,
             observaciones: form.observaciones,
             relacionados: form.relacionados,
             materialAdicional: form.materialAdicional,
@@ -376,7 +326,7 @@ export function RegistrarDocumento() {
           }
           const response = await createDocument(dataForm, token);
           if (response.ok) {
-
+            const data = await response.json();
             const dataGuardado = {
               ...data,
               noDocumento: form.noDocumento,
@@ -396,12 +346,14 @@ export function RegistrarDocumento() {
               sintesis: form.sintesis,
               observaciones: form.observaciones,
 
-              faltaInformacion: form.faltaInformacion,
+              electronica: form.electronica,
               documentoInterno: form.documentoInterno,
               altaTipoDocumento: form.altaTipoDocumento,
               relacionadoCon: form.relacionadoCon,
             };
-
+            setDocumentoAnexos(data.anexos);
+            setBitacoraDocumento(data.bitacora);
+            setRelacionadosDocumento(data.relacionados);
             // guardar para el modal
             setDocumentoEditar(dataGuardado);
             setFormEditar(dataGuardado);
@@ -435,102 +387,6 @@ export function RegistrarDocumento() {
     });
   };
 
-  const handleModificar = async () => {
-    const doc = documentoSeleccionado;
-    if (!doc) return;
-
-    const docId = doc.docId || doc.numeroDocumento || doc._id;
-    if (!docId) return;
-
-    try {
-      const response = await getDocumentById(docId, token);
-      if (!response.ok) {
-        console.error("Error obteniendo documento por ID:", response.status, response.statusText);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo obtener el documento completo.",
-        });
-        return;
-      }
-
-      const fullDoc = await response.json();
-      const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
-      const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
-      const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
-      const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
-      const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
-      const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
-      const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
-      const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
-      const tipoRemitente = fullDoc.interno ? "interno" : "externo";
-
-      setDocumentoEditar(fullDoc);
-      setFormEditar({
-        ejercicio: fullDoc.ejercicio || new Date().getFullYear().toString(),
-        noDocumento: fullDoc.docId || fullDoc.numeroDocumento || "",
-        fechaDocumento: formatDateValue(fullDoc.fechaDoc),
-        fechaAcuse: formatDateValue(fullDoc.acuse),
-        fechaRegistro: formatDateValue(fullDoc.registro, true),
-        tipoRemitente,
-        remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
-        remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
-        tipoDocumento: selectedTipoValue,
-        temaPrincipal: selectedTemaValue,
-        asunto: selectedTemaValue,
-        sintesis: fullDoc.sintesis,
-        observaciones: fullDoc.observaciones || "",
-        documentoInterno: !!fullDoc.interno,
-        faltaInformacion: !!fullDoc.faltaInformacion,
-        otroFuncionario: !!fullDoc.otroFuncionario,
-        altaTipoDocumento: false,
-        relacionadoCon: !!fullDoc.relacionadoCon,
-        materialAdicional: selectedMaterialValue,
-      });
-
-      setBusquedaTipoDoc(selectedTipoLabel);
-      setBusquedaTemaPrincipal(selectedTemaLabel);
-      setBusquedaMaterial(selectedMaterialLabel);
-      setBusquedaRemitenteExt(remitenteLabel);
-      setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
-      setDocumentoAnexos(fullDoc.anexos || []);
-      setTurnosDocumento(fullDoc.turnados || []);
-      setCopiasDocumento(fullDoc.copias || []);
-      setBitacoraDocumento(fullDoc.bitacora || []);
-      setRelacionadosDocumento(
-        (fullDoc.relacionados || [])
-          .map((rel) => {
-            if (!rel || !rel.item) return null;
-            const related = rel.item;
-            return {
-              relationId: rel._id,
-              value: related._id || related.value,
-              folio: related.folio || related.label || "",
-              docId: related.docId || "",
-              remitente: related.remitente ? (related.remitente.name || related.remitente) : "",
-              asunto: related.asunto || related.observaciones || "",
-            };
-          })
-          .filter(Boolean)
-      );
-      setDocumentosSeleccionados(
-        (fullDoc.relacionados || []).map((rel) =>
-          rel?.item?._id || rel?.item || rel
-        )
-      );
-      setDocumentoSeleccionado(fullDoc);
-
-      setModalEditarAbierto(true);
-    } catch (fetchError) {
-      console.error("Error obteniendo documento por ID:", fetchError);
-      Swal.fire({
-        icon: "error",
-        title: "Error de conexión",
-        text: "No se pudo recuperar el documento completo.",
-      });
-    }
-  };
-
   const handlePrint = () => {
     window.print();
   };
@@ -541,72 +397,9 @@ export function RegistrarDocumento() {
   
   const bitacoraRef = useRef(null);
 
-  const imprimirDoc = () => {
-    window.print();
-  };
-
-  const exportarExcelModal = () => {
-    const datos = documentosFiltrados;
-  
-    if (!datos.length) return;
-  
-    const encabezados = [
-      "Folio",
-      "No. Documento",
-      "Fecha",
-      "Síntesis",
-      "Remitente Interno",
-      "Remitente Externo",
-      "Estatus",
-      "Motivo"
-    ];
-  
-    const filas = datos.map((doc) => [
-      doc.folio,
-      doc.numeroDocumento,
-      doc.fecha,
-      doc.sintesis,
-      doc.remitenteInterno,
-      doc.remitenteExterno,
-      doc.estatus,
-      doc.motivo
-    ]);
-  
-    let contenidoCSV =
-      encabezados.join(",") + "\n" +
-      filas.map((fila) => fila.join(",")).join("\n");
-  
-    const blob = new Blob(["\uFEFF" + contenidoCSV], {
-      type: "text/csv;charset=utf-8;"
-    });
-  
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Documentos_${estatusSeleccionado}.csv`;
-    link.click();
-  };
-
-  const [copias, setCopias] = useState([
-    "Víctor Manuel Enríquez Paniagua",
-    "María Verónica Leal Camarena",
-    "Guillermo Bonilla Tenorio",
-    "Dirección de Administración",
-  ]);
-
-  const eliminarCopia = (index) => {
-    setCopias((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
   const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
-  const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
   const [selectedCopiaUsuario, setSelectedCopiaUsuario] = useState(null);
-
-  const funcionariosFiltrados = usuarios
-    .filter((u) =>
-      u.label.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
-      !copiasDocumento.some((copia) => (copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "").toLowerCase() === u.label.toLowerCase())
-    );
 
   const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
 
@@ -645,10 +438,10 @@ export function RegistrarDocumento() {
   const validarFormularioAltaInstruccion = () => {
     let nuevosErrores = {};
 
-    if (!form.instruccion) nuevosErrores.instruccion = true;
-    if (!form.areaDestino) nuevosErrores.areaDestino = true;
-    if (!form.prioridad) nuevosErrores.prioridad = true;
-    if (!form.fecha) nuevosErrores.fecha = true;
+    if (!formTurno.instruccion) nuevosErrores.instruccion = true;
+    if (!formTurno.areaDestino) nuevosErrores.areaDestino = true;
+    if (!formTurno.prioridad) nuevosErrores.prioridad = true;
+    if (!formTurno.fecha) nuevosErrores.fecha = true;
 
     setErroresTurno(nuevosErrores);
 
@@ -680,15 +473,14 @@ export function RegistrarDocumento() {
 
     try {
       const turnadoData = {
-        instruccion: form.instruccion,
-        remitente: form.remitente,
-        areaDestino: form.areaDestino,
-        dirigido: form.dirigido,
-        prioridad: form.prioridad,
-        compromiso: form.fecha,
-        turna: form.turna,
-        notas: form.notas,
-        status: form.autorizar ? "Autorizado" : "Pendiente",
+        instruccion: formTurno.instruccion,
+        remitente: documentoEditar.remitente,
+        areaDestino: formTurno.areaDestino,
+        dirigido: formTurno.dirigido,
+        prioridad: formTurno.prioridad,
+        compromiso: formTurno.fecha,
+        turna: localStorage.getItem("user")._id,
+        notas: formTurno.notas,
       };
 
       const response = await addTurnado(currentDocId, turnadoData, token);
@@ -729,63 +521,6 @@ export function RegistrarDocumento() {
     }
   };
 
-  const handleGuardarCopia = async () => {
-    if (!selectedCopiaUsuario) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Selecciona un funcionario",
-        showConfirmButton: false,
-        timer: 2500,
-      });
-      return;
-    }
-
-    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
-    if (!currentDocId) {
-      Swal.fire({
-        icon: "error",
-        title: "Documento no seleccionado",
-        text: "Abre un documento antes de guardar la copia.",
-      });
-      return;
-    }
-
-    try {
-      const copiaData = {
-        funcionario: selectedCopiaUsuario.value,
-      };
-
-      const response = await addCopia(currentDocId, copiaData, token);
-      if (!response.ok) throw new Error("Error agregando la copia");
-
-      const updatedDocumento = await response.json();
-      setDocumentoEditar(updatedDocumento);
-      setDocumentoSeleccionado(updatedDocumento);
-      setCopiasDocumento(updatedDocumento.copias || []);
-      setMostrarModalCopias(false);
-      setBusquedaFuncionario("");
-      setSelectedCopiaUsuario(null);
-
-      Swal.fire({
-        icon: "success",
-        title: "Copia guardada",
-        text: "La copia se agregó correctamente.",
-        showConfirmButton: false,
-        timer: 2000,
-      });
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: "error",
-        title: "Error al guardar la copia",
-        text: "No se pudo guardar la copia.",
-      });
-    }
-  };
-
-  const [mostrarModalAnexo, setMostrarModalAnexo] = useState(false);
   const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
   const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
   const [archivo, setArchivo] = useState(null);
@@ -870,7 +605,6 @@ export function RegistrarDocumento() {
       formData.append('mensaje', mensaje);
       formData.append('nombre', nombreDoc);
 
-      console.log("Subiendo anexo con datos:", currentDocId);
       const response = await uploadAnexo(currentDocId, formData, token);
       if (!response.ok) throw new Error('Error subiendo el anexo');
 
@@ -1023,13 +757,6 @@ export function RegistrarDocumento() {
 
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
 
-  const getReferenceLabel = (value) => {
-    if (!value) return "";
-    if (typeof value === 'object' && value.label) return value.label;
-    if (typeof value === 'string') return value;
-    return String(value);
-  };
-
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
@@ -1047,15 +774,10 @@ export function RegistrarDocumento() {
   const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
   const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
 
-  const [busquedaAdicional, setBusquedaAdicional] = useState("");
   const [mostrarOpcionesAdicional, setMostrarOpcionesAdicional] = useState(false);
 
   const temasFiltradosPrincipal = temasPrincipales.filter((tema) =>
     tema.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
-  );
-
-  const adicionalesFiltrados = adicionales.filter((adic) =>
-    adic.label.toLowerCase().includes(busquedaAdicional.toLowerCase())
   );
 
 const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
@@ -1184,30 +906,8 @@ const obtenerLabel = (lista, id) => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
       }, []);
-    
-      
-    const anexosFiltrados = anexos.filter((anexo) =>
-      Object.values(anexo).some((valor) =>
-        valor.toLowerCase().includes(busquedaVerTurnos.toLowerCase())
-      )
-    );
 
-      const [materiales, setMateriales] = useState([
-        {
-          id: 1,
-          tipo: "CD",
-          descripcion: "Contiene información digital del asunto",
-          registrador: "Víctor Manuel Enríquez Paniagua",
-        },
-      ]);
-    
-      const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
-    
-      const materialesAdicionalesFiltrados = materiales.filter((m) =>
-        m.tipo.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-        m.descripcion.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-        m.registrador.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase())
-      );
+      const [materialesAdicionales, setMaterialesAdicionales] = useState([]);
     
       const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
     
@@ -1486,14 +1186,6 @@ const obtenerLabel = (lista, id) => {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">Falta información:</span>
-                <Toggle
-                  checked={form.faltaInformacion}
-                  onChange={handleToggleFaltaInformacion}
-                />
-              </div>
-
             </div>
           </div>
 
@@ -1660,24 +1352,31 @@ const obtenerLabel = (lista, id) => {
                 />
               </div>
 
-              <div className="col-span-1">
-                <label className="text-xs text-gray-500 flex items-center justify-between">
-                  <span>Material adicional</span>
-                  <span className="text-xs text-gray-500">
-                    {form.materialAdicional ? "Sí" : "No"}
-                  </span>
-                </label>
-                <div className="mt-2">
+              <div className="flex items-center gap-20">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500 flex items-center justify-between">
+                  <span>Soporte adicional</span>
+                  </label>
                   <Toggle
                     checked={form.materialAdicional}
                     onChange={(value) => setForm({ ...form, materialAdicional: value })}
                   />
                 </div>
+                
+                <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
+                <Toggle
+                  checked={form.electronica}
+                  onChange={(value) => setForm({ ...form, electronica: value })}
+                />
+                </div>
               </div>
+
 
               <div className="col-span-1">
                 <label className="text-xs text-gray-500">Observaciones</label>
-                <textarea className="w-full border rounded px-2 py-1" />
+                <textarea 
+                  name="observaciones" value={form.observaciones} onChange={handleChange} className="w-full border rounded px-2 py-1" />
               </div>
 
             </div>
@@ -1945,7 +1644,6 @@ const obtenerLabel = (lista, id) => {
                     <input
                       value={busquedaDocumentoRelacionado}
                       onChange={(e) => {
-                        console.log("Buscando documento relacionado:", e.target.value);
                         setBusquedaDocumentoRelacionado(e.target.value);
                         setMostrarOpcionesDocumento(true);
                       }}
@@ -2243,7 +1941,7 @@ const obtenerLabel = (lista, id) => {
                   },
                   {
                     id: "materialAdicional",
-                    label: "Material adicional",
+                    label: "Soporte adicional",
                   },
                   {
                     id: "verTurnos",
@@ -2314,11 +2012,6 @@ const obtenerLabel = (lista, id) => {
                           <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">Falta información:</span>
-                          <Toggle checked={formEditar.faltaInformacion} disabled />
-                        </div>
-
                       </div>
                     </div>
                 
@@ -2336,7 +2029,7 @@ const obtenerLabel = (lista, id) => {
                         </div>
 
                         {formEditar.tipoRemitente === "interno" && (
-                          <div className="col-span-2">
+                          <div className="col-span-4">
                             <label className="text-xs text-gray-500">Funcionario / Área *</label>
                             <select 
                               name="remitenteInterno" 
@@ -2345,10 +2038,8 @@ const obtenerLabel = (lista, id) => {
                               className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
                               value={obtenerLabel(usuariosInstitucion, documentoEditar?.remitenteInterno)}
                             >
-                              <option value="">Seleccionar</option>
-                              {usuariosInstitucion.map((u) => (
-                                <option key={u.id} value={u.nombre}>{u.nombre}</option>
-                              ))}
+                              <option value="">{
+                                remitentes.map((remitente) => remitente.value === documentoEditar?.remitenteInterno && remitente.label ? remitente.label : "") }</option>
                             </select>
                           </div>
                         )}
@@ -2417,38 +2108,12 @@ const obtenerLabel = (lista, id) => {
                           >
                             {/* <Search size={16} className="text-gray-400" /> */}
                             <input
-                              value={obtenerLabel(tiposDocumento, documentoEditar?.tipo)}
+                              value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento)?.label || ""}
                               disabled
                               className="w-full border rounded px-2 py-1 bg-gray-100"
                             />
                           </div>
 
-                          {mostrarOpcionesTipoDoc && (
-                            <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                              {tiposFiltrados.map((t) => (
-                                <div
-                                  key={t.value}
-                                  onClick={() => {
-                                    setFormEditar((prev) => ({
-                                      ...prev,
-                                      tipoDocumento: t.value,
-                                    }));
-
-                                    setBusquedaTipoDoc(t.label);
-                                    setMostrarOpcionesTipoDoc(false);
-
-                                    setErrores((prev) => ({
-                                      ...prev,
-                                      tipoDocumento: false,
-                                    }));
-                                  }}
-                                  className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                >
-                                  {t.label}
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
 
                         {/* Relacionado */}
@@ -2484,7 +2149,7 @@ const obtenerLabel = (lista, id) => {
 
                       </div>
 
-                      <div className="grid grid-cols-4 gap-4 mt-4">
+                      <div className="grid grid-cols-1 gap-2 mt-2">
 
                         {/* Tema */}
                         <div>
@@ -2506,32 +2171,27 @@ const obtenerLabel = (lista, id) => {
                               />
                             </div>
 
-                            {mostrarOpcionesTemaPrincipal && (
-                              <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                {temasFiltradosPrincipal.length > 0 ? (
-                                  temasFiltradosPrincipal.map((t) => (
-                                    <div
-                                      key={t.value}
-                                      onClick={() => {
-                                        setFormEditar({ ...formEditar, temaPrincipal: t.value });
-                                        setBusquedaTemaPrincipal(t.label);
-                                        setMostrarOpcionesTemaPrincipal(false);
-
-                                        setErrores((prev) => ({
-                                          ...prev,
-                                          temaPrincipal: !t.value,
-                                        }));
-                                      }}
-                                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                    >
-                                      {t.label}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                )}
-                              </div>
-                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-10">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-500 flex items-center justify-between">
+                            <span>Soporte adicional</span>
+                            </label>
+                            <Toggle
+                              checked={form.materialAdicional}
+                              onChange={(value) => setForm({ ...form, materialAdicional: value })}
+                              disabled
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-500 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
+                          <Toggle
+                            checked={form.electronica}
+                            onChange={(value) => setForm({ ...form, electronica: value })}
+                            disabled
+                          />
                           </div>
                         </div>
 
@@ -2618,7 +2278,7 @@ const obtenerLabel = (lista, id) => {
                       {/* 🧾 BODY */}
                       <tbody>
                         {documentoAnexosFiltrados.length > 0 ? (
-                          documentoAnexosFiltrados.map((anexo) => (
+                          documentoAnexosFiltrados.map((anexo) => (console.log(anexo),
                             <tr
                               key={anexo._id || anexo.nombre}
                               className="border-t hover:bg-gray-50"
@@ -2634,7 +2294,7 @@ const obtenerLabel = (lista, id) => {
 
                               {/* 👤 REGISTRADOR */}
                               <td className="px-3 py-2 text-gray-700">
-                                {anexo.registrador?.nombre ? anexo.registrador.nombre : "N/A"}
+                                {anexo.registrador.nombre ? anexo.registrador.nombre : "N/A"}
                               </td>
 
                               {/* 💬 MENSAJE */}
@@ -3041,7 +2701,15 @@ const obtenerLabel = (lista, id) => {
               )}
 
 
-                    {tabActiva === "materialAdicional" && (
+                {tabActiva === "materialAdicional" && (
+                    <motion.div
+                      key="materialAdicional"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
+
                     <div className="space-y-4">
 
                       {/* 🔥 HEADER */}
@@ -3054,18 +2722,6 @@ const obtenerLabel = (lista, id) => {
                         >
                           Añadir material adicional
                         </button>
-
-                        {/* 🔍 Buscador */}
-                        <div className="flex-1 flex items-center border rounded px-2">
-                          <Search size={16} className="text-gray-400" />
-                          <input
-                            value={busquedaMaterial}
-                            onChange={(e) => setBusquedaMaterial(e.target.value)}
-                            className="w-full px-2 py-2 outline-none text-sm"
-                            placeholder="Buscar material..."
-                          />
-                        </div>
-
                       </div>
 
                       {/* 🧾 TABLA */}
@@ -3082,17 +2738,57 @@ const obtenerLabel = (lista, id) => {
                           </thead>
 
                           <tbody>
-                            {materialesAdicionalesFiltrados.length > 0 ? (
-                              materialesAdicionalesFiltrados.map((material) => (
-                                <tr key={material.id} className="border-t hover:bg-gray-50">
+                            {materialesAdicionales.length > 0 ? (
+                              materialesAdicionales.map((material) => (
+                                <tr key={material._id} className="border-t hover:bg-gray-50">
 
                                   {/* 🗑 ELIMINAR */}
                                   <td className="px-4 py-2">
                                     <button
-                                      onClick={() => {
-                                        setMateriales((prev) =>
-                                          prev.filter((m) => m.id !== material.id)
-                                        );
+                                      onClick={async () => {
+                                        const result = await Swal.fire({
+                                          title: "¿Eliminar material?",
+                                          text: `Se eliminará "${material.tipo}" del registro.`,
+                                          icon: "question",
+                                          showCancelButton: true,
+                                          confirmButtonText: "Sí, eliminar",
+                                          cancelButtonText: "Cancelar",
+                                          confirmButtonColor: "#8B1538",
+                                          cancelButtonColor: "#6B7280",
+                                        });
+
+                                        if (result.isConfirmed) {
+                                          try {
+                                            const response = await removeAdicional(
+                                              documentoEditar.docId,
+                                              material._id,
+                                              token
+                                            );
+
+                                            if (response.ok) {
+                                              const docActualizado = await response.json();
+                                              setMaterialesAdicionales(docActualizado.adicional?.adicionales || []);
+                                              setDocumentoEditar(docActualizado);
+
+                                              Swal.fire({
+                                                icon: "success",
+                                                title: "Material eliminado",
+                                                text: "Se eliminó correctamente.",
+                                                confirmButtonColor: "#8B1538",
+                                              });
+                                            } else {
+                                              throw new Error("Error al eliminar material");
+                                            }
+                                          } catch (error) {
+                                            console.error("Error:", error);
+                                            Swal.fire({
+                                              icon: "error",
+                                              title: "Error",
+                                              text: "No se pudo eliminar el material. Intenta de nuevo.",
+                                              confirmButtonColor: "#8B1538",
+                                            });
+                                          }
+                                        }
                                       }}
                                       className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
                                     >
@@ -3109,7 +2805,7 @@ const obtenerLabel = (lista, id) => {
                                   </td>
 
                                   <td className="px-4 py-2 text-gray-700">
-                                    {material.registrador}
+                                    {material.registrador?.nombre || material.registrador || "-"}
                                   </td>
 
                                 </tr>
@@ -3221,25 +2917,43 @@ const obtenerLabel = (lista, id) => {
                                     });
 
                                     if (result.isConfirmed) {
-                                      const nuevo = {
-                                        id: Date.now(),
-                                        ...nuevoMaterial,
-                                        registrador: "Usuario actual",
-                                      };
+                                      try {
+                                        // Llamar al API para agregar el material
+                                        const response = await addAdicional(
+                                          documentoEditar.docId,
+                                          nuevoMaterial,
+                                          token
+                                        );
 
-                                      setMateriales((prev) => [...prev, nuevo]);
+                                        if (response.ok) {
+                                          const docActualizado = await response.json();
+                                          // Actualizar el estado con los materiales del backend
+                                          setMaterialesAdicionales(docActualizado.adicional?.adicionales || []);
+                                          setDocumentoEditar(docActualizado);
 
-                                      // Éxito
-                                      await Swal.fire({
-                                        icon: "success",
-                                        title: "Material agregado",
-                                        text: "Se agregó correctamente.",
-                                        confirmButtonColor: "#8B1538",
-                                      });
+                                          // Éxito
+                                          await Swal.fire({
+                                            icon: "success",
+                                            title: "Material agregado",
+                                            text: "Se agregó correctamente.",
+                                            confirmButtonColor: "#8B1538",
+                                          });
 
-                                      // limpiar y cerrar
-                                      setNuevoMaterial({ tipo: "", descripcion: "" });
-                                      setMostrarModalMaterial(false);
+                                          // limpiar y cerrar
+                                          setNuevoMaterial({ tipo: "", descripcion: "" });
+                                          setMostrarModalMaterial(false);
+                                        } else {
+                                          throw new Error("Error al agregar material");
+                                        }
+                                      } catch (error) {
+                                        console.error("Error:", error);
+                                        Swal.fire({
+                                          icon: "error",
+                                          title: "Error",
+                                          text: "No se pudo agregar el material. Intenta de nuevo.",
+                                          confirmButtonColor: "#8B1538",
+                                        });
+                                      }
                                     }
                                   }}
                                   className="px-4 py-2 bg-[#8B1538] text-white rounded"
@@ -3254,6 +2968,8 @@ const obtenerLabel = (lista, id) => {
                       </AnimatePresence>
 
                     </div>
+                  
+                    </motion.div>
                   )}
 
                     
@@ -3286,7 +3002,6 @@ const obtenerLabel = (lista, id) => {
                           </thead>
 
                           <tbody>
-                            {/* Datos simulados */}
                             {[].length > 0 ? (
                               [].map((item, index) => (
                                 <tr key={index} className="border-t hover:bg-gray-50">
@@ -3447,8 +3162,8 @@ const obtenerLabel = (lista, id) => {
                                 <div className="col-span-2">
                                   <label>Instrucción*</label>
                                   <select
-                                    value={form.instruccion}
-                                    onChange={(e) => setForm({ ...form, instruccion: e.target.value })}
+                                    value={formTurno.instruccion}
+                                    onChange={(e) => setFormTurno({ ...formTurno, instruccion: e.target.value })}
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.instruccion ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
@@ -3458,32 +3173,14 @@ const obtenerLabel = (lista, id) => {
                                       </option>
                                     ))}
                                   </select>
-
-                                </div>
-
-                                {/* Funcionario */}
-                                <div>
-                                  <label>Funcionario que remite</label>
-                                  <select
-                                    value={form.remitente}
-                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {remitentes.map((item) => (
-                                      <option key={item.value} value={item.value}>
-                                        {item.label}
-                                      </option>
-                                    ))}
-                                  </select>
                                 </div>
 
                                 {/* Área destino */}
                                 <div>
                                   <label>Área de destino*</label>
                                   <select
-                                    value={form.areaDestino}
-                                    onChange={(e) => setForm({ ...form, areaDestino: e.target.value })}
+                                    value={formTurno.areaDestino}
+                                    onChange={(e) => setFormTurno({ ...formTurno, areaDestino: e.target.value })}
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.areaDestino ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
@@ -3493,23 +3190,22 @@ const obtenerLabel = (lista, id) => {
                                       </option>
                                     ))}
                                   </select>
-
                                 </div>
 
                                 {/* Dirigido a */}
                                 <div className="col-span-2">
                                   <label>Dirigido a</label>
                                   <select
-                                    value={form.dirigido}
-                                    onChange={(e) => setForm({ ...form, dirigido: e.target.value })}
+                                    value={formTurno.dirigido}
+                                    onChange={(e) => setFormTurno({ ...formTurno, dirigido: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   >
                                     <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
+                                    {usuarios.map((user) => ( formTurno.areaDestino === user.areaId && (
                                       <option key={user.value} value={user.value}>
                                         {user.label}
                                       </option>
-                                    ))}
+                                    )))}
                                   </select>
                                 </div>
 
@@ -3517,78 +3213,41 @@ const obtenerLabel = (lista, id) => {
                                 <div>
                                   <label>Prioridad*</label>
                                   <select
-                                    value={form.prioridad}
-                                    onChange={(e) => setForm({ ...form, prioridad: e.target.value })}
+                                    value={formTurno.prioridad}
+                                    onChange={(e) => setFormTurno({ ...formTurno, prioridad: e.target.value })}
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
-                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
-                                    <option value="Urgente">Urgente</option>
+                                    <option value="Urgente">Con fecha de termino</option>
                                     <option value="Normal">Normal</option>
                                   </select>
-
                                 </div>
 
                                 {/* Fecha */}
+                                {formTurno.prioridad === "Urgente" && (
                                 <div>
-                                  <label>Fecha compromiso*</label>
+                                  <label>Fecha de termino*</label>
                                   <input
                                     type="date"
-                                    value={form.fecha}
+                                    value={formTurno.fecha}
                                     onChange={(e) =>
-                                      setForm({ ...form, fecha: e.target.value })
+                                      setFormTurno({ ...formTurno, fecha: e.target.value })
                                     }
                                     className={`w-full border rounded px-3 py-2 ${
                                       errores.fecha ? "border-red-500" : "border-gray-300"
                                     }`}
                                   />
 
-                                </div>
-
-                                {/* Quién lo turna */}
-                                <div>
-                                  <label>Quién lo turna</label>
-                                  <select
-                                    value={form.turna}
-                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                </div>) || null}
 
                                 {/* Notas */}
                                 <div className="col-span-2">
                                   <label>Notas</label>
                                   <textarea
-                                    value={form.notas}
-                                    onChange={(e) => setForm({ ...form, notas: e.target.value })}
+                                    value={formTurno.notas}
+                                    onChange={(e) => setFormTurno({ ...formTurno, notas: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   />
-                                </div>
-
-                                {/* Autorizar */}
-                                <div className="col-span-2 flex items-center gap-3">
-                                  <label>Autorizar:</label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, autorizar: !form.autorizar })}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                                      form.autorizar ? "bg-[#8B1538]" : "bg-gray-300"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-                                        form.autorizar ? "translate-x-6" : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
                                 </div>
 
                               </div>

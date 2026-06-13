@@ -22,21 +22,14 @@ export function AsignacionRoles() {
   });
 
   const [formRol, setFormRol] = useState({
-    proceso: "",
     rol: "",
   });
 
-  const procesos = [
-    "Correspondencia",
-    "Finanzas",
-    "Gestión de instrucciones y solicitudes",
-  ];
-
   const roles = [
-    "Administrador",
-    "Ejecutor",
-    "Registrador Enrutador",
-    "Validador de respuesta",
+    "ADMIN",
+    "REGISTRADOR",
+    "EJECUTOR",
+    "VALIDADOR",
   ];
 
   const fetchUsers = async () => {
@@ -68,21 +61,17 @@ export function AsignacionRoles() {
 
   const getUserRole = (user) => {
     const primaryRole = user.roles?.[0] || {};
-    return {
-      proceso: primaryRole.proceso || null,
-      rol: primaryRole.rol || null,
-    };
+    return primaryRole.rol || null;
   };
 
   const filteredUsers = users.filter((user) => {
     const texto = criterio.toLowerCase();
-    const { proceso, rol } = getUserRole(user);
+    const rol = getUserRole(user);
 
     return (
       (user.nombre?.toLowerCase().includes(texto) ||
         user.username?.toLowerCase().includes(texto) ||
         user.userId?.toLowerCase().includes(texto) ||
-        proceso?.toLowerCase().includes(texto) ||
         rol?.toLowerCase().includes(texto))
     );
   });
@@ -102,23 +91,13 @@ export function AsignacionRoles() {
   };
 
   const handleAsignar = () => {
+    const rol = getUserRole(menu.user);
     setModalRol({
       visible: true,
       user: menu.user,
-      modo: "asignar",
+      modo: rol ? "editar" : "asignar",
     });
-    setFormRol({ proceso: "", rol: "" });
-    cerrarMenu();
-  };
-
-  const handleEditar = () => {
-    const { proceso, rol } = getUserRole(menu.user);
-    setModalRol({
-      visible: true,
-      user: menu.user,
-      modo: "editar",
-    });
-    setFormRol({ proceso: proceso || "", rol: rol || "" });
+    setFormRol({ rol: rol || "" });
     cerrarMenu();
   };
 
@@ -140,8 +119,8 @@ export function AsignacionRoles() {
   };
 
   const handleSaveRole = async () => {
-    if (!formRol.proceso || !formRol.rol) {
-      alert("Selecciona proceso y rol antes de guardar.");
+    if (!formRol.rol) {
+      alert("Selecciona un rol antes de guardar.");
       return;
     }
 
@@ -149,7 +128,7 @@ export function AsignacionRoles() {
       const token = localStorage.getItem("token");
       const response = await updateUser(
         modalRol.user.userId,
-        { roles: [{ rol: formRol.rol, proceso: formRol.proceso }] },
+        { roles: [{ rol: formRol.rol }] },
         token
       );
 
@@ -202,7 +181,6 @@ export function AsignacionRoles() {
               <tr>
                 <th className="px-3 py-2 text-left">Nombre</th>
                 <th className="px-3 py-2 text-left">Usuario</th>
-                <th className="px-3 py-2 text-left">Proceso</th>
                 <th className="px-3 py-2 text-left">Rol</th>
               </tr>
             </thead>
@@ -219,8 +197,7 @@ export function AsignacionRoles() {
                 </tr>
               ) : (
                 filteredUsers.map((user, index) => {
-                  const { proceso, rol } = getUserRole(user); // 🔥 AQUÍ ESTÁ LA CLAVE
-                  const sinAsignar = !proceso && !rol;
+                  const rol = getUserRole(user);
 
                   return (
                     <motion.tr
@@ -234,12 +211,6 @@ export function AsignacionRoles() {
                       <td className="px-3 py-2">{user.nombre}</td>
 
                       <td className="px-3 py-2">{user.username}</td>
-
-                      <td className="px-3 py-2">
-                        {proceso || (
-                          <span className="italic">Sin asignar</span>
-                        )}
-                      </td>
 
                       <td className="px-3 py-2">
                         {rol || (
@@ -269,34 +240,19 @@ export function AsignacionRoles() {
               left: menu.x,
             }}
           >
-            {/* SI NO TIENE ROL */}
-            {!menu.user?.rol && (
-              <button
-                onClick={handleAsignar}
-                className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-              >
-                Asignar rol
-              </button>
-            )}
+            <button
+              onClick={handleAsignar}
+              className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
+            >
+              Asignar/Cambiar rol
+            </button>
 
-            {/* SI YA TIENE */}
-            {menu.user?.rol && (
-              <>
-                <button
-                  onClick={handleEditar}
-                  className="block px-4 py-2 hover:bg-gray-100 w-full text-left"
-                >
-                  Editar rol
-                </button>
-
-                <button
-                  onClick={handleEliminar}
-                  className="block px-4 py-2 hover:bg-red-100 text-red-600 w-full text-left"
-                >
-                  Eliminar rol
-                </button>
-              </>
-            )}
+            <button
+              onClick={handleEliminar}
+              className="block px-4 py-2 hover:bg-red-100 text-red-600 w-full text-left"
+            >
+              Eliminar rol
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -319,7 +275,7 @@ export function AsignacionRoles() {
               {/* HEADER */}
               <div className="bg-gray-300 px-4 py-2 text-xs font-semibold text-gray-700">
                 {modalRol.modo === "editar"
-                  ? "Editar rol de usuario"
+                  ? "Cambiar rol de usuario"
                   : "Asignar rol a usuario"}
               </div>
 
@@ -353,23 +309,6 @@ export function AsignacionRoles() {
                   </div>
                 </div>
 
-                {/* PROCESO */}
-                <div>
-                  <label className="block mb-1">Proceso:</label>
-                  <select
-                    value={formRol.proceso}
-                    onChange={(e) =>
-                      setFormRol({ ...formRol, proceso: e.target.value })
-                    }
-                    className="w-full border rounded px-2 py-2"
-                  >
-                    <option value="">Seleccionar proceso</option>
-                    {procesos.map((p) => (
-                      <option key={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* ROL */}
                 <div>
                   <label className="block mb-1">Rol:</label>
@@ -390,11 +329,7 @@ export function AsignacionRoles() {
                 {/* BOTÓN */}
                 <div className="flex justify-center pt-2">
                   <button
-                    onClick={() =>
-                      alert(
-                        `${modalRol.modo === "editar" ? "Editado" : "Asignado"} correctamente`
-                      )
-                    }
+                    onClick={handleSaveRole}
                     className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
                   >
                     Guardar

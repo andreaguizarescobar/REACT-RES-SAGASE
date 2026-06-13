@@ -19,7 +19,7 @@ import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
 
 import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
-import { getAreas, getInstrucciones, getAdicional, getTemaPrincipal } from "../services/catalogos.service.js";
+import { getAreas, getInstrucciones } from "../services/catalogos.service.js";
 import { getRemitentes } from "../services/remitente.service.js";
 import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTarea } from "../services/user.service.js";
 
@@ -246,7 +246,7 @@ export function MainContent({ currentView }) {
     const tareaId = doc?._id || doc?.tareaId || documento?.tareaId;
 
     setDocSeleccionadoPendientes({ ...documento, tareaId });
-    setTabActiva("datosAsunto");
+    esEjecutor ? setTabActiva("turnoRecibido") : setTabActiva("verTurnos");
 
     const token = localStorage.getItem("token");
     const docId = getDocumentoIdFromPending(doc);
@@ -270,7 +270,7 @@ export function MainContent({ currentView }) {
       setTurnosDocumento(fullDoc.turnados || []);
       setCopiasDocumento(fullDoc.copias || []);
       setBitacoraDocumento(fullDoc.bitacora || []);
-      setMaterialesAdicionales(fullDoc.adicional || []);
+      setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
 
       setRelacionadosDocumento(
         (fullDoc.relacionados || [])
@@ -693,7 +693,7 @@ const moverAPendientes = () => {
         setTurnosDocumento(docSeleccionadoPendientes.turnados || []);
         setCopiasDocumento(docSeleccionadoPendientes.copias || []);
         setBitacoraDocumento(docSeleccionadoPendientes.bitacora || []);
-        setMaterialesAdicionales(docSeleccionadoPendientes.adicional || []);
+        setMaterialesAdicionales(docSeleccionadoPendientes.adicional?.adicionales || []);
         setRelacionadosDocumento(
           (docSeleccionadoPendientes.relacionados || []).map(normalizeRelacionadoItem)
         );
@@ -917,6 +917,10 @@ const moverAPendientes = () => {
                 } catch (fetchErr) {
                   console.warn('No se pudo obtener anexo por fetch, usando URL directa', fetchErr);
                 }
+                
+                // Si fetch falla, usar URL directa
+                setArchivoVista(url);
+                setMostrarVisor(true);
               } catch (err) {
                 console.error('openAnexo error', err);
                 setArchivoVista(null);
@@ -954,7 +958,7 @@ const moverAPendientes = () => {
                   const usersRes = await getUsers(token);
                   if (usersRes.ok) {
                     const users = await usersRes.json();
-                    setUsuarios((users || []).map((u) => ({ value: u._id, label: `${u.name || u.nombre || ''}`.trim() })));
+                    setUsuarios((users || []).map((u) => ({ value: u._id, label: `${u.name || u.nombre || ''}`.trim(), areaId: u.areaId })));
                   }
                 }
               } catch (error) {
@@ -1136,21 +1140,14 @@ const moverAPendientes = () => {
             const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
           
           
-            const [materiales, setMateriales] = useState([
-              {
-                id: 1,
-                tipo: "CD",
-                descripcion: "Contiene información digital del asunto",
-                registrador: "Víctor Manuel Enríquez Paniagua",
-              },
-            ]);
+            const [materiales, setMateriales] = useState([]);
           
             const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
           
-            const materialesAdicionalesFiltrados = materiales.filter((m) =>
-              m.tipo.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-              m.descripcion.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-              m.registrador.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase())
+            const materialesAdicionalesFiltrados = materialesAdicionales.filter((m) =>
+              m.tipo?.toLowerCase().includes(busquedaMaterial.toLowerCase()) ||
+              m.descripcion?.toLowerCase().includes(busquedaMaterial.toLowerCase()) ||
+              m.registrador?.nombre?.toLowerCase().includes(busquedaMaterial.toLowerCase())
             );
           
             const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
@@ -1317,7 +1314,7 @@ const moverAPendientes = () => {
 
                       {/* 🔹 CONTENIDO */}
                       <p className="font-semibold text-gray-800 pr-10">
-                        {doc.tarea}
+                        {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
                       </p>
                       <p className="text-gray-500">{doc.descripcion}</p>
 
@@ -1329,7 +1326,7 @@ const moverAPendientes = () => {
                           <span className="font-medium">Folio:</span> {doc.documento.folio}
                         </p>
                         <p>
-                          <span className="font-medium">Dirigido a:</span> {doc.documento.turnados?.at(-1).dirigido.nombre}
+                          <span className="font-medium">Dirigido a:</span> {doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}
                         </p>
                         <p className="text-gray-400">{doc.documento.fechaTurnado}</p>
                       </div>
@@ -1356,7 +1353,7 @@ const moverAPendientes = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {doc.tarea}
+                            {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
                           </p>
                           <p className="text-gray-500 text-[11px]">
                             {safeText(doc.documento.tipo.tipo, "No disponible")} / {doc.tarea}
@@ -1433,7 +1430,7 @@ const moverAPendientes = () => {
                           <div className="p-1">{doc.documento.asunto || "Sin síntesis disponible"}</div>
                           <div className="p-1">{doc.documento.folio}</div>
                           {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
-                            <><div className="p-1">{doc.documento.turnados?.at(-1).dirigido.nombre}</div><div className="p-1">{doc.documento.turnados.at(-1).remitente?.name}</div></>
+                            <><div className="p-1">{doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}</div><div className="p-1">{doc.documento.turnados.at(-1).remitente?.name}</div></>
                           ) : (
                             <><div className="p-1 text-gray-400">Sin información de turno</div><div className="p-1 text-gray-400">Sin información de turno</div></>
                           )}
@@ -1442,7 +1439,7 @@ const moverAPendientes = () => {
 
                       {/* FOOTER */}
                       <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
-                        {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
+                        {doc.documento.turnados.at(-1).prioridad==="Urgente" ? (
                           <span>{tiempoRestante(doc.documento.turnados?.at(-1).compromiso)}</span>
                         ) : (
                           <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
@@ -1452,6 +1449,8 @@ const moverAPendientes = () => {
                           {/* Atiende asunto */}
                           {!esValidador && (
                             <button
+                              type="button"
+                              title="Atender asunto"
                               onClick={() => seleccionarDocPendiente(doc)}
                               className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
                             >
@@ -1517,7 +1516,7 @@ const moverAPendientes = () => {
                               </p>
 
                               <p className="text-gray-500 text-[11px]">
-                                {safeText(doc.documento.tipo.tipo, "No disponible")} / Documento atendido
+                                {safeText(doc.documento?.tipo?.tipo, "No disponible")} / Documento atendido
                               </p>
                             </div>
 
@@ -1548,10 +1547,10 @@ const moverAPendientes = () => {
                             </div>
 
                             <div className="grid grid-cols-4 text-[10px] text-gray-700">
-                              <div className="p-1">{doc.documento.asunto}</div>
-                              <div className="p-1">{doc.documento.folio}</div>
-                              <div className="p-1">{doc.documento.turnados?.at(-1).dirigido.nombre}</div>
-                              <div className="p-1">{doc.documento.turnados?.at(-1).remitente.name}</div>
+                              <div className="p-1">{doc.documento?.asunto}</div>
+                              <div className="p-1">{doc.documento?.folio}</div>
+                              <div className="p-1">{doc.documento?.turnados?.at(-1)?.dirigido ? doc.documento.turnados?.at(-1).dirigido.nombre : "No disponible"}</div>
+                              <div className="p-1">{doc.documento?.turnados?.at(-1)?.remitente?.name}</div>
                             </div>
 
                           </div>
@@ -1614,7 +1613,7 @@ const moverAPendientes = () => {
       if (!form.instruccion) nuevosErrores.instruccion = true;
       if (!form.areaDestino) nuevosErrores.areaDestino = true;
       if (!form.prioridad) nuevosErrores.prioridad = true;
-      if (!form.fecha) nuevosErrores.fecha = true;
+      if (!form.fecha && form.prioridad === "Urgente") nuevosErrores.fecha = true;
   
       setErroresTurno(nuevosErrores);
   
@@ -1647,14 +1646,13 @@ const moverAPendientes = () => {
       try {
         const turnadoData = {
           instruccion: form.instruccion,
-          remitente: form.remitente,
+          remitente: documentoEditar.remitente,
           areaDestino: form.areaDestino,
           dirigido: form.dirigido,
           prioridad: form.prioridad,
           compromiso: form.fecha,
-          turna: form.turna,
+          turna: user?.id || user?._id || "Desconocido",
           notas: form.notas,
-          status: form.autorizar ? "Autorizado" : "Pendiente",
         };
   
         const response = await addTurnado(currentDocId, turnadoData, token);
@@ -1663,8 +1661,24 @@ const moverAPendientes = () => {
         const updatedDocumento = await response.json();
         setDocumentoEditar(updatedDocumento);
         setDocumentoSeleccionado(updatedDocumento);
+        setDocSeleccionadoPendientes({ ...updatedDocumento, tareaId: docSeleccionadoPendientes?.tareaId });
         setTurnosDocumento(updatedDocumento.turnados || []);
         setMostrarModalTurno(false);
+        
+        // Actualizar estado de la tarea a salida
+        if (docSeleccionadoPendientes?.tareaId) {
+          try {
+            const tareaId = docSeleccionadoPendientes.tareaId;
+            await concluirTarea(tareaId, token, notasAtencion || "");
+            
+            // Mover de pendientes a salidas
+            setPendientes((prev) => prev.filter((t) => t._id !== tareaId));
+            setSalidas((prev) => [...prev, { ...docSeleccionadoPendientes, documento: updatedDocumento }]);
+          } catch (taskError) {
+            console.warn("Advertencia: No se pudo concluir la tarea automáticamente", taskError);
+          }
+        }
+        
         setForm({
           instruccion: "",
           remitente: "",
@@ -1681,7 +1695,7 @@ const moverAPendientes = () => {
         Swal.fire({
           icon: "success",
           title: "Turno guardado",
-          text: "El turno se agregó correctamente.",
+          text: "El turno se agregó correctamente y la tarea se movió a salidas.",
           showConfirmButton: false,
           timer: 2000,
         });
@@ -1960,7 +1974,6 @@ const generarDocumentoTurno = async (turno) => {
 
         documentoCompleto = data.documento || data;
 
-        console.log("DOCUMENTO COMPLETO:", documentoCompleto);
       }
 
     } catch (error) {
@@ -2197,7 +2210,7 @@ const generarDocumentoTurno = async (turno) => {
   doc.setTextColor(...COLORS.blanco);
   doc.setFont("GothamRounded", "bold");
   doc.setFontSize(10);
-  doc.text("RECIBIDO EL", col3 + 2, y);
+  doc.text("RECIBIDO EN", col3 + 2, y);
 
   doc.setTextColor(...COLORS.negro);
   doc.setFont("Montserrat", "normal");
@@ -2315,22 +2328,18 @@ const generarDocumentoTurno = async (turno) => {
   doc.setTextColor(...COLORS.blanco);
   doc.setFont("Montserrat", "bold");
   doc.setFontSize(10);
-  doc.text("OBSERVACIONES", col1 + 2, y);
+  doc.text("ACUERDO", col1 + 2, y);
 
   y += 7;
 
-  const acuerdoTexto =
-    documentoCompleto?.observaciones || 
-    turno?.observaciones || "";
+  const acuerdoTexto = `${turno.instruccion.descripcion}.\n${turno?.notas ? `Notas: ${turno.notas}` : ""}`;
+
   const acuerdoLineas = doc.splitTextToSize(
     acuerdoTexto,
     contentWidth - 10
   );
-console.log(
-  "DOCUMENTO STRING:",
-  JSON.stringify(documentoCompleto, null, 2)
-);
-  const acuerdoHeight = acuerdoLineas.length * 5 + 10;
+
+  const acuerdoHeight = acuerdoLineas.length * 5 + 20;
 
   doc.setFillColor(...COLORS.beige3);
   doc.rect(col1, y - 4, contentWidth, acuerdoHeight, "F");
@@ -2533,9 +2542,6 @@ console.log(
                             <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
                             <select name="ejercicio"className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
                               <option value={docSeleccionado.ejercicio}>{docSeleccionado.ejercicio}</option>
-                              <option value="2024">2024</option>
-                              <option value="2025">2025</option>
-                              <option value="2026">2026</option>
                             </select>
                           </div>
                         </div>
@@ -2552,23 +2558,7 @@ console.log(
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.tipoDocumento ||
-                                  "Oficio"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Alta de tipo de documento
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionado.altaTipoDocumento
-                                    ? "Sí"
-                                    : "No"
+                                  docSeleccionado.tipo.descripcion
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2581,8 +2571,7 @@ console.log(
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.tema.descripcion ||
-                                  "Administrativo"
+                                  docSeleccionado.asunto
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2815,7 +2804,7 @@ console.log(
                                     <th className="px-3 py-2 text-left">Registrador</th>
                                     <th className="px-3 py-2 text-left">Mensaje</th>
                                     <th className="px-3 py-2 text-left">Archivo</th>
-                                    <th className="px-3 py-2 text-left">Nombre del documento</th>
+                                    <th className="px-3 py-2 text-left">Número de documento</th>
                                   </tr>
                                 </thead>
     
@@ -2852,7 +2841,6 @@ console.log(
                                           <button 
                                           title="Ver archivo"
                                           onClick={() => { 
-                                            console.log("Ruta del anexo:", anexo.ruta); 
                                             openAnexo(anexo);
                                           }} 
                                           className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
@@ -3011,8 +2999,8 @@ console.log(
                             </thead>
 
                             <tbody>
-                              {docSeleccionadoPendientes?.adicional?.length > 0 ? (
-                                docSeleccionadoPendientes.adicional.map((item, index) => (
+                              {docSeleccionadoPendientes?.adicional?.adicionales?.length > 0 ? (
+                                docSeleccionadoPendientes.adicional.adicionales.map((item, index) => (
                                   <tr key={item._id || index} className="border-t hover:bg-gray-50">
                                     <td className="px-4 py-2 text-gray-700">
                                       {safeText(item.tipo || item.tipoMaterial, "N/A")}
@@ -3423,7 +3411,7 @@ console.log(
                                 </th>
 
                                 <th className="px-3 py-2 text-left border-r">
-                                  Nombre del documento
+                                  Número de documento
                                 </th>
 
                                 <th className="px-3 py-2 text-left">
@@ -4105,7 +4093,7 @@ console.log(
                                 <th className="px-3 py-2 text-left">Registrador</th>
                                 <th className="px-3 py-2 text-left">Mensaje</th>
                                 <th className="px-3 py-2 text-left">Archivo</th>
-                                <th className="px-3 py-2 text-left">Nombre del documento</th>
+                                <th className="px-3 py-2 text-left">Número de documento</th>
                               </tr>
                             </thead>
 
@@ -4137,19 +4125,18 @@ console.log(
                                       {anexo.mensaje || "Sin mensaje"}
                                     </td>
 
-                                    {/* 📄 BOTÓN ARCHIVO */}
-                                    <td className="px-3 py-2">
-                                      <button
-                                        onClick={() => {
-                                          console.log("Ruta del anexo:", anexo.ruta);
-                                          openAnexo(anexo);
-                                        }}
-                                        className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                      >
-                                        Ver Archivo
-                                      </button>
-                                    </td>
-
+                                        {/* BOTÓN ARCHIVO */} 
+                                        <td className="px-3 py-2"> 
+                                          <button 
+                                          title="Ver archivo"
+                                          onClick={() => { 
+                                            console.log("Ruta del anexo:", anexo.ruta); 
+                                            openAnexo(anexo);
+                                          }} 
+                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
+                                            <Eye size={14} /> 
+                                          </button> 
+                                        </td>
 
                                     {/* 📑 NOMBRE */}
                                     <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
@@ -4353,7 +4340,7 @@ console.log(
 
                               {/* Nombre */}
                               <div className="mb-4">
-                                <label className="block text-sm mb-1">Nombre del documento:</label>
+                                <label className="block text-sm mb-1">Número de documento:</label>
                                 <input
                                   type="text"
                                   value={nombreDoc}
@@ -4888,23 +4875,6 @@ console.log(
                                   </select>
                                 </div>
 
-                                {/* Funcionario */}
-                                <div>
-                                  <label>Funcionario que remite</label>
-                                  <select
-                                    value={form.remitente}
-                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {remitentes.map((item) => (
-                                      <option key={item.value} value={item.value}>
-                                        {item.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
                                 {/* Área destino */}
                                 <div>
                                   <label>Área de destino*</label>
@@ -4931,11 +4901,11 @@ console.log(
                                     className="w-full border rounded px-3 py-2"
                                   >
                                     <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
+                                    {usuarios.map((user) => ( form.areaDestino === user.areaId && (
                                       <option key={user.value} value={user.value}>
                                         {user.label}
                                       </option>
-                                    ))}
+                                    )))}
                                   </select>
                                 </div>
 
@@ -4948,13 +4918,13 @@ console.log(
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
-                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
-                                    <option value="Urgente">Urgente</option>
+                                    <option value="Urgente">Con fecha de termino</option>
                                     <option value="Normal">Normal</option>
                                   </select>
                                 </div>
 
                                 {/* Fecha */}
+                                {form.prioridad === "Urgente" && (
                                 <div>
                                   <label>Fecha de termino*</label>
                                   <input
@@ -4968,24 +4938,7 @@ console.log(
                                     }`}
                                   />
 
-                                </div>
-
-                                {/* Quién lo turna */}
-                                <div>
-                                  <label>Quién lo turna</label>
-                                  <select
-                                    value={form.turna}
-                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                </div>) || null}
 
                                 {/* Notas */}
                                 <div className="col-span-2">
@@ -4995,25 +4948,6 @@ console.log(
                                     onChange={(e) => setForm({ ...form, notas: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   />
-                                </div>
-
-                                {/* Autorizar */}
-                                <div className="col-span-2 flex items-center gap-3">
-                                  <label>Autorizar:</label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, autorizar: !form.autorizar })}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                                      form.autorizar ? "bg-[#8B1538]" : "bg-gray-300"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-                                        form.autorizar ? "translate-x-6" : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
                                 </div>
 
                               </div>
@@ -5323,10 +5257,7 @@ console.log(
                           <div className="w-80">
                             <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
                             <select name="ejercicio"className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
-                              <option value="">Seleccionar</option>
-                              <option value="2024">2024</option>
-                              <option value="2025">2025</option>
-                              <option value="2026">2026</option>
+                              <option value="">{docSeleccionadoPendientes.ejercicio}</option>
                             </select>
                           </div>
                         </div>
@@ -5356,44 +5287,11 @@ console.log(
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Alta de tipo de documento
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionadoPendientes.tipo?.historico ||
-                                  docSeleccionadoPendientes.tipoDocumento?.historico
-                                    ? "Sí"
-                                    : "No"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Anexos
-                              </label>
-                              <input
-                                value={
-                                  docSeleccionadoPendientes.anexos?.length > 0
-                                    ? "Sí"
-                                    : "No"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            
-                            <div>
-                              <label className="block text-gray-500 mb-1">
                                 Asunto*
                               </label>
                               <input
                                 value={
-                                  docSeleccionadoPendientes.temaPrincipal ||
-                                  "Administrativo"
+                                  docSeleccionadoPendientes.asunto
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -5406,7 +5304,7 @@ console.log(
                               </label>
                               <input
                                 value={
-                                  docSeleccionadoPendientes.adicional?.length > 0
+                                  docSeleccionadoPendientes.adicional.tiene
                                     ? "Sí"
                                     : "No"
                                 }
@@ -5534,8 +5432,7 @@ console.log(
                               </label>
                               <input
                                 value={
-                                  docSeleccionadoPendientes.observaciones ||
-                                  ""
+                                  docSeleccionadoPendientes.observaciones
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -5564,7 +5461,7 @@ console.log(
 
                                 {/* Nombre archivo */}
                                 <p className="text-sm text-gray-700 text-center font-medium break-all">
-                                  {archivo ? archivo.name : "No hay archivo cargado"}
+                                  {docSeleccionadoPendientes.anexos[0].nombre ? docSeleccionadoPendientes.anexos[0].nombre : "No hay archivo cargado"}
                                 </p>
 
                                 {/* Información */}
@@ -5573,10 +5470,10 @@ console.log(
                                 </span>
 
                                 {/* Botón visualizar */}
-                                {archivo && (
+                                {docSeleccionadoPendientes.anexos[0].url && (
                                   <button
                                     type="button"
-                                    onClick={() => window.open(URL.createObjectURL(archivo), "_blank")}
+                                    onClick={() => window.open(URL.createObjectURL(docSeleccionadoPendientes.anexos[0].url), "_blank")}
                                     className="mt-2 px-4 py-1 bg-[#8B1538] text-white rounded text-sm hover:bg-[#79142A]"
                                   >
                                     Ver archivo
@@ -5621,7 +5518,7 @@ console.log(
                                                       <th className="px-3 py-2 text-left">Registrador</th>
                                                       <th className="px-3 py-2 text-left">Mensaje</th>
                                                       <th className="px-3 py-2 text-left">Archivo</th>
-                                                      <th className="px-3 py-2 text-left">Nombre del documento</th>
+                                                      <th className="px-3 py-2 text-left">Número de documento</th>
                                                     </tr>
                                                   </thead>
                       
@@ -5653,17 +5550,18 @@ console.log(
                                                             {anexo.mensaje || "Sin mensaje"}
                                                           </td>
                       
-                                                          {/* 📄 BOTÓN ARCHIVO */}
-                                                          <td className="px-3 py-2">
-                                                              <button
-                                                              onClick={() => {
-                                                                openAnexo(anexo);
-                                                              }}
-                                                              className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                                            >
-                                                              Ver Archivo
-                                                            </button>
-                                                          </td>
+                                        {/* BOTÓN ARCHIVO */} 
+                                        <td className="px-3 py-2"> 
+                                          <button 
+                                          title="Ver archivo"
+                                          onClick={() => { 
+                                            console.log("Ruta del anexo:", anexo.ruta); 
+                                            openAnexo(anexo);
+                                          }} 
+                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
+                                            <Eye size={14} /> 
+                                          </button> 
+                                        </td>
                       
                       
                                                           {/* 📑 NOMBRE */}
@@ -5938,23 +5836,6 @@ console.log(
                                   </select>
                                 </div>
 
-                                {/* Funcionario */}
-                                <div>
-                                  <label>Funcionario que remite</label>
-                                  <select
-                                    value={form.remitente}
-                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {remitentes.map((item) => (
-                                      <option key={item.value} value={item.value}>
-                                        {item.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
                                 {/* Área destino */}
                                 <div>
                                   <label>Área de destino*</label>
@@ -5981,11 +5862,11 @@ console.log(
                                     className="w-full border rounded px-3 py-2"
                                   >
                                     <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
+                                    {usuarios.map((user) => ( form.areaDestino === user.areaId && (
                                       <option key={user.value} value={user.value}>
                                         {user.label}
                                       </option>
-                                    ))}
+                                    )))}
                                   </select>
                                 </div>
 
@@ -5998,13 +5879,13 @@ console.log(
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
-                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
-                                    <option value="Urgente">Urgente</option>
+                                    <option value="Urgente">Con fecha de termino</option>
                                     <option value="Normal">Normal</option>
                                   </select>
                                 </div>
 
                                 {/* Fecha */}
+                                {form.prioridad === "Urgente" && (
                                 <div>
                                   <label>Fecha de termino*</label>
                                   <input
@@ -6018,24 +5899,7 @@ console.log(
                                     }`}
                                   />
 
-                                </div>
-
-                                {/* Quién lo turna */}
-                                <div>
-                                  <label>Quién lo turna</label>
-                                  <select
-                                    value={form.turna}
-                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                </div>) || null}
 
                                 {/* Notas */}
                                 <div className="col-span-2">
@@ -6045,25 +5909,6 @@ console.log(
                                     onChange={(e) => setForm({ ...form, notas: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   />
-                                </div>
-
-                                {/* Autorizar */}
-                                <div className="col-span-2 flex items-center gap-3">
-                                  <label>Autorizar:</label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, autorizar: !form.autorizar })}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                                      form.autorizar ? "bg-[#8B1538]" : "bg-gray-300"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-                                        form.autorizar ? "translate-x-6" : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
                                 </div>
 
                               </div>
@@ -6453,7 +6298,7 @@ console.log(
                                 </th>
 
                                 <th className="px-3 py-2 text-left border-r">
-                                  Nombre del documento
+                                  Número de documento
                                 </th>
 
                                 <th className="px-3 py-2 text-left">
@@ -6602,7 +6447,7 @@ console.log(
                                   {/* NOMBRE */}
                                   <div>
                                     <label className="block text-sm text-gray-600 mb-2">
-                                      Nombre del documento :
+                                      Número de documento :
                                     </label>
 
                                     <textarea
@@ -6865,7 +6710,7 @@ console.log(
                                 </th>
 
                                 <th className="px-3 py-2 text-left min-w-[220px]">
-                                  Nombre del documento
+                                  Número de documento
                                 </th>
 
                               </tr>
@@ -7539,7 +7384,7 @@ console.log(
                                 <th className="px-3 py-2 text-left">Registrador</th>
                                 <th className="px-3 py-2 text-left">Mensaje</th>
                                 <th className="px-3 py-2 text-left">Archivo</th>
-                                <th className="px-3 py-2 text-left">Nombre del documento</th>
+                                <th className="px-3 py-2 text-left">Número de documento</th>
                               </tr>
                             </thead>
 
@@ -7571,17 +7416,18 @@ console.log(
                                       {anexo.mensaje || "Sin mensaje"}
                                     </td>
 
-                                    {/* 📄 BOTÓN ARCHIVO */}
-                                    <td className="px-3 py-2">
-                                      <button
-                                        onClick={() => {
-                                          openAnexo(anexo);
-                                        }}
-                                        className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                      >
-                                        Ver Archivo
-                                      </button>
-                                    </td>
+                                        {/* BOTÓN ARCHIVO */} 
+                                        <td className="px-3 py-2"> 
+                                          <button 
+                                          title="Ver archivo"
+                                          onClick={() => { 
+                                            console.log("Ruta del anexo:", anexo.ruta); 
+                                            openAnexo(anexo);
+                                          }} 
+                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
+                                            <Eye size={14} /> 
+                                          </button> 
+                                        </td>
 
 
                                     {/* 📑 NOMBRE */}
@@ -7784,9 +7630,9 @@ console.log(
                                 </label>
                               </div>
 
-                              {/* Nombre */}
+                              {/* Número de documento */}
                               <div className="mb-4">
-                                <label className="block text-sm mb-1">Nombre del documento:</label>
+                                <label className="block text-sm mb-1">Número de documento:</label>
                                 <input
                                   type="text"
                                   value={nombreDoc}
@@ -8380,23 +8226,6 @@ console.log(
                                   </select>
                                 </div>
 
-                                {/* Funcionario */}
-                                <div>
-                                  <label>Funcionario que remite</label>
-                                  <select
-                                    value={form.remitente}
-                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {remitentes.map((item) => (
-                                      <option key={item.value} value={item.value}>
-                                        {item.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
                                 {/* Área destino */}
                                 <div>
                                   <label>Área de destino*</label>
@@ -8423,11 +8252,11 @@ console.log(
                                     className="w-full border rounded px-3 py-2"
                                   >
                                     <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
+                                    {usuarios.map((user) => ( form.areaDestino === user.areaId && (
                                       <option key={user.value} value={user.value}>
                                         {user.label}
                                       </option>
-                                    ))}
+                                    )))}
                                   </select>
                                 </div>
 
@@ -8440,13 +8269,13 @@ console.log(
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
-                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
-                                    <option value="Urgente">Urgente</option>
+                                    <option value="Urgente">Con fecha de termino</option>
                                     <option value="Normal">Normal</option>
                                   </select>
                                 </div>
 
                                 {/* Fecha */}
+                                {form.prioridad === "Urgente" && (
                                 <div>
                                   <label>Fecha de termino*</label>
                                   <input
@@ -8460,24 +8289,7 @@ console.log(
                                     }`}
                                   />
 
-                                </div>
-
-                                {/* Quién lo turna */}
-                                <div>
-                                  <label>Quién lo turna</label>
-                                  <select
-                                    value={form.turna}
-                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                </div>) || null}
 
                                 {/* Notas */}
                                 <div className="col-span-2">
@@ -8487,25 +8299,6 @@ console.log(
                                     onChange={(e) => setForm({ ...form, notas: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   />
-                                </div>
-
-                                {/* Autorizar */}
-                                <div className="col-span-2 flex items-center gap-3">
-                                  <label>Autorizar:</label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, autorizar: !form.autorizar })}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                                      form.autorizar ? "bg-[#8B1538]" : "bg-gray-300"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-                                        form.autorizar ? "translate-x-6" : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
                                 </div>
 
                               </div>

@@ -12,7 +12,6 @@ export const getAll = async (req, res) => {
 export const getById = async (req, res) => {
     try {
         const { docId } = req.body; 
-        console.log(docId);
         const documentoItem = await documentoService.getById(docId);
         if (documentoItem) {
             res.status(200).json(documentoItem);
@@ -29,7 +28,6 @@ export const create = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'Archivo no enviado' });
         }
-        console.log('Archivo recibido:', req.file); // Verificar que el archivo se ha recibido correctamente
         const user = req.user; // Obtener el usuario autenticado del token
         const ruta = `../uploads/anexos/${req.file.filename}`;
         const anexoData = {
@@ -39,11 +37,12 @@ export const create = async (req, res) => {
             nombre: req.file.originalname,
         };
         const {data} = req.body;
-        console.log('Datos recibidos en el cuerpo de la solicitud:', data); // Verificar los datos recibidos
         const documentoData = JSON.parse(data).data; // Manejar ambos casos
-        console.log('Datos del documento:', documentoData); // Verificar los datos del documento
         documentoData.anexos = [anexoData];
-        console.log('Datos del documento con anexo:', documentoData);
+        // si el documento tiene material adicional, agregarlo al documentoData
+        if (documentoData.materialAdicional) {
+            documentoData.adicional = {tiene: true, adicionales: []};
+        }
         const newDocumento = await documentoService.create(documentoData, user);
         res.status(201).json(newDocumento);
     } catch (error) {
@@ -142,7 +141,6 @@ export const uploadAnexoDocumento = async (req, res) => {
             fecha: new Date(),
         };
 
-        console.log('Datos del anexo:', anexoData); // Verificar los datos del anexo
         const updatedDocumento = await documentoService.patchAnexoDocumento(docId, anexoData, user);
         if (updatedDocumento) {
             res.status(200).json(updatedDocumento);
@@ -203,6 +201,36 @@ export const patchRemoverRelacionadoDocumento = async (req, res) => {
     try {        const { docId, relacionadoData } = req.body;
         const user = req.user;
         const updatedDocumento = await documentoService.patchRemoverRelacionadoDocumento(docId, relacionadoData, user);
+        if (updatedDocumento) {
+            res.status(200).json(updatedDocumento);
+        } else {
+            res.status(404).json({ error: 'Documento no encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const patchAgregarAdicionalDocumento = async (req, res) => {
+    try {
+        const { docId, adicionalData } = req.body;
+        const user = req.user;
+        const updatedDocumento = await documentoService.patchAgregarAdicionalDocumento(docId, adicionalData, user);
+        if (updatedDocumento) {
+            res.status(200).json(updatedDocumento);
+        } else {
+            res.status(404).json({ error: 'Documento no encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const patchEliminarAdicionalDocumento = async (req, res) => {
+    try {
+        const { docId, adicionalId } = req.body;
+        const user = req.user;
+        const updatedDocumento = await documentoService.patchEliminarAdicionalDocumento(docId, adicionalId, user);
         if (updatedDocumento) {
             res.status(200).json(updatedDocumento);
         } else {

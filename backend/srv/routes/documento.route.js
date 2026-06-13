@@ -38,6 +38,10 @@ router.patch('/anexo', verifyToken, documentoController.patchAnexoDocumento);
 router.post('/anexo-file', verifyToken, upload.single('archivo'), documentoController.uploadAnexoDocumento);
 // patch documento/:docId/removerAnexo
 router.patch('/removerAnexo', verifyToken, documentoController.patchRemoverAnexoDocumento);
+// patch documento/:docId/agregarAdicional
+router.patch('/agregarAdicional', verifyToken, documentoController.patchAgregarAdicionalDocumento);
+// patch documento/:docId/eliminarAdicional
+router.patch('/eliminarAdicional', verifyToken, documentoController.patchEliminarAdicionalDocumento);
 // patch documento/:docId/status
 router.patch('/status', verifyToken, documentoController.patchStatusDocumento);
 // patch documento/:docId/relacionado

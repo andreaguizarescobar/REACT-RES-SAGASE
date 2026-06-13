@@ -54,7 +54,6 @@ const AdicionalSchema = new Schema({
 
 
 const DocumentoSchema = new Schema({
-
   folio: {type: String, required: true, unique: true},
   docId: { type: String, required: true, index: true },
   ejercicio: String,
@@ -62,16 +61,16 @@ const DocumentoSchema = new Schema({
   fechaDoc: Date,
   acuse: Date,
   registro: { type: Date, default: Date.now },
-
+  electronica: { type: Boolean, default: false },
   completa: { type: Boolean, default: true },
   interno: { type: Boolean, default: true },
   status: {type: String, default: "Sin instrucciones"},
-
+  registrador: {type: Schema.Types.ObjectId, ref: 'users'},
   remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
   tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
   secundario: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},
-  adicional: [{tiene: {type: Boolean, default: false}, adicionales:[AdicionalSchema]}],
+  adicional: {tiene: {type: Boolean, default: false}, adicionales:[AdicionalSchema]},
   asunto: String,
   sintesis: String,
   observaciones: String,

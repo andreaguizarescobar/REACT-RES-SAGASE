@@ -115,3 +115,39 @@ export const approveSolicitud = (id, token) => {
         }
     });
 }
+
+export const getNotificaciones = (userId, token) => {
+    return fetchAPI(`/users/notificaciones/${userId}`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const marcarNotificacionLeida = (notifId, userId, token) => {
+    return fetchAPI(`/users/marcar-leida/${notifId}/${userId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const marcarTodasNotificacionesLeidas = (userId, token) => {
+    return fetchAPI(`/users/marcar-todas-leidas/${userId}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export const clearNotificaciones = (userId, token) => {
+    return fetchAPI(`/users/clear-notificaciones/${userId}`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}

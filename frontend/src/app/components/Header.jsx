@@ -4,6 +4,7 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useState, useEffect } from "react";
 import nayaritLogo from "../assets/images/nayaritLogo.png";
 import { verifyTokenRequest } from "../services/auth.service";
+import { getNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, clearNotificaciones } from "../services/user.service";
 import  Swal from "sweetalert2";
 
 export function Header({ onToggleSidebar, onGoHome }) {
@@ -25,36 +26,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
     day: "numeric",
   });
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Nuevo documento registrado",
-      description: "Folio SC-004 fue registrado correctamente",
-      time: "Hace 5 minutos",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Documento entregado",
-      description: "SC-002 fue entregado a Recursos Humanos",
-      time: "Hace 1 hora",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Recordatorio",
-      description: "Tienes 2 documentos pendientes de entrega",
-      time: "Ayer",
-      read: true,
-    },
-    {
-      id: 4,
-      title: "Recordatorio",
-      description: "Tienes 2 documentos pendientes de entrega",
-      time: "Ayer",
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const [usuario, setUsuario] = useState(null);
 
@@ -64,6 +36,48 @@ export function Header({ onToggleSidebar, onGoHome }) {
       setUsuario(JSON.parse(userStorage));
     }
   }, []);
+
+
+  useEffect(() => {
+    if (usuario) {
+      fetchNotifications();
+    }
+  }, [usuario]);
+
+const fetchNotifications = async () => {
+    const token = localStorage.getItem("token");
+      return await getNotificaciones(usuario?.userId, token)
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error("Error al obtener notificaciones");
+        }
+      })
+      .then((data) => {
+        setNotifications(data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const tiempoTranscurrido = (fecha) => {
+  const ahora = new Date();
+  const fechaObj = new Date(fecha);
+
+  const diffMs = ahora - fechaObj;
+
+  const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const horas = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutos = Math.floor(diffMs / (1000 * 60));
+
+  if (dias > 0) return `hace ${dias} día${dias > 1 ? "s" : ""}`;
+  if (horas > 0) return `hace ${horas} hora${horas > 1 ? "s" : ""}`;
+  if (minutos > 0) return `hace ${minutos} minuto${minutos > 1 ? "s" : ""}`;
+
+  return "hace unos segundos";
+};
 
   const handleLogout = () => {
     navigate("/");
@@ -111,11 +125,13 @@ export function Header({ onToggleSidebar, onGoHome }) {
   const marcarComoLeida = (id) => {
     setNotifications((prev) =>
       prev.map((notif) =>
-        notif.id === id
+        notif._id === id
           ? { ...notif, read: true }
           : notif
       )
     );
+    const token = localStorage.getItem("token");
+    marcarNotificacionLeida(id, usuario.userId, token);
   };
 
   const marcarTodasComoLeidas = async () => {
@@ -132,6 +148,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
       }, index * 120);
     });
 
+    const token = localStorage.getItem("token");
+    marcarTodasNotificacionesLeidas(usuario.userId, token);
   };
 
   const limpiarNotificacionesLeidas = () => {
@@ -179,6 +197,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
         setNotifications((prev) =>
           prev.filter((notif) => !notif.read)
         );
+        const token = localStorage.getItem("token");
+        clearNotificaciones(usuario.userId, token);
 
         Swal.fire({
           toast: true,
@@ -376,7 +396,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
 
                           <div
                             className="flex-1 cursor-pointer"
-                            onClick={() => marcarComoLeida(notif.id)}
+                            onClick={() => marcarComoLeida(notif._id)}
                           >
                             <div className="flex items-center gap-2">
 
@@ -391,22 +411,22 @@ export function Header({ onToggleSidebar, onGoHome }) {
                               )}
 
                               <p className="text-sm font-medium text-gray-800">
-                                {notif.title}
+                                {notif.tarea}
                               </p>
                             </div>
 
                             <p className="text-xs text-gray-500 mt-1">
-                              {notif.description}
+                              {notif.descripcion}
                             </p>
 
                             <p className="text-[11px] text-gray-400 mt-1">
-                              {notif.time}
+                              {tiempoTranscurrido(notif.fecha)}
                             </p>
                           </div>
 
                           {!notif.read && (
                             <button
-                              onClick={() => marcarComoLeida(notif.id)}
+                              onClick={() => marcarComoLeida(notif._id)}
                               className="relative group/check opacity-0 group-hover:opacity-100 transition-opacity h-fit mt-1 p-1 rounded-md hover:bg-green-100 text-green-600"
                             >
                               <Check size={15} />

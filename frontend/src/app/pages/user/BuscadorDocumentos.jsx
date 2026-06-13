@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import Swal from "sweetalert2";
-import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia } from "../../services/document.service.js";
+import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional } from "../../services/document.service.js";
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
-import { getTemaPrincipal, getAdicional, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
+import { getTemaPrincipal, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
 import { getUsers } from "../../services/user.service.js";
 import jsPDF from "jspdf";
@@ -67,12 +67,6 @@ export default function BuscadorDocumentos() {
         if (temasRes.ok) {
           const temas = await temasRes.json();
           setTemasPrincipales(temas.map((t) => ({ value: t._id, label: t.descripcion })));
-        }
-
-        const adicsRes = await getAdicional();
-        if (adicsRes.ok) {
-          const adics = await adicsRes.json();
-          setMaterialesAdicionales(adics.map((a) => ({ value: a._id, label: a.descripcion })));
         }
 
         const remsRes = await getRemitentes();
@@ -210,12 +204,7 @@ useEffect(() => {
     temaSecundario: "",
     sintesis: "",
     observaciones: "",
-    documentoInterno: false,
-    faltaInformacion: false,
     otroFuncionario: false,
-    altaTipoDocumento: false,
-    relacionadoCon: false,
-    materialAdicional: "",
   });
 
   const [errores, setErrores] = useState({});
@@ -246,12 +235,11 @@ useEffect(() => {
       const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
       const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
       const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
-      const selectedSecundarioValue = fullDoc.secundario?._id || fullDoc.secundario || "";
       const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
       const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
       const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
       const tipoRemitente = fullDoc.interno ? "interno" : "externo";
-
+      setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
       setDocumentoEditar(fullDoc);
       setFormEditar({
         ejercicio: fullDoc.ejercicio || new Date().getFullYear().toString(),
@@ -263,9 +251,8 @@ useEffect(() => {
         remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
         remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
         tipoDocumento: selectedTipoValue,
-        temaPrincipal: selectedTemaValue,
-        temaSecundario: selectedSecundarioValue,
-        sintesis: fullDoc.asunto,
+        asunto: selectedTemaValue,
+        sintesis: fullDoc.sintesis,
         observaciones: fullDoc.observaciones || "",
         documentoInterno: !!fullDoc.interno,
         faltaInformacion: !!fullDoc.faltaInformacion,
@@ -278,7 +265,7 @@ useEffect(() => {
       setBusquedaTipoDoc(selectedTipoLabel);
       setBusquedaTemaPrincipal(selectedTemaLabel);
       setBusquedaTemaSecundario(selectedSecundarioLabel);
-      setBusquedaMaterial(selectedMaterialLabel);
+      setBusquedaMaterial("");
       setBusquedaRemitenteExt(remitenteLabel);
       setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
       setDocumentoAnexos(fullDoc.anexos || []);
@@ -366,10 +353,9 @@ useEffect(() => {
                 : formEditar.remitenteExterno,
             tipo: formEditar.tipoDocumento,
             tema: formEditar.temaPrincipal,
-            secundario: formEditar.temaSecundario,
-            adicional: formEditar.materialAdicional,
             observaciones: formEditar.observaciones,
-            asunto: formEditar.sintesis,
+            asunto: formEditar.asunto,
+            sintesis: formEditar.sintesis,
           };
 
           const response = await updateDocument(currentDocId, payload, token);
@@ -478,9 +464,6 @@ const documentosFiltrados = documentos.filter((d) =>
 
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
   const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
-  const materialesFiltrados = materialesAdicionales.filter((m) =>
-    m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
-  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1006,14 +989,7 @@ const documentosFiltrados = documentos.filter((d) =>
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
 
 
-  const [materiales, setMateriales] = useState([
-    {
-      id: 1,
-      tipo: "CD",
-      descripcion: "Contiene información digital del asunto",
-      registrador: "Víctor Manuel Enríquez Paniagua",
-    },
-  ]);
+  const [materiales, setMateriales] = useState([]);
 
   const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
 
@@ -1091,14 +1067,10 @@ const documentosFiltrados = documentos.filter((d) =>
 
   const generarDocumentoTurno = async (turno) => {
     
-    console.log("TURNO COMPLETO:", turno);
-  
       // ===== OBTENER ID DEL DOCUMENTO =====
 
     const documentoId = documentoSeleccionado?._id || documentoSeleccionado?.docId || documentoSeleccionadoPendientes?._id || documentoSeleccionadoPendientes?.docId;
 
-    console.log("DOCUMENTO ID:", documentoId);
-  
     let documentoCompleto = {};
   
     // ===== CONSULTAR DOCUMENTO =====
@@ -1115,7 +1087,6 @@ const documentosFiltrados = documentos.filter((d) =>
   
           documentoCompleto = data.documento || data;
   
-          console.log("DOCUMENTO COMPLETO:", documentoCompleto);
         }
   
       } catch (error) {
@@ -1332,7 +1303,7 @@ const documentosFiltrados = documentos.filter((d) =>
     dibujarFilaSimple(
       "PROCEDENCIA",
       safeText(
-        turno?.remitente?.nombre ||
+        turno?.remitente?.area ||
         turno?.remitente?.name ||
         turno?.quienTurna?.nombre ||
         turno?.turna?.nombre,
@@ -1430,26 +1401,21 @@ const documentosFiltrados = documentos.filter((d) =>
   
     doc.setFillColor(...COLORS.grisPrincipal);
     doc.roundedRect(col1, y - 6, 35, 8, 2, 2, "F");
-  
     doc.setTextColor(...COLORS.blanco);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text("OBSERVACIONES", col1 + 2, y);
+    doc.text("ACUERDO", col1 + 2, y);
   
     y += 10;
   
-    const acuerdoTexto =
-      documentoCompleto?.observaciones || 
-      turno?.observaciones || "";
+  const acuerdoTexto = `${turno.instruccion.descripcion}.\n${turno?.notas ? `Notas: ${turno.notas}` : ""}`;
+
     const acuerdoLineas = doc.splitTextToSize(
       acuerdoTexto,
       contentWidth - 10
     );
-  console.log(
-    "DOCUMENTO STRING:",
-    JSON.stringify(documentoCompleto, null, 2)
-  );
-    const acuerdoHeight = acuerdoLineas.length * 5 + 10;
+
+    const acuerdoHeight = acuerdoLineas.length * 5 + 20;
   
     doc.setFillColor(...COLORS.beige3);
     doc.rect(col1, y - 4, contentWidth, acuerdoHeight, "F");
@@ -1660,7 +1626,8 @@ const documentosFiltrados = documentos.filter((d) =>
                     </td>
 
                     <td className="px-4 py-2 min-w-[300px]">
-                      {doc.asunto || "Sin asunto"}
+                      {doc.sintesis?.slice(0, 100) || "Sin asunto"}
+                      {doc.sintesis?.length > 100 && "..."}
                     </td>
 
                     <td className="px-4 py-2 whitespace-nowrap">
@@ -1808,10 +1775,13 @@ const documentosFiltrados = documentos.filter((d) =>
                         id: "anexo",
                         label: "Anexos",
                       },
-                      {
-                        id: "materialAdicional",
-                        label: "Material adicional",
-                      },
+                      // verificar si el documento tiene material adicional para mostrar la pestaña
+                      documentoEditar?.adicional.tiene > 0 && (
+                        {
+                          id: "materialAdicional",
+                          label: "Material adicional",
+                        }
+                      ),
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
@@ -1888,15 +1858,6 @@ const documentosFiltrados = documentos.filter((d) =>
                               <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">Falta información:</span>
-                              <Toggle checked={formEditar.faltaInformacion} onChange={handleToggleFaltaInformacion} />
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">Documento interno:</span>
-                              <Toggle checked={formEditar.documentoInterno} onChange={(v) => setFormEditar((p) => ({ ...p, documentoInterno: v }))} />
-                            </div>
                           </div>
                         </div>
                     
@@ -1914,9 +1875,9 @@ const documentosFiltrados = documentos.filter((d) =>
                             </div>
 
                             {formEditar.tipoRemitente === "interno" && (
-                              <div className="col-span-2">
+                              <div className="col-span-4">
                                 <label className="text-xs text-gray-500">Funcionario / Área *</label>
-                                <select name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 ${errores.remitenteInterno ? "border-red-500 bg-red-50" : ""}`}>
+                                <select disabled name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed`}>
                                   <option value="">Seleccionar</option>
                                   {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
                                     <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
@@ -1978,7 +1939,7 @@ const documentosFiltrados = documentos.filter((d) =>
                             Datos específicos
                           </h2>
 
-                          <div className="grid grid-cols-6 gap-4 items-end">
+                          <div className="grid grid-cols-4 gap-4 items-end">
 
                             {/* Tipo documento con buscador */}
                             <div ref={refTipoDoc} className="col-span-2 relative">
@@ -2044,62 +2005,11 @@ const documentosFiltrados = documentos.filter((d) =>
                                 </div>
                               )}
                             </div>
-
-                            {/* Toggle alta tipo */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">
-                                Alta tipo de documento:
-                              </span>
-                              <Toggle
-                                checked={formEditar.altaTipoDocumento}
-                                onChange={(v) => {
-                                  setFormEditar({ ...formEditar, altaTipoDocumento: v });
-                                  if (v) setMostrarModalTipoDocumento(true);
-                                }}
-                              />
-                            </div>
-
-                            {/* Relacionado */}
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs text-gray-500">Relacionado con:</span>
-                              <Toggle
-                                checked={formEditar.relacionadoCon}
-                                onChange={(v) => {
-                                  setFormEditar({ ...formEditar, relacionadoCon: v });
-
-                                  if (v) {
-                                    setMostrarModalRelacionado(true);
-                                  } else {
-                                    setMostrarModalRelacionado(false);
-
-                                    // 👇 LIMPIAR ASUNTO
-                                    setAsuntoSeleccionado(null);
-                                    setBusquedaAsunto("");
-                                  }
-                                }}
-                              />
-                            </div>
-
-                            {/* Asunto */}
                             <div className="col-span-2">
-                              <label className="text-xs text-gray-500">Anexos</label>
-                              <textarea
-                                value={asuntoSeleccionado?.descripcion || ""}
-                                disabled
-                                className="w-full border rounded px-2 py-1 h-[34px] resize-none bg-gray-100 cursor-not-allowed"
-                              />
-                            </div>
 
-                          </div>
-
-                          <div className="grid grid-cols-4 gap-4 mt-4">
-
-                            {/* Tema */}
-                            <div>
-
-                              <div ref={refTemaPrincipal} className="relative">
+                              <div ref={refTemaPrincipal} className="col-span-2 relative">
                                 <label className="text-xs text-gray-500">
-                                  Selecciona tema principal *
+                                  Selecciona Asunto
                                 </label>
 
                                 <div className={`flex items-center border rounded px-2 ${errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
@@ -2156,93 +2066,9 @@ const documentosFiltrados = documentos.filter((d) =>
                                 )}
                               </div>
                             </div>
+                          </div>
 
-                            <div ref={refTemaSecundario} className="relative">
-                              <label className="text-xs text-gray-500">
-                                Tema secundario
-                              </label>
-
-                              <div className="flex items-center border rounded px-2">
-                                <Search size={16} className="text-gray-400" />
-                                <input
-                                  value={busquedaTemaSecundario}
-                                  onChange={(e) => {
-                                    setBusquedaTemaSecundario(e.target.value);
-                                    setMostrarOpcionesTemaSecundario(true);
-                                  }}
-                                  onFocus={() => setMostrarOpcionesTemaSecundario(true)}
-                                  className="w-full px-2 py-1 outline-none"
-                                  placeholder="Buscar y seleccionar opción"
-                                />
-                              </div>
-
-                              {mostrarOpcionesTemaSecundario && (
-                                <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                  {temasFiltradosSecundario.length > 0 ? (
-                                    temasFiltradosSecundario.map((t) => (
-                                      <div
-                                        key={t.value}
-                                        onClick={() => {
-                                          setFormEditar({ ...formEditar, temaSecundario: t.value });
-                                          setBusquedaTemaSecundario(t.label);
-                                          setMostrarOpcionesTemaSecundario(false);
-                                        }}
-                                        className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                      >
-                                        {t.label}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <div ref={refMaterial} className="relative">
-                              <label className="text-xs text-gray-500">
-                                Selecciona material adicional
-                              </label>
-
-                              <div className="flex items-center border rounded px-2">
-                                <Search size={16} className="text-gray-400" />
-                                <input
-                                  value={busquedaMaterial}
-                                  onChange={(e) => {
-                                    setBusquedaMaterial(e.target.value);
-                                    setMostrarOpcionesMaterial(true);
-                                  }}
-                                  onFocus={() => setMostrarOpcionesMaterial(true)}
-                                  className="w-full px-2 py-1 outline-none"
-                                  placeholder="Buscar y seleccionar opción"
-                                />
-                              </div>
-
-                              {mostrarOpcionesMaterial && (
-                                <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                  {materialesFiltrados.length > 0 ? (
-                                    materialesFiltrados.map((m) => (
-                                      <div
-                                        key={m.value}
-                                        onClick={() => {
-                                          setFormEditar({ ...formEditar, materialAdicional: m.value });
-                                          setBusquedaMaterial(m.label);
-                                          setMostrarOpcionesMaterial(false);
-                                        }}
-                                        className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                      >
-                                        {m.label}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className="px-2 py-1 text-gray-400">
-                                      Sin resultados
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
+                          <div className="grid grid-cols-2 gap-4 mt-4">
 
                             <div className="col-span-4">
                               <label className="text-xs text-gray-500">
@@ -2337,7 +2163,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                 <th className="px-3 py-2 text-left">Registrador</th>
                                 <th className="px-3 py-2 text-left">Mensaje</th>
                                 <th className="px-3 py-2 text-left">Archivo</th>
-                                <th className="px-3 py-2 text-left">Nombre del documento</th>
+                                <th className="px-3 py-2 text-left">Número de documento</th>
                               </tr>
                             </thead>
 
@@ -2595,7 +2421,7 @@ const documentosFiltrados = documentos.filter((d) =>
 
                               {/* Nombre */}
                               <div className="mb-4">
-                                <label className="block text-sm mb-1">Nombre del documento:</label>
+                                <label className="block text-sm mb-1">Número de documento:</label>
                                 <input
                                   type="text"
                                   value={nombreDoc}
@@ -2789,18 +2615,6 @@ const documentosFiltrados = documentos.filter((d) =>
                         >
                           Añadir material adicional
                         </button>
-
-                        {/* 🔍 Buscador */}
-                        <div className="flex-1 flex items-center border rounded px-2">
-                          <Search size={16} className="text-gray-400" />
-                          <input
-                            value={busquedaMaterial}
-                            onChange={(e) => setBusquedaMaterial(e.target.value)}
-                            className="w-full px-2 py-2 outline-none text-sm"
-                            placeholder="Buscar material..."
-                          />
-                        </div>
-
                       </div>
 
                       {/* 🧾 TABLA */}
@@ -2817,17 +2631,57 @@ const documentosFiltrados = documentos.filter((d) =>
                           </thead>
 
                           <tbody>
-                            {materialesAdicionalesFiltrados.length > 0 ? (
-                              materialesAdicionalesFiltrados.map((material) => (
-                                <tr key={material.id} className="border-t hover:bg-gray-50">
+                            {materialesAdicionales.length > 0 ? (
+                              materialesAdicionales.map((material) => (
+                                <tr key={material._id} className="border-t hover:bg-gray-50">
 
                                   {/* 🗑 ELIMINAR */}
                                   <td className="px-4 py-2">
                                     <button
-                                      onClick={() => {
-                                        setMateriales((prev) =>
-                                          prev.filter((m) => m.id !== material.id)
-                                        );
+                                      onClick={async () => {
+                                        const result = await Swal.fire({
+                                          title: "¿Eliminar material?",
+                                          text: `Se eliminará "${material.tipo}" del registro.`,
+                                          icon: "question",
+                                          showCancelButton: true,
+                                          confirmButtonText: "Sí, eliminar",
+                                          cancelButtonText: "Cancelar",
+                                          confirmButtonColor: "#8B1538",
+                                          cancelButtonColor: "#6B7280",
+                                        });
+
+                                        if (result.isConfirmed) {
+                                          try {
+                                            const response = await removeAdicional(
+                                              documentoEditar.docId,
+                                              material._id,
+                                              token
+                                            );
+
+                                            if (response.ok) {
+                                              const docActualizado = await response.json();
+                                              setMaterialesAdicionales(docActualizado.adicional?.adicionales || []);
+                                              setDocumentoEditar(docActualizado);
+
+                                              Swal.fire({
+                                                icon: "success",
+                                                title: "Material eliminado",
+                                                text: "Se eliminó correctamente.",
+                                                confirmButtonColor: "#8B1538",
+                                              });
+                                            } else {
+                                              throw new Error("Error al eliminar material");
+                                            }
+                                          } catch (error) {
+                                            console.error("Error:", error);
+                                            Swal.fire({
+                                              icon: "error",
+                                              title: "Error",
+                                              text: "No se pudo eliminar el material. Intenta de nuevo.",
+                                              confirmButtonColor: "#8B1538",
+                                            });
+                                          }
+                                        }
                                       }}
                                       className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
                                     >
@@ -2844,7 +2698,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                   </td>
 
                                   <td className="px-4 py-2 text-gray-700">
-                                    {material.registrador}
+                                    {material.registrador?.nombre || material.registrador || "-"}
                                   </td>
 
                                 </tr>
@@ -2956,25 +2810,43 @@ const documentosFiltrados = documentos.filter((d) =>
                                     });
 
                                     if (result.isConfirmed) {
-                                      const nuevo = {
-                                        id: Date.now(),
-                                        ...nuevoMaterial,
-                                        registrador: "Usuario actual",
-                                      };
+                                      try {
+                                        // Llamar al API para agregar el material
+                                        const response = await addAdicional(
+                                          documentoEditar.docId,
+                                          nuevoMaterial,
+                                          token
+                                        );
 
-                                      setMateriales((prev) => [...prev, nuevo]);
+                                        if (response.ok) {
+                                          const docActualizado = await response.json();
+                                          // Actualizar el estado con los materiales del backend
+                                          setMaterialesAdicionales(docActualizado.adicional?.adicionales || []);
+                                          setDocumentoEditar(docActualizado);
 
-                                      // Éxito
-                                      await Swal.fire({
-                                        icon: "success",
-                                        title: "Material agregado",
-                                        text: "Se agregó correctamente.",
-                                        confirmButtonColor: "#8B1538",
-                                      });
+                                          // Éxito
+                                          await Swal.fire({
+                                            icon: "success",
+                                            title: "Material agregado",
+                                            text: "Se agregó correctamente.",
+                                            confirmButtonColor: "#8B1538",
+                                          });
 
-                                      // limpiar y cerrar
-                                      setNuevoMaterial({ tipo: "", descripcion: "" });
-                                      setMostrarModalMaterial(false);
+                                          // limpiar y cerrar
+                                          setNuevoMaterial({ tipo: "", descripcion: "" });
+                                          setMostrarModalMaterial(false);
+                                        } else {
+                                          throw new Error("Error al agregar material");
+                                        }
+                                      } catch (error) {
+                                        console.error("Error:", error);
+                                        Swal.fire({
+                                          icon: "error",
+                                          title: "Error",
+                                          text: "No se pudo agregar el material. Intenta de nuevo.",
+                                          confirmButtonColor: "#8B1538",
+                                        });
+                                      }
                                     }
                                   }}
                                   className="px-4 py-2 bg-[#8B1538] text-white rounded"
@@ -3231,23 +3103,6 @@ const documentosFiltrados = documentos.filter((d) =>
                                   </select>
                                 </div>
 
-                                {/* Funcionario */}
-                                <div>
-                                  <label>Funcionario que remite</label>
-                                  <select
-                                    value={form.remitente}
-                                    onChange={(e) => setForm({ ...form, remitente: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {remitentes.map((item) => (
-                                      <option key={item.value} value={item.value}>
-                                        {item.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
                                 {/* Área destino */}
                                 <div>
                                   <label>Área de destino*</label>
@@ -3274,11 +3129,11 @@ const documentosFiltrados = documentos.filter((d) =>
                                     className="w-full border rounded px-3 py-2"
                                   >
                                     <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
+                                    {usuarios.map((user) => ( form.areaDestino === user.areaId && (
                                       <option key={user.value} value={user.value}>
                                         {user.label}
                                       </option>
-                                    ))}
+                                    )))}
                                   </select>
                                 </div>
 
@@ -3291,15 +3146,15 @@ const documentosFiltrados = documentos.filter((d) =>
                                     className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
                                   >
                                     <option value="">Seleccionar</option>
-                                    <option value="Trámite Extra-urgente">Trámite Extra-urgente</option>
-                                    <option value="Urgente">Urgente</option>
+                                    <option value="Urgente">Con fecha de termino</option>
                                     <option value="Normal">Normal</option>
                                   </select>
                                 </div>
 
                                 {/* Fecha */}
+                                {form.prioridad === "Urgente" && (
                                 <div>
-                                  <label>Fecha compromiso*</label>
+                                  <label>Fecha de termino*</label>
                                   <input
                                     type="date"
                                     value={form.fecha}
@@ -3311,24 +3166,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                     }`}
                                   />
 
-                                </div>
-
-                                {/* Quién lo turna */}
-                                <div>
-                                  <label>Quién lo turna</label>
-                                  <select
-                                    value={form.turna}
-                                    onChange={(e) => setForm({ ...form, turna: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                </div>) || null}
 
                                 {/* Notas */}
                                 <div className="col-span-2">
@@ -3338,25 +3176,6 @@ const documentosFiltrados = documentos.filter((d) =>
                                     onChange={(e) => setForm({ ...form, notas: e.target.value })}
                                     className="w-full border rounded px-3 py-2"
                                   />
-                                </div>
-
-                                {/* Autorizar */}
-                                <div className="col-span-2 flex items-center gap-3">
-                                  <label>Autorizar:</label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, autorizar: !form.autorizar })}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                                      form.autorizar ? "bg-[#8B1538]" : "bg-gray-300"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
-                                        form.autorizar ? "translate-x-6" : "translate-x-0"
-                                      }`}
-                                    />
-                                  </button>
                                 </div>
 
                               </div>

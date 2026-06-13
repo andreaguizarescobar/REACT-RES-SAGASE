@@ -6,12 +6,6 @@ export const getTemaPrincipal = () => {
     });
 }
 
-export const getAdicional = () => {
-    return fetchAPI('/adicional/getAll', {
-        method: 'GET',
-    });
-}
-
 export const getAreas = () => {
     return fetchAPI('/areas/getAll', {
         method: 'GET',

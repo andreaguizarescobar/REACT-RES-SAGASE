@@ -39,4 +39,13 @@ router.post('/solicitudes/approve/:id', verifyToken, authorizeRole('ADMIN'), use
 
 // user/solicitud
 router.post('/solicitud', userController.solicitud);
+
+// user/notificaciones/:userId
+router.get('/notificaciones/:userId', verifyToken, userController.getNotificaciones);
+// user/marcar-leida/:notifId/:userId
+router.post('/marcar-leida/:notifId/:userId', verifyToken, userController.marcarNotificacionLeida);
+// user/marcar-todas-leidas/:userId
+router.post('/marcar-todas-leidas/:userId', verifyToken, userController.marcarTodasNotificacionesLeidas);
+// user/clear-notificaciones/:userId
+router.delete('/clear-notificaciones/:userId', verifyToken, userController.clearNotificaciones);
 export default router;

@@ -17,6 +17,7 @@ export function AltaUsuarios() {
     ext: "",
     correo: "",
     copia: false,
+    rol: "",
   });
 
   const handleChange = (e) => {
@@ -64,6 +65,7 @@ export function AltaUsuarios() {
     if (!form.area) newErrors.area = true;
     if (!form.telefono) newErrors.telefono = true;
     if (!form.correo) newErrors.correo = true;
+    if (!form.rol) newErrors.rol = true;
 
     setErrors(newErrors);
 
@@ -93,6 +95,7 @@ export function AltaUsuarios() {
         ext: form.ext,
         email: form.correo,
         copia: form.copia,
+        roles: [{ rol: form.rol }],
         username: credenciales.usuario,
         password: credenciales.password,
     };
@@ -127,6 +130,7 @@ export function AltaUsuarios() {
         ext: "",
         correo: "",
         copia: false,
+        rol: "",
     });
     };
 
@@ -212,6 +216,24 @@ export function AltaUsuarios() {
             <option>Femenino</option>
             <option>Masculino</option>
             <option>Otro</option>
+            </select>
+        </div>
+
+        <div className="col-span-1">
+            <label className="block mb-1">Rol *:</label>
+            <select
+            name="rol"
+            value={form.rol}
+            onChange={handleChange}
+            className={`w-full border rounded px-2 py-2 ${
+                errors.rol ? "border-red-500 bg-red-50" : ""
+            }`}
+            >
+            <option value="">Seleccionar</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="REGISTRADOR">REGISTRADOR</option>
+            <option value="EJECUTOR">EJECUTOR</option>
+            <option value="VALIDADOR">VALIDADOR</option>
             </select>
         </div>
         </div>

@@ -109,6 +109,26 @@ export const removeAnexo = (id, data, token) => {
     });
 };
 
+export const addAdicional = (id, data, token) => {
+    return fetchAPI(`/documentos/agregarAdicional`, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ docId: id, adicionalData: data })
+    });
+};
+
+export const removeAdicional = (id, adicionalId, token) => {
+    return fetchAPI(`/documentos/eliminarAdicional`, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ docId: id, adicionalId: adicionalId })
+    });
+};
+
 export const updateStatus = (id, data, token) => {
     return fetchAPI(`/documentos/status`, {
         method: 'PATCH',

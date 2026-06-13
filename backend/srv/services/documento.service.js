@@ -35,7 +35,8 @@ const getById = async (docId) => {
             }
         })
         .populate('bitacora.user', 'nombre')
-        .populate('respuestas.registrador', 'nombre');
+        .populate('respuestas.registrador', 'nombre')
+        .populate('adicional.adicionales.registrador', 'nombre');
 
     return documento;
 };
@@ -74,9 +75,8 @@ const create = async (documentoData, user) => {
             importancia: 'Alta',
         }
     ];
-
+    documentoData.registrador = user.id;
     const newDocumento = new documentoModel(documentoData);
-
     const doc = await newDocumento.save();
     const pendiente = await userModel.findOneAndUpdate({ _id: user.id },
         {$push: {tareas: {
@@ -88,7 +88,7 @@ const create = async (documentoData, user) => {
         }}},
         {new: true} 
     );
-    return doc
+    return doc.populate('anexos.registrador', 'nombre');
 };
 const putDocumento = async (docId, documentoData, user) => {
     // Asegurar que las fechas sean objetos Date válidos
@@ -139,16 +139,12 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     const session = await mongoose.startSession();
     try{
     session.startTransaction();
-
     const area = await areaModel.findById(turnadoData.areaDestino);
-    
     const instruccion = await instruccionModel.findById(turnadoData.instruccion); // Manejar ambos casos
-    
-
     const doc = await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { turnados: turnadoData,  bitacora: {
-            descripcion: `Turnado a ${area.nombre} con instrucción: ${instruccion.descripcion}`,
+            descripcion: `Turnado al área ${area.nombre} con instrucción: ${instruccion.descripcion}`,
             user: user.id,
             fecha: new Date(),
             importancia: 'Media',
@@ -177,10 +173,13 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     .populate('bitacora.user', 'nombre');
 
     // mover la tarea pendeiente a salidas, cambiando el estatus a salida, y agregar una nueva tarea pendiente para el area destino
-    await userModel.findOneAndUpdate(
-        { _id: user.id, 'tareas.documento': doc._id, 'tareas.status': 'pendiente' },
-        { $set: { 'tareas.$.status': 'salida' } },
-        { session }
+    const pendientes = await userModel.updateOne(
+    { _id: user.id },
+    { $set: { 'tareas.$[t].status': 'salida' } },
+    {
+        session,
+        arrayFilters: [{ 't.documento': doc._id, 't.status': 'pendiente' }]
+    }
     );
 
     await userModel.findOneAndUpdate(
@@ -320,7 +319,6 @@ const patchRemoverAnexoDocumento = async (docId, anexoId, user) => {
             // Verificar si el archivo existe antes de intentar eliminarlo
             if (fs.existsSync(rutaCompleta)) {
                 fs.unlinkSync(rutaCompleta);
-                console.log(`Archivo eliminado: ${rutaCompleta}`);
             } else {
                 console.warn(`Archivo no encontrado para eliminar: ${rutaCompleta}`);
             }
@@ -427,7 +425,6 @@ const patchRelacionadoDocumento = async (docId, relacionadoData, user) => {
 };
 
 const patchRemoverRelacionadoDocumento = async (docId, relacionadoId, user) => {
-    console.log("Eliminando relacionado con ID:", relacionadoId);
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $pull: { relacionados: { item: relacionadoId.relacionadoId } },
@@ -479,7 +476,6 @@ const reporteAcuerdos = async (fechaInicio, fechaFin) => {
 }
 
 const reporteAsuntos = async (filtro) => {
-    console.log('Generando reporte de asuntos con filtro:', filtro);
     const filtroAsuntos = {}
     const status = [];
     if(filtro.autorizadoYTurnado) {
@@ -500,7 +496,6 @@ const reporteAsuntos = async (filtro) => {
     if (filtro.Registrado){
         status = [];
     }
-    console.log('Status para filtro:', status);
     if (filtro.fechaInicio) {
         filtroAsuntos.$gte = new Date(filtro.fechaInicio);
       }
@@ -551,6 +546,74 @@ const patchRespuestaDocumento = async (docId, respuestaData, user, ruta) => {
     .populate('respuestas.registrador', 'nombre');
 };
 
+const patchAgregarAdicionalDocumento = async (docId, adicionalData, user) => {
+    const documento = await documentoModel.findOne({ docId });
+    if (!documento) {
+        throw new Error('Documento no encontrado');
+    }
+
+    // Asegurar que el documento tiene la estructura de adicional
+    if (!documento.adicional) {
+        documento.adicional = { tiene: true, adicionales: [] };
+    }
+
+    // Crear nuevo material adicional
+    const nuevoAdicional = {
+        tipo: adicionalData.tipo,
+        descripcion: adicionalData.descripcion,
+        registrador: user.id,
+    };
+
+    // Agregar a la lista de adicionales
+    documento.adicional.adicionales.push(nuevoAdicional);
+    documento.adicional.tiene = true;
+
+    // Agregar a bitácora
+    documento.bitacora.push({
+        descripcion: `Agregado material adicional: ${adicionalData.tipo}`,
+        user: user.id,
+        fecha: new Date(),
+        importancia: 'Media',
+    });
+
+    await documento.save();
+    return await getById(docId);
+};
+
+const patchEliminarAdicionalDocumento = async (docId, adicionalId, user) => {
+    const documento = await documentoModel.findOne({ docId });
+    if (!documento) {
+        throw new Error('Documento no encontrado');
+    }
+
+    if (!documento.adicional || !documento.adicional.adicionales) {
+        throw new Error('El documento no tiene materiales adicionales');
+    }
+
+    // Encontrar el material a eliminar
+    const adicional = documento.adicional.adicionales.id(adicionalId);
+    if (!adicional) {
+        throw new Error('Material adicional no encontrado');
+    }
+
+    // Guardar el tipo para la bitácora
+    const tipoAdicional = adicional.tipo;
+
+    // Eliminar el material
+    documento.adicional.adicionales.pull({ _id: adicionalId });
+
+    // Agregar a bitácora
+    documento.bitacora.push({
+        descripcion: `Removido material adicional: ${tipoAdicional}`,
+        user: user.id,
+        fecha: new Date(),
+        importancia: 'Media',
+    });
+
+    await documento.save();
+    return await getById(docId);
+};
+
 const searchDocumentos = async (query) => {
     const searchQuery = {
         eliminado: false,
@@ -581,6 +644,8 @@ export default {
     patchStatusDocumento,
     patchRelacionadoDocumento,
     patchRemoverRelacionadoDocumento,
+    patchAgregarAdicionalDocumento,
+    patchEliminarAdicionalDocumento,
     deleteDocumento,
     reporteAcuerdos,
     reporteAsuntos,

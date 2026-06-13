@@ -11,7 +11,7 @@ const UserSchema = new Schema({
   telefono: String,
   ext: String,
   email: String,
-  status: String,
+  status: { type: String, default: "Activo" },
   sexo: String,
   copia: Boolean,
   roles: [{rol: { type: String },
@@ -33,10 +33,8 @@ const UserSchema = new Schema({
   descripcion: { type: String },
   documento: { type: Schema.Types.ObjectId, ref: 'Documento' }}
   ],
-  // Campos para recuperación de contraseña
   resetToken: String,
   resetTokenExpires: Date,
-  //campos para cambio de contraseña en primer inicio de sesión
   firstLogin: { type: Boolean, default: true },
   passwordChangedAt: Date,
 

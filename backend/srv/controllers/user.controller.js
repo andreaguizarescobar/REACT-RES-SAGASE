@@ -206,6 +206,47 @@ export const solicitud = async (req, res) => {
   }
 };
 
+export const getNotificaciones = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const notificaciones = await userService.getNotificaciones(userId);
+    res.json(notificaciones);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const marcarNotificacionLeida = async (req, res) => {
+  try {
+    const notifId = req.params.notifId;
+    const userId = req.params.userId;
+    const result = await userService.marcarNotificacionLeida(userId, notifId);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const marcarTodasNotificacionesLeidas = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const result = await userService.marcarTodasNotificacionesLeidas(userId);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const clearNotificaciones = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const result = await userService.clearNotificaciones(userId);
+    res.json({ message: result });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export default {
   register,
   login,
@@ -224,5 +265,9 @@ export default {
   devolverTarea,
   getSolicitudes,
   approveSolicitud,
-  solicitud
+  solicitud,
+  getNotificaciones,
+  marcarNotificacionLeida,
+  marcarTodasNotificacionesLeidas,
+  clearNotificaciones
 };

@@ -17,6 +17,7 @@ export function SolicitudAltaUsuarios() {
   });
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedRol, setSelectedRol] = useState("");
   const [approvedCredentials, setApprovedCredentials] = useState(null);
 
   const fetchSolicitudes = async () => {
@@ -73,6 +74,7 @@ export function SolicitudAltaUsuarios() {
 
   const handleOpenModal = () => {
     setSelectedRequest(menu.request);
+    setSelectedRol("");
     setModalVisible(true);
     cerrarMenu();
   };
@@ -80,14 +82,22 @@ export function SolicitudAltaUsuarios() {
   const handleCloseModal = () => {
     setModalVisible(false);
     setSelectedRequest(null);
+    setSelectedRol("");
   };
 
   const handleApprove = async () => {
-    if (!selectedRequest) return;
+    if (!selectedRequest || !selectedRol) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campo requerido",
+        text: "Por favor selecciona un rol antes de aprobar.",
+      });
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
-      const response = await approveSolicitud(selectedRequest._id, token);
+      const response = await approveSolicitud(selectedRequest._id, { rol: selectedRol }, token);
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.message || "No se pudo aprobar la solicitud.");
@@ -292,6 +302,21 @@ export function SolicitudAltaUsuarios() {
                       readOnly
                       className="w-full border rounded px-2 py-2 bg-gray-100"
                     />
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="block mb-1">Rol *:</label>
+                    <select
+                      value={selectedRol}
+                      onChange={(e) => setSelectedRol(e.target.value)}
+                      className="w-full border rounded px-2 py-2"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="REGISTRADOR">REGISTRADOR</option>
+                      <option value="EJECUTOR">EJECUTOR</option>
+                      <option value="VALIDADOR">VALIDADOR</option>
+                    </select>
                   </div>
                 </div>
 
