@@ -129,9 +129,12 @@ useEffect(() => {
           console.error("Error cargando documentos:", response.status, response.statusText);
           return;
         }
-
+        const user = JSON.parse(localStorage.getItem("user"));
         const data = await response.json();
-        setDocumentos(Array.isArray(data) ? data : []);
+        const documentos = data.filter((doc) => (
+          doc.registrador.area === user.area || doc.validador.area === user.area || doc.turnados.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")
+        ));
+        setDocumentos(documentos);
       } catch (fetchError) {
         setError("Error de red al cargar los documentos.");
         console.error("Error cargando documentos:", fetchError);
@@ -1776,12 +1779,12 @@ const documentosFiltrados = documentos.filter((d) =>
                         label: "Anexos",
                       },
                       // verificar si el documento tiene material adicional para mostrar la pestaña
-                      documentoEditar?.adicional.tiene > 0 && (
+                      ...documentoEditar?.adicional.tiene ? (
                         {
                           id: "materialAdicional",
                           label: "Material adicional",
                         }
-                      ),
+                      ) : [],
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",

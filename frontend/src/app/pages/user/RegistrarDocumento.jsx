@@ -1223,7 +1223,7 @@ const obtenerLabel = (lista, id) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="col-span-2"
+                    className="col-span-4"
                   >
                     <label className="text-xs text-gray-500">
                       Funcionario / Área *

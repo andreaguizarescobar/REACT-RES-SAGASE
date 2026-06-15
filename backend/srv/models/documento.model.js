@@ -66,6 +66,7 @@ const DocumentoSchema = new Schema({
   interno: { type: Boolean, default: true },
   status: {type: String, default: "Sin instrucciones"},
   registrador: {type: Schema.Types.ObjectId, ref: 'users'},
+  validador: {type: Schema.Types.ObjectId, ref: 'users'},
   remitente: {type: Schema.Types.ObjectId, ref: 'Remitentes'},
   tipo: {type: Schema.Types.ObjectId, ref: 'TipoDocumento'},
   tema: {type: Schema.Types.ObjectId, ref: 'TemaPrincipal'},

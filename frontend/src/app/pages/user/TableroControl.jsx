@@ -9,15 +9,11 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, Pencil, X, Minus } from "lucide-react";
 
-import { getDocuments, updateDocument } from "../../services/document.service";
+import { getDocuments } from "../../services/document.service";
+import { getAreas } from "../../services/catalogos.service";
 
 const fichasGestion = [
   { name: "Sin instrucciones", value: 0, color: "#9CA3AF" },
-  {
-    name: "Con instrucciones no autorizadas",
-    value: 0,
-    color: "#F59E0B",
-  },
   {
     name: "Con instrucción turnada",
     value: 0,
@@ -25,16 +21,11 @@ const fichasGestion = [
   },
   { name: "Con gestión cerrada", value: 0, color: "#1D4ED8" },
   { name: "Eliminados", value: 0, color: "#991B1B" },
-  {
-    name: "Con información faltante",
-    value: 0,
-    color: "#3B82F6",
-  },
 ];
 
 const instruccionesEnviadas = [
   { name: "Cerrado", value: 0, color: "#1D4ED8" },
-  { name: "Concluido", value: 0, color: "#0F766E" },
+  { name: "Con respuesta registrada", value: 0, color: "#0F766E" },
   {
     name: "Recibido, en ejecución",
     value: 0,
@@ -42,21 +33,23 @@ const instruccionesEnviadas = [
   },
   { name: "Validado", value: 0, color: "#8B1538" },
   {
-    name: "Autorizados y turnados",
+    name: "Autorizado y turnado",
     value: 0,
     color: "#F59E0B",
   },
   { name: "Registrado", value: 0, color: "#111827" },
 ];
 
-const instruccionesRecibidas = [
-  { name: "Validado", value: 0, color: "#8B1538" },
-  { name: "Concluido", value: 0, color: "#0F766E" },
+const instruccionesUsuario = [
+  { id: "Validado de usuario", name: "Validado", value: 0, color: "#8B1538" },
+  { id: "Con respuesta registrada de usuario", name: "Con respuesta registrada", value: 0, color: "#0F766E" },
   {
+    id: "Recibido, en ejecución de usuario",
     name: "Recibido, en ejecución",
     value: 0,
     color: "#3B82F6",
   },
+  { id: "Registrado de usuario", name: "Registrado", value: 0, color: "#111827" },
 ];
 
 const copiasConocimiento = [
@@ -64,28 +57,6 @@ const copiasConocimiento = [
   { name: "Por leer", value: 0, color: "#9CA3AF" },
 ];
 
-const documentosInternos = 18;
-
-/* ============================
-   ANEXOS SIMULADOS
-============================ */
-const anexos = [
-  {
-    folio: "2025000001",
-    registrador: "Víctor Manuel Enríquez Paniagua",
-    nombre: "GUARDIA NACIONAL.pdf",
-  },
-  {
-    folio: "2025000001",
-    registrador: "María Verónica Leal Camarena",
-    nombre: "Ficha de Gestión.pdf",
-  },
-  {
-    folio: "2025000002",
-    registrador: "Juan Pérez",
-    nombre: "Solicitud.pdf",
-  },
-];
 
 /* ============================
    COMPONENTE DONUT
@@ -162,8 +133,10 @@ export function TableroControl() {
   const [documentos, setDocumentos] = useState([]);
   const [fichas, setFichasGestion] = useState(fichasGestion);
   const [Enviadas, setInstruccionesEnviadas] = useState(instruccionesEnviadas);
-  const [Recibidas, setInstruccionesRecibidas] = useState(instruccionesRecibidas);
+  const [usuarioInstrucciones, setInstruccionesUsuario] = useState(instruccionesUsuario);
+  const [documentosInternos, setDocumentosInternos] = useState(0);
   const [Copias, setCopiasConocimiento] = useState(copiasConocimiento);
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
   const fetchDocuments = async () => {
@@ -173,36 +146,47 @@ export function TableroControl() {
       setDocumentos(docs);
       const contador = {
         "Sin instrucciones": 0,
-        "Con instrucciones no autorizadas": 0,
         "Con instrucción turnada": 0,
         "Con gestión cerrada": 0,
         "Eliminados": 0,
-        "Con información faltante": 0,
         "Cerrado": 0,
-        "Concluido": 0,
+        "Con respuesta registrada": 0,
         "Recibido, en ejecución": 0,
+        "Validado de usuario": 0,
+        "Con respuesta registrada de usuario": 0,
+        "Recibido, en ejecución de usuario": 0,
         "Validado": 0,
-        "Autorizados y turnados": 0,
+        "Autorizado y turnado": 0,
         "Registrado": 0,
+        "Registrado de usuario": 0,
         "Leído": 0,
         "Por leer": 0,
       }
-      docs.map((doc) => {
-        console.log("Procesando documento:", doc.turnados.length===0);
-        if (doc.turnados.length === 0) {
+
+      docs.map((doc) => { 
+        if (doc.registrador.area === user.area || doc.validador.area === user.area || doc.turnados.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")) {
+        if (doc.status === "Sin instrucciones" && doc.turnados.length === 0) {
           contador["Sin instrucciones"] += 1;
-          contador["Registrado"] += 1;
-        }else if(doc.status === "Autorizado y turnado" || doc.status === "Validado" || doc.status === "Concluido") {
-          contador["Con instrucción turnada"] += 1;
-          if(doc.respuestas.length === 0) {
+        }else if(doc.status === "Autorizado y turnado" || doc.status === "Validado" || doc.status === "Con respuesta registrada" || doc.status === "Recibido, en ejecución") {
+          contador["Con instrucción turnada"] += 1; 
+          if(doc.status === "Recibido, en ejecución") {
+            if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+              contador["Recibido, en ejecución de usuario"] += 1;
+            }
             contador["Recibido, en ejecución"] += 1;
           }else if (doc.status === "Autorizado y turnado") {
-              contador["Autorizados y turnados"] += 1;
+              contador["Autorizado y turnado"] += 1;
           } else {
             if(doc.status === "Validado") {
+              if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+                contador["Validado de usuario"] += 1;
+              }
               contador["Validado"] += 1;
-            } else if(doc.status === "Concluido") {
-              contador["Concluido"] += 1;
+            } else if(doc.status === "Con respuesta registrada") {
+              if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+                contador["Con respuesta registrada de usuario"] += 1;
+              }
+              contador["Con respuesta registrada"] += 1;
             }
           }
         }else if(doc.status === "Cerrado") {
@@ -210,21 +194,22 @@ export function TableroControl() {
           contador["Cerrado"] += 1;
         }else if(doc.eliminado) {
           contador["Eliminados"] += 1;
-        }else if(doc.completa === false) {
-          contador["Con información faltante"] += 1;
-        }else{
-          contador["Con instrucciones no autorizadas"] += 1;
         }
-
+        if (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+          contador["Registrado de usuario"] += 1;
+        }
+        contador["Registrado"] += 1;
+        
         doc.copias.map(copia => {
         if(copia.status === "Leído") {
-          console.log("Documento con copia leído:", );
           contador["Leído"] += 1;
         }else if(copia.status === "Por leer") {
           contador["Por leer"] += 1;
         }
       });
-      });
+      }});
+
+      setDocumentosInternos({value: contador["Registrado"]});
 
       const updatedFichasGestion = fichas.map((ficha) => ({
         ...ficha, 
@@ -237,9 +222,9 @@ export function TableroControl() {
         value: contador[item.name]
       }));
 
-      const updatedInstruccionesRecibidas = Recibidas.map((item) => ({
+      const updatedInstruccionesUsuario = usuarioInstrucciones.map((item) => ({
         ...item,
-        value: contador[item.name]
+        value: contador[item.id]
       }));
 
       const updatedCopiasConocimiento = Copias.map((item) => ({
@@ -249,7 +234,7 @@ export function TableroControl() {
 
       setFichasGestion(updatedFichasGestion);
       setInstruccionesEnviadas(updatedInstruccionesEnviadas);
-      setInstruccionesRecibidas(updatedInstruccionesRecibidas);
+      setInstruccionesUsuario(updatedInstruccionesUsuario);
       setCopiasConocimiento(updatedCopiasConocimiento);
     } catch (error) {
       console.error("Error al obtener documentos:", error);
@@ -260,14 +245,16 @@ export function TableroControl() {
 }, []);
 
   const documentosFiltrados = documentos.filter(
-    (doc) => doc.turnados.length === 0 && ("Sin instrucciones" === estatusSeleccionado || estatusSeleccionado === "Registrado") ||
-    (doc.status === estatusSeleccionado) || (doc.status === "Autorizado y turnado" && estatusSeleccionado === "Con instrucción turnada") ||
-    (doc.respuestas.length === 0 && doc.turnados.length > 0 && estatusSeleccionado === "Recibido, en ejecución") ||
+    (doc) => (estatusSeleccionado === "Registrado" ||
+    (doc.status === estatusSeleccionado) || (doc.status !== "Sin instrucciones" && estatusSeleccionado === "Con instrucción turnada") ||
     (doc.status === "Cerrado" && estatusSeleccionado === "Con gestión cerrada") || 
     (doc.eliminado && estatusSeleccionado === "Eliminados") ||
-    (doc.completa === false && estatusSeleccionado === "Con información faltante") ||
     (doc.copias.some(copia => copia.status === "Leído") && estatusSeleccionado === "Leído") ||
-    (doc.copias.some(copia => copia.status === "Por leer") && estatusSeleccionado === "Por leer")
+    (doc.copias.some(copia => copia.status === "Por leer") && estatusSeleccionado === "Por leer")) && (doc.registrador.area === user.area || doc.turnados?.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR"))
+    || (estatusSeleccionado === "Validado de usuario" && doc.status === "Validado" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))) ||
+    estatusSeleccionado === "Con respuesta registrada de usuario" && doc.status === "Con respuesta registrada" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))
+    || (estatusSeleccionado === "Recibido, en ejecución de usuario" && doc.status === "Recibido, en ejecución" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)))
+    || (estatusSeleccionado === "Registrado de usuario" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)))
   );
 
   const tablaModalRef = useRef(null);
@@ -290,10 +277,6 @@ export function TableroControl() {
 
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
   const bitacora = documentoSeleccionado?.bitacora || [];
-
-  const anexosRelacionados = anexos.filter(
-    (a) => a.folio === documentoSeleccionado?.folio
-  );
 
   const [tabActiva, setTabActiva] = useState("datosAsunto");
 
@@ -374,7 +357,7 @@ export function TableroControl() {
       areaTurna:
         "Dirección de Desarrollo Archivístico Nacional",
       quienTurna: "María Verónica Leal Camarena",
-      estatus: "Autorizados y turnados",
+      estatus: "Autorizado y turnado",
     },
     {
       instruccion: "Distribuir los materiales",
@@ -417,29 +400,29 @@ export function TableroControl() {
         />
 
         <DonutChart
-          title="Instrucciones y solicitudes enviadas"
+          title={user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR") ? "Documentos gestionados" : "Documentos gestionados por el área del usuario"}
           data={Enviadas}
           clickable
           onClickSegment={(estatus) => {
             setEstatusSeleccionado(estatus);
             setPaginaActual(1);
           }}
-        />
+        />  
 
         <DonutChart
-          title="Instrucciones y solicitudes recibidas"
-          data={Recibidas}
+          title="Mis Documentos"
+          data={usuarioInstrucciones}
           clickable
           onClickSegment={(estatus) => {
-            setEstatusSeleccionado(estatus);
+            setEstatusSeleccionado(`${estatus} de usuario`);
             setPaginaActual(1);
           }}
         />
 
-        <DonutChart
+        {/*<DonutChart
           title="Copias de conocimiento"
           data={Copias}
-        />
+        />*/}
 
         {/* Documentos internos */}
         <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-center items-center text-center">
@@ -447,7 +430,7 @@ export function TableroControl() {
             Documentos internos
           </h3>
           <span className="text-5xl font-bold text-[#8B1538]">
-            {documentosInternos}
+            {documentosInternos.value}
           </span>
         </div>
       </div>

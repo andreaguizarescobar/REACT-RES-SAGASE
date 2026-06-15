@@ -201,6 +201,7 @@ export function MainContent({ currentView }) {
         });
 
         cargarTareas();
+        seleccionarDocPendiente(doc);
       } else {
         const msg = await respuesta.text();
         console.error("Error al mover tarea:", msg);
@@ -1314,7 +1315,7 @@ const moverAPendientes = () => {
 
                       {/* 🔹 CONTENIDO */}
                       <p className="font-semibold text-gray-800 pr-10">
-                        {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
+                        { doc.documento.docId || doc.documento.folio || "Documento sin folio"}
                       </p>
                       <p className="text-gray-500">{doc.descripcion}</p>
 
@@ -1362,7 +1363,7 @@ const moverAPendientes = () => {
                         { doc.documento.turnados && doc.documento.turnados.length > 0 && (
                           <div className="text-right" >
                             {(() => {
-                              const prioridad = (doc.documento.turnados.at(-1).prioridad || '').toLowerCase();
+                              const prioridad = (doc.documento.turnados?.at(-1)?.prioridad || '').toLowerCase();
                               let colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
                               
                               if (prioridad.includes('extra-urgente')) {
@@ -1375,7 +1376,7 @@ const moverAPendientes = () => {
                               
                               return (
                                 <span className={`text-[11px] px-3 py-1 rounded border font-medium ${colorClass}`}>
-                                  {doc.documento.turnados.at(-1).prioridad}
+                                  {doc.documento.turnados?.at(-1)?.prioridad}
                                 </span>
                               );
                             })()}
@@ -1439,7 +1440,7 @@ const moverAPendientes = () => {
 
                       {/* FOOTER */}
                       <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
-                        {doc.documento.turnados.at(-1).prioridad==="Urgente" ? (
+                        {doc.documento.turnados?.at(-1)?.prioridad==="Urgente" ? (
                           <span>{tiempoRestante(doc.documento.turnados?.at(-1).compromiso)}</span>
                         ) : (
                           <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
@@ -1669,8 +1670,6 @@ const moverAPendientes = () => {
         if (docSeleccionadoPendientes?.tareaId) {
           try {
             const tareaId = docSeleccionadoPendientes.tareaId;
-            await concluirTarea(tareaId, token, notasAtencion || "");
-            
             // Mover de pendientes a salidas
             setPendientes((prev) => prev.filter((t) => t._id !== tareaId));
             setSalidas((prev) => [...prev, { ...docSeleccionadoPendientes, documento: updatedDocumento }]);
@@ -3317,7 +3316,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionado?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
+                                {docSeleccionado?.turnados?.at(-1)?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
                               </div>
                             </div>
 
@@ -3327,7 +3326,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionado?.turnados?.[0]?.remitente?.nombre || docSeleccionado?.turnados?.[0]?.remitente?.name || "Omar César Juárez"}
+                                {docSeleccionado?.turnados?.at(-1)?.remitente?.nombre || docSeleccionado?.turnados?.at(-1)?.remitente?.name || "Omar César Juárez"}
                               </div>
                             </div>
 
@@ -3337,7 +3336,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionado?.turnados?.[0]?.instruccion?.descripcion || docSeleccionado?.turnados?.[0]?.instruccion || "Atender conforme proceda"}
+                                {docSeleccionado?.turnados?.at(-1)?.instruccion?.descripcion || docSeleccionado?.turnados?.at(-1)?.instruccion || "Atender conforme proceda"}
                               </div>
                             </div>
 
@@ -3352,7 +3351,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionado?.turnados?.[0]?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
+                                {docSeleccionado?.turnados?.at(-1)?.areaDestino?.nombre || "Dirección de Tecnologías de la Información y Comunicación..."}
                               </div>
                             </div>
 
@@ -3363,12 +3362,14 @@ const generarDocumentoTurno = async (turno) => {
 
                               <input
                                 type="date"
-                                value={docSeleccionado?.turnados?.[0]?.acuse ? formatDateForInput(docSeleccionado?.turnados?.[0]?.acuse) : (docSeleccionado?.turnados?.[0]?.fechaAcuse ? formatDateForInput(docSeleccionado?.turnados?.[0]?.fechaAcuse) : "2023-07-04")}
+                                value={docSeleccionado?.turnados?.at(-1)?.acuse ? formatDateForInput(docSeleccionado?.turnados?.at(-1)?.acuse) : (docSeleccionado?.turnados?.at(-1)?.fechaAcuse ? formatDateForInput(docSeleccionado?.turnados?.at(-1)?.fechaAcuse) : "2023-07-04")}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
                             </div>
 
+                            {
+                            docSeleccionado?.turnados?.at(-1)?.compromiso ? (
                             <div>
                               <label className="block text-gray-500 mb-1">
                                 Fecha de termino
@@ -3376,11 +3377,13 @@ const generarDocumentoTurno = async (turno) => {
 
                               <input
                                 type="date"
-                                value={docSeleccionado?.turnados?.[0]?.compromiso ? formatDateForInput(docSeleccionado?.turnados?.[0]?.compromiso) : "2023-07-10"}
+                                value={docSeleccionado?.turnados?.at(-1)?.compromiso ? formatDateForInput(docSeleccionado?.turnados?.at(-1)?.compromiso) : "2023-07-10"}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
-                            </div>
+                            </div>)
+                            : null
+                            }
 
                           </div>
                         </div>
@@ -6091,7 +6094,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes.turnados?.[0]?.remitente?.area ||
+                                {docSeleccionadoPendientes.turnados?.at(-1)?.remitente?.area ||
                                   docSeleccionadoPendientes.remitente?.area ||
                                   docSeleccionadoPendientes.areaRemitente ||
                                   "Sin información"}
@@ -6105,7 +6108,7 @@ const generarDocumentoTurno = async (turno) => {
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
                                 {safeText(
-                                  docSeleccionadoPendientes.turnados?.[0]?.remitente?.name ||
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.remitente?.name ||
                                     docSeleccionadoPendientes.remitente?.name ||
                                     docSeleccionadoPendientes.remitente,
                                   "Sin información"
@@ -6120,7 +6123,7 @@ const generarDocumentoTurno = async (turno) => {
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
                                 {safeText(
-                                  docSeleccionadoPendientes.turnados?.[0]?.instruccion?.descripcion ||
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.instruccion?.descripcion ||
                                     docSeleccionadoPendientes.instruccion?.descripcion ||
                                     docSeleccionadoPendientes.instruccion,
                                   "Sin información"
@@ -6140,7 +6143,7 @@ const generarDocumentoTurno = async (turno) => {
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
                                 {safeText(
-                                  docSeleccionadoPendientes.turnados?.[0]?.areaDestino?.nombre ||
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.areaDestino?.nombre ||
                                     docSeleccionadoPendientes.areaDestino?.nombre ||
                                     docSeleccionadoPendientes.areaDestino,
                                   "Sin información"
@@ -6154,7 +6157,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                                {docSeleccionadoPendientes.turnados?.[0]?.turna?.nombre ||
+                                {docSeleccionadoPendientes.turnados?.at(-1)?.dirigido?.nombre ||
                                   docSeleccionadoPendientes.ejecutor ||
                                   "Sin información"}
                               </div>
@@ -6172,24 +6175,28 @@ const generarDocumentoTurno = async (turno) => {
 
                               <input
                                 type="date"
-                                value={formatDateForInput(docSeleccionadoPendientes.turnados?.[0]?.fechaAcuse || docSeleccionadoPendientes.fechaAcuse || docSeleccionadoPendientes.acuse) || ""}
+                                value={formatDateForInput(docSeleccionadoPendientes.turnados?.at(-1)?.fechaAcuse || docSeleccionadoPendientes.fechaAcuse || docSeleccionadoPendientes.acuse) || ""}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
                             </div>
 
+                            {
+                            docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso ? (
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Fecha de termino * :
+                                Fecha de termino
                               </label>
 
                               <input
                                 type="date"
-                                value={formatDateForInput(docSeleccionadoPendientes.turnados?.[0]?.compromiso || docSeleccionadoPendientes.fechaCompromiso) || ""}
+                                value={docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso ? formatDateForInput(docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso) : "2023-07-10"}
                                 disabled
                                 className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
                               />
-                            </div>
+                            </div>)
+                            : null
+                            }
 
                           </div>
                         </div>
@@ -6214,10 +6221,11 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
 
                               <textarea
-                                value={notasAtencion}
+                                value={docSeleccionadoPendientes.turnados?.at(-1)?.notas || docSeleccionadoPendientes.notas || ""}
                                 onChange={(e) => setNotasAtencion(e.target.value)}
                                 placeholder="Escriba aquí las notas relacionadas con la atención del turno..."
                                 rows={5}
+                                disabled
                                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-[#8B1538]/30 focus:border-[#8B1538]"
                               />
 
@@ -6540,8 +6548,8 @@ const generarDocumentoTurno = async (turno) => {
                               {safeText(
                                 docSeleccionadoPendientes.instruccion?.descripcion ||
                                   docSeleccionadoPendientes.instruccion ||
-                                  docSeleccionadoPendientes.turnados?.[0]?.instruccion?.descripcion ||
-                                  docSeleccionadoPendientes.turnados?.[0]?.instruccion,
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.instruccion?.descripcion ||
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.instruccion,
                                 "No disponible"
                               )}
                             </div>
@@ -6560,10 +6568,10 @@ const generarDocumentoTurno = async (turno) => {
 
                             <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
                               {safeText(
-                                docSeleccionadoPendientes.turnados?.[0]?.areaDestino?.nombre ||
+                                docSeleccionadoPendientes.turnados?.at(-1)?.areaDestino?.nombre ||
                                   docSeleccionadoPendientes.areaDestino?.nombre ||
                                   docSeleccionadoPendientes.areaDestino ||
-                                  docSeleccionadoPendientes.turnados?.[0]?.areaDestino,
+                                  docSeleccionadoPendientes.turnados?.at(-1)?.areaDestino,
                                 "No disponible"
                               )}
                             </div>
@@ -6576,8 +6584,8 @@ const generarDocumentoTurno = async (turno) => {
                             </label>
 
                             <div className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700 flex items-center">
-                              {docSeleccionadoPendientes.turnados?.[0]?.turna?.nombre ||
-                                docSeleccionadoPendientes.turnados?.[0]?.turna?.name ||
+                              {docSeleccionadoPendientes.turnados?.at(-1)?.turna?.nombre ||
+                                docSeleccionadoPendientes.turnados?.at(-1)?.turna?.name ||
                                 docSeleccionadoPendientes.ejecutor ||
                                 "No disponible"}
                             </div>
@@ -6605,22 +6613,22 @@ const generarDocumentoTurno = async (turno) => {
                           </div>
 
                           {/* FECHA COMPROMISO */}
-                          <div>
-                            <label className="block text-gray-500 mb-1">
-                              Fecha de termino :
-                            </label>
+                            {
+                            docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso ? (
+                            <div>
+                              <label className="block text-gray-500 mb-1">
+                                Fecha de termino
+                              </label>
 
-                            <input
-                              type="date"
-                              value={
-                                formatDateForInput(docSeleccionadoPendientes.fechaCompromiso) ||
-                                formatDateForInput(docSeleccionadoPendientes.turnados?.[0]?.compromiso) ||
-                                ""
-                              }
-                              disabled
-                              className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
-                            />
-                          </div>
+                              <input
+                                type="date"
+                                value={docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso ? formatDateForInput(docSeleccionadoPendientes?.turnados?.at(-1)?.compromiso) : "2023-07-10"}
+                                disabled
+                                className="h-[42px] w-full border border-gray-300 rounded px-3 bg-gray-50 text-gray-700"
+                              />
+                            </div>)
+                            : null
+                            }
 
                         </div>
 

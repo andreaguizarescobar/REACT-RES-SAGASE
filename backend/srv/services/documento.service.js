@@ -7,7 +7,10 @@ import mongoose from 'mongoose';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const getAll = async () => {
-    return await documentoModel.find().populate('remitente');
+    return await documentoModel.find().populate('remitente')
+    .populate({ path: 'registrador', select: 'area' })
+    .populate('turnados.dirigido', 'area')
+    .populate('validador', 'area');
 };
 
 const getById = async (docId) => {
@@ -149,7 +152,7 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
             fecha: new Date(),
             importancia: 'Media',
         }},
-         $set: { status: "Autorizado, y turnado" } },
+         $set: { status: "Autorizado y turnado" } },
         { session }
     )
     .populate('remitente')

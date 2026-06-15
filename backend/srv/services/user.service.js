@@ -293,6 +293,7 @@ export const validarTarea = async (userId, tareaId) => {
   const documento = await documentoModel.findById(tarea.documento);
   if (documento) {
     documento.status = 'Validado';
+    documento.validador = user._id;
     // Notificar al registrador que el documento fue validado por el validador
     const userRegistrador = await userModel.findById(documento.registrador);
     if (userRegistrador) {
