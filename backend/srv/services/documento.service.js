@@ -482,22 +482,19 @@ const reporteAsuntos = async (filtro) => {
     const filtroAsuntos = {}
     const status = [];
     if(filtro.autorizadoYTurnado) {
-        status.push("Autorizado, y turnado");
+        status.push("Autorizado y turnado");
     }
     if (filtro.Recibido){
-        status.push("Recibido");
+        status.push("Recibido, en ejecución");
     }
     if (filtro.Validado){
         status.push("Validado");
     }
     if (filtro.Concluido){
-        status.push("Concluido");
+        status.push("Con respuesta registrada");
     }
     if (filtro.Cerrado){
         status.push("Cerrado");
-    }
-    if (filtro.Registrado){
-        status = [];
     }
     if (filtro.fechaInicio) {
         filtroAsuntos.$gte = new Date(filtro.fechaInicio);
@@ -508,8 +505,8 @@ const reporteAsuntos = async (filtro) => {
       }
 
     // buscar todos los documentos con los status marcados
-    const query = Object.keys(filtroAsuntos).length > 0 ? {turnados: {$elemMatch: {fechaTurnado: filtroAsuntos, status: { $in: status }} }}
-    : ((status.length > 0) ? {turnados: { $elemMatch: { status: { $in: status }} }} : {});
+    const query = Object.keys(filtroAsuntos).length > 0 ? {status: { $in: status }, turnados: {$elemMatch: {fechaTurnado: filtroAsuntos} }}
+    : ((status.length > 0) ? {status: { $in: status }} : {});
 
     return await documentoModel.find(query)
     .populate('remitente')

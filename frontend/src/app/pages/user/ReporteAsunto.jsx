@@ -42,7 +42,6 @@ export function ReporteAsuntos() {
     unidadAdministrativa: '',
     fechaInicio: '',
     fechaFin: '',
-    Registrado: false,
     autorizadoYTurnado: false,
     Recibido: false,
     Concluido: false,
@@ -137,7 +136,7 @@ export function ReporteAsuntos() {
         item.asunto,
         turnado.compromiso.splt("T")[0],
         turnado.instruccion.descripcion,
-        turnado.status
+        item.status
       ].join(","))
     );
 
@@ -377,7 +376,7 @@ export function ReporteAsuntos() {
           item.asunto || "-",
           formatearFecha(turnado.compromiso),
           turnado.instruccion?.descripcion || "-",
-          turnado.status || "-"
+          item.status || "-"
         ];
 
         const lineasPorCelda = valores.map(
@@ -515,20 +514,6 @@ export function ReporteAsuntos() {
 
           <div className="space-y-8">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-md">
-              <Toggle
-                label="Recibido"
-                checked={form.origen === 'recibido'}
-                onChange={() => handleOrigenToggle('recibido')}
-              />
-
-              <Toggle
-                label="Enviado"
-                checked={form.origen === 'enviado'}
-                onChange={() => handleOrigenToggle('enviado')}
-              />
-            </div>
-
             {form.origen === 'enviado' && (
               <div className="space-y-4 max-w-3xl">
 
@@ -585,13 +570,12 @@ export function ReporteAsuntos() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle label="Registrados" checked={form.Registrado} onChange={() => handleToggle('Registrado')} />
               <Toggle label="Autorizados y turnados" checked={form.autorizadoYTurnado} onChange={() => handleToggle('autorizadoYTurnado')} />
               <Toggle label="Recibidos en ejecución" checked={form.Recibido} onChange={() => handleToggle('Recibido')} />
+                <Toggle label="Con respuesta registrada" checked={form.Concluido} onChange={() => handleToggle('Concluido')} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-              <Toggle label="Con atención concluida" checked={form.Concluido} onChange={() => handleToggle('Concluido')} />
               <Toggle label="Con atención validada" checked={form.Validado} onChange={() => handleToggle('Validado')} />
               <Toggle label="Cerrados" checked={form.cerrados} onChange={() => handleToggle('cerrados')} />
             </div>
