@@ -293,18 +293,11 @@ export function ReporteAcuerdos() {
   doc.setFontSize(10);
 
   const formatearFecha = (fecha) => {
-
     if (!fecha) return "-";
 
-    const d = new Date(fecha);
+    const [anio, mes, dia] = fecha.split("-");
 
-    return (
-      String(d.getDate()).padStart(2, "0") +
-      "/" +
-      String(d.getMonth() + 1).padStart(2, "0") +
-      "/" +
-      d.getFullYear()
-    );
+    return `${dia}/${mes}/${anio}`;
   };
 
   doc.text(
@@ -316,6 +309,15 @@ export function ReporteAcuerdos() {
 
   y += 5;
 
+  const formatearFechaBackend = (fecha) => {
+    if (!fecha) return "-";
+
+    const d = new Date(fecha);
+
+    return d.toLocaleDateString("es-MX", {
+      timeZone: "UTC",
+    });
+  };
   // =========================
   // TABLA
   // =========================
@@ -392,7 +394,7 @@ export function ReporteAcuerdos() {
         turno?.instruccion?.descripcion ||
         turno?.instruccion ||
         "-",
-        formatearFecha(turno?.fechaTurnado) || "-"
+        formatearFechaBackend(turno?.fechaTurnado) || "-"
       ];
 
       const lineasPorCelda = valores.map(
@@ -502,15 +504,9 @@ export function ReporteAcuerdos() {
   const formatearFechaNombre = (fecha) => {
     if (!fecha) return "";
 
-    const d = new Date(fecha);
+    const [anio, mes, dia] = fecha.split("-");
 
-    return (
-      String(d.getDate()).padStart(2, "0") +
-      "-" +
-      String(d.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      d.getFullYear()
-    );
+    return `${dia}-${mes}-${anio}`;
   };
 
     const fechaInicioNombre =

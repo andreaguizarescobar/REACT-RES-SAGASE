@@ -1,6 +1,26 @@
 import { useState } from "react";
 import bgSidebar from "../assets/images/fondogob.jpg";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  Search,
+  FilePlus,
+  FileText,
+  ClipboardList,
+  Mail,
+  FolderOpen,
+  Send,
+  Edit,
+  Eye,
+  BarChart3,
+  Bell,
+  FolderKanban,
+  Users,
+  Shield,
+  UserPlus,
+  UserCheck,
+} from "lucide-react";
 
 // const generalTasks = [
 //   { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
@@ -20,46 +40,196 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const tareasPorRol = {
   VALIDADOR: [
-    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
-    { label: "Generación de oficios", color: "text-[#60595D]", view: "generacion-oficios" },
-    { label: "Control de oficios", color: "text-[#79142A]", view: "control-oficios" }
-  ],
-
-  REGISTRADOR: [
-    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
-    { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
-    { label: "Registra documento y genera notas de atención", color: "text-[#79142A]", view: "registra-documento" },
-    { label: "Reporte de asuntos", color: "text-[#60595D]", view: "reporte-asuntos" },
-    { label: "Reporte de acuerdos", color: "text-[#79142A]", view: "reporte-acuerdos" },
-    { label: "Generación de Oficios", color: "text-[#60595D]", view: "generacion-oficios" },
-    { label: "Control de Oficios", color: "text-[#79142A]", view: "control-oficios" },
-    { label: "Registro Salida de Correspondencia", color: "text-[#60595D]", view: "salida-correspondencia" },
-    { label: "Modifica Salida de Correspondencia", color: "text-[#79142A]", view: "modificaS-correspondencia" },
-    { label: "Consulta Salida de Correspondencia", color: "text-[#60595D]", view: "consultaS-correspondencia" },
-    { label: "Reporte Salida de Correspondencia", color: "text-[#79142A]", view: "reporteS-correspondencia" },
-    { label: "Tablero de control Salida de Correspondencia", color: "text-[#60595D]", view: "tableroS-correspondencia" },
-    { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+    {
+      label: "Generación de oficios",
+      color: "text-[#60595D]",
+      view: "generacion-oficios",
+      icon: Mail,
+    },
+    {
+      label: "Control de oficios",
+      color: "text-[#79142A]",
+      view: "control-oficios",
+      icon: FolderOpen,
+    },
+    {
+      label: "Tablero de control",
+      color: "text-[#60595D]",
+      view: "tablero-control",
+      icon: LayoutDashboard,
+    }
   ],
 
   EJECUTOR: [
-    { label: "Tablero de control", color: "text-[#79142A]", view: "tablero-control" },
-    { label: "Buscador de documentos", color: "text-[#60595D]", view: "buscador-documento" },
-    { label: "Reporte de asuntos", color: "text-[#79142A]", view: "reporte-asuntos" },
-    { label: "Reporte de acuerdos", color: "text-[#60595D]", view: "reporte-acuerdos" },
-    { label: "Generación de oficios", color: "text-[#79142A]", view: "generacion-oficios" },
-    { label: "Control de oficios", color: "text-[#60595D]", view: "control-oficios" },
-    { label: "Registra instrucciones, solicitudes y notificaciones internas", color: "text-[#79142A]", view: "registra-notinternas" }
+    {
+      label: "Buscador de documentos",
+      color: "text-[#60595D]",
+      view: "buscador-documento",
+      icon: Search,
+    },
+    {
+      label: "Reporte de asuntos",
+      color: "text-[#79142A]",
+      view: "reporte-asuntos",
+      icon: FileText,
+    },
+    {
+      label: "Reporte de acuerdos",
+      color: "text-[#60595D]",
+      view: "reporte-acuerdos",
+      icon: ClipboardList,
+    },
+    {
+      label: "Generación de oficios",
+      color: "text-[#79142A]",
+      view: "generacion-oficios",
+      icon: Mail,
+    },
+    {
+      label: "Control de oficios",
+      color: "text-[#60595D]",
+      view: "control-oficios",
+      icon: FolderOpen,
+    },
+    {
+      label: "Registra instrucciones, solicitudes y notificaciones internas",
+      color: "text-[#79142A]",
+      view: "registra-notinternas",
+      icon: Bell,
+    },
+    {
+      label: "Tablero de control",
+      color: "text-[#60595D]",
+      view: "tablero-control",
+      icon: LayoutDashboard,
+    }
+  ],
+
+  REGISTRADOR: [
+    {
+      label: "Buscador de documentos",
+      color: "text-[#60595D]",
+      view: "buscador-documento",
+      icon: Search,
+    },
+    {
+      label: "Registra documento y genera notas de atención",
+      color: "text-[#79142A]",
+      view: "registra-documento",
+      icon: FilePlus,
+    },
+    {
+      label: "Reporte de asuntos",
+      color: "text-[#60595D]",
+      view: "reporte-asuntos",
+      icon: FileText,
+    },
+    {
+      label: "Reporte de acuerdos",
+      color: "text-[#79142A]",
+      view: "reporte-acuerdos",
+      icon: ClipboardList,
+    },
+    {
+      label: "Generación de Oficios",
+      color: "text-[#60595D]",
+      view: "generacion-oficios",
+      icon: Mail,
+    },
+    {
+      label: "Control de Oficios",
+      color: "text-[#79142A]",
+      view: "control-oficios",
+      icon: FolderOpen,
+    },
+    {
+      label: "Registro Salida de Correspondencia",
+      color: "text-[#60595D]",
+      view: "salida-correspondencia",
+      icon: Send,
+    },
+    {
+      label: "Modifica Salida de Correspondencia",
+      color: "text-[#79142A]",
+      view: "modificaS-correspondencia",
+      icon: Edit,
+    },
+    {
+      label: "Consulta Salida de Correspondencia",
+      color: "text-[#60595D]",
+      view: "consultaS-correspondencia",
+      icon: Eye,
+    },
+    {
+      label: "Reporte Salida de Correspondencia",
+      color: "text-[#79142A]",
+      view: "reporteS-correspondencia",
+      icon: BarChart3,
+    },
+    {
+      label: "Tablero de control Salida de Correspondencia",
+      color: "text-[#60595D]",
+      view: "tableroS-correspondencia",
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Registra instrucciones, solicitudes y notificaciones internas",
+      color: "text-[#79142A]",
+      view: "registra-notinternas",
+      icon: Bell,
+    },
+    {
+      label: "Tablero de control",
+      color: "text-[#60595D]",
+      view: "tablero-control",
+      icon: LayoutDashboard,
+    }
   ],
 
   ADMIN: [
-    { label: "Proyectos", color: "text-[#79142A]", view: "proyectos-admin" },
-    { label: "Usuarios", color: "text-[#60595D]", view: "usuarios-admin" },
-    { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
-    { label: "Roles de Sistema", color: "text-[#60595D]", view: "roles-sistema-admin" },
-    { label: "Alta de Usuarios", color: "text-[#79142A]", view: "alta-usuarios-admin" },
-    { label: "Solicitudes de Usuarios", color: "text-[#79142A]", view: "solicitudes-usuarios-admin" },
-    { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
-  ]
+    {
+      label: "Proyectos",
+      color: "text-[#79142A]",
+      view: "proyectos-admin",
+      icon: FolderKanban,
+    },
+    {
+      label: "Usuarios",
+      color: "text-[#60595D]",
+      view: "usuarios-admin",
+      icon: Users,
+    },
+    {
+      label: "Roles",
+      color: "text-[#79142A]",
+      view: "roles-admin",
+      icon: Shield,
+    },
+    {
+      label: "Roles de Sistema",
+      color: "text-[#60595D]",
+      view: "roles-sistema-admin",
+      icon: Shield,
+    },
+    {
+      label: "Alta de Usuarios",
+      color: "text-[#79142A]",
+      view: "alta-usuarios-admin",
+      icon: UserPlus,
+    },
+    {
+      label: "Solicitudes de Usuarios",
+      color: "text-[#79142A]",
+      view: "solicitudes-usuarios-admin",
+      icon: UserCheck,
+    },
+    {
+      label: "Asignación de Roles",
+      color: "text-[#60595D]",
+      view: "asignacion-roles-admin",
+      icon: Shield,
+    },
+  ],
 };
 
 const nombreRoles = {
@@ -81,7 +251,7 @@ export function Sidebar({ isOpen, onSelectView }) {
   const [paginaActual, setPaginaActual] = useState(1);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const filasPorPagina = 6;
+  const filasPorPagina = 5;
 
   const totalPaginas = Math.ceil(tareas.length / filasPorPagina);
 
@@ -130,7 +300,16 @@ export function Sidebar({ isOpen, onSelectView }) {
                       : `${task.color} hover:bg-[#60595D]-50`
                   }`}
                 >
-                  {task.label}
+                
+                  <div className="flex items-start gap-2">
+                    {task.icon && (
+                      <task.icon
+                        size={18}
+                        className="flex-shrink-0 mt-0.5"
+                      />
+                    )}
+                    <span>{task.label}</span>
+                  </div>
                 </button>
               ))}
             </nav>

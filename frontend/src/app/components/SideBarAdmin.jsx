@@ -1,14 +1,51 @@
 import { useState } from "react";
 import bgSidebar from "../assets/images/fondogob.jpg";
+import {
+  FolderKanban,
+  Users,
+  ShieldCheck,
+  UserPlus,
+  UserRoundCog,
+  KeyRound,
+} from "lucide-react";
 
 const generalTasks = [
-  { label: "Proyectos", color: "text-[#79142A]", view: "proyectos-admin" },
-  { label: "Usuarios", color: "text-[#60595D]", view: "usuarios-admin" },
-  // { label: "Roles", color: "text-[#79142A]", view: "roles-admin" },
-  { label: "Roles de Sistema", color: "text-[#79142A]", view: "roles-sistema-admin" },
-  { label: "Alta de Usuarios", color: "text-[#60595D]", view: "alta-usuarios-admin" },
-  { label: "Solicitudes de Usuarios", color: "text-[#79142A]", view: "solicitudes-usuarios-admin" },
-  { label: "Asignación de Roles", color: "text-[#60595D]", view: "asignacion-roles-admin" }
+  {
+    label: "Proyectos",
+    color: "text-[#79142A]",
+    view: "proyectos-admin",
+    icon: FolderKanban,
+  },
+  {
+    label: "Usuarios",
+    color: "text-[#60595D]",
+    view: "usuarios-admin",
+    icon: Users,
+  },
+  {
+    label: "Roles de Sistema",
+    color: "text-[#79142A]",
+    view: "roles-sistema-admin",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Alta de Usuarios",
+    color: "text-[#60595D]",
+    view: "alta-usuarios-admin",
+    icon: UserPlus,
+  },
+  {
+    label: "Solicitudes de Usuarios",
+    color: "text-[#79142A]",
+    view: "solicitudes-usuarios-admin",
+    icon: UserRoundCog,
+  },
+  {
+    label: "Asignación de Roles",
+    color: "text-[#60595D]",
+    view: "asignacion-roles-admin",
+    icon: KeyRound,
+  },
 ];
 
 export function SidebarAdmin({ isOpen, onSelectView }) {
@@ -36,24 +73,31 @@ export function SidebarAdmin({ isOpen, onSelectView }) {
         <div className="bg-white border border-gray-200 rounded flex flex-col h-70">
           <div className="p-2 flex-1 overflow-y-auto">
             <nav className="space-y-0.5">
-              {generalTasks.map((task, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if (task.view) {
-                      setSelectedTask(task.label);
-                      onSelectView(task.view);
-                    }
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs rounded transition-colors ${
-                    selectedTask === task.label
-                      ? "bg-[#8B1538] text-white"
-                      : `${task.color} hover:bg-gray-50`
-                  }`}
-                >
-                  {task.label}
-                </button>
-              ))}
+              {generalTasks.map((task, index) => {
+                const Icon = task.icon;
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (task.view) {
+                        setSelectedTask(task.label);
+                        onSelectView(task.view);
+                      }
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs rounded transition-colors ${
+                      selectedTask === task.label
+                        ? "bg-[#8B1538] text-white"
+                        : `${task.color} hover:bg-gray-50`
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon size={16} className="flex-shrink-0" />
+                      <span>{task.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </nav>
           </div>
         </div>

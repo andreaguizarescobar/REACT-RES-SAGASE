@@ -286,13 +286,9 @@ export function ReporteAsuntos() {
 
       const d = new Date(fecha);
 
-      return (
-        String(d.getDate()).padStart(2, "0") +
-        "/" +
-        String(d.getMonth() + 1).padStart(2, "0") +
-        "/" +
-        d.getFullYear()
-      );
+      return d.toLocaleDateString("es-MX", {
+        timeZone: "UTC",
+      });
     };
 
     doc.text(
@@ -359,6 +355,109 @@ export function ReporteAsuntos() {
 
       y += 10;
     };
+
+    // =========================
+    // FILTROS SELECCIONADOS
+    // =========================
+
+    const criterios = [];
+
+      if (form.autorizadoYTurnado)
+        criterios.push("Autorizados y turnados");
+
+      if (form.Recibido)
+        criterios.push("Recibidos en ejecución");
+
+      if (form.Concluido)
+        criterios.push("Con respuesta registrada");
+
+      if (form.Validado)
+        criterios.push("Con atención validada");
+
+      if (form.cerrados)
+        criterios.push("Cerrados");
+
+      if (form.unidadAdministrativa)
+        criterios.push(`Unidad: ${form.unidadAdministrativa}`);
+
+      // Encabezado
+      doc.setFillColor(...COLORS.vino);
+
+      doc.roundedRect(
+        margin,
+        y,
+        contentWidth,
+        8,
+        2,
+        2,
+        "F"
+      );
+
+      doc.setTextColor(...COLORS.blanco);
+      doc.setFont("GothamRounded", "bold");
+      doc.setFontSize(10);
+
+      doc.text(
+        "FILTROS APLICADOS",
+        margin + 4,
+        y + 5.5
+      );
+
+      y += 10;
+
+      // Contenedor
+      const alturaCaja = Math.max(
+        12,
+        criterios.length * 6 + 6
+      );
+
+      doc.setFillColor(...COLORS.beige3);
+
+      doc.roundedRect(
+        margin,
+        y,
+        contentWidth,
+        alturaCaja,
+        2,
+        2,
+        "F"
+      );
+
+      doc.setDrawColor(...COLORS.beige1);
+
+      doc.roundedRect(
+        margin,
+        y,
+        contentWidth,
+        alturaCaja,
+        2,
+        2
+      );
+
+      doc.setTextColor(...COLORS.grisPrincipal);
+      doc.setFont("Montserrat", "normal");
+      doc.setFontSize(9);
+
+      if (criterios.length === 0) {
+        doc.text(
+          "Sin filtros específicos.",
+          margin + 5,
+          y + 7
+        );
+      } else {
+        criterios.forEach((criterio, index) => {
+          doc.text(
+            `• ${criterio}`,
+            margin + 5,
+            y + 7 + index * 6
+          );
+        });
+      }
+
+      y += alturaCaja + 8;
+    // =========================
+    // TABLA
+    // =========================
 
     dibujarEncabezadoTabla();
 
@@ -476,8 +575,22 @@ export function ReporteAsuntos() {
       { align: "center" }
     );
 
+    const formatearFechaNombre = (fecha) => {
+      if (!fecha) return "";
+
+      const [anio, mes, dia] = fecha.split("-");
+
+      return `${dia}-${mes}-${anio}`;
+    };
+
+    const fechaInicioNombre =
+      formatearFechaNombre(form.fechaInicio);
+
+    const fechaFinNombre =
+      formatearFechaNombre(form.fechaFin);
+      
     const nombrePDF =
-      `Reporte_Asuntos_${Date.now()}.pdf`;
+  `Reporte_Asuntos_${fechaInicioNombre}_al_${fechaFinNombre}.pdf`;
 
     const pdfBlob = doc.output("blob");
 
