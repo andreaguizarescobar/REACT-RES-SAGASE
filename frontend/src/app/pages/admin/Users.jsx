@@ -66,9 +66,9 @@ export function Users() {
       <div className="bg-white p-6 rounded-b-md shadow-sm space-y-6 text-xs">
         {/* BUSCADOR */}
         <div>
-          <label className="block mb-2 font-medium">
-            Criterio de búsqueda:
-          </label>
+          {/* <label className="block mb-2 font-medium">
+            Buscar un usuario.
+          </label> */}
 
           <input
             type="text"

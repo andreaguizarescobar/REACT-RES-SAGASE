@@ -88,9 +88,21 @@ export function SolicitudAltaUsuarios() {
   const handleApprove = async () => {
     if (!selectedRequest || !selectedRol) {
       Swal.fire({
+        toast: true,
+        position: "top-end",
         icon: "warning",
-        title: "Campo requerido",
-        text: "Por favor selecciona un rol antes de aprobar.",
+        title: "Complete los campos obligatorios.",
+        text: "Seleccione un rol antes de aprobar la solicitud.",
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true,
+        customClass: {
+          popup: "text-sm",
+        },
+        didOpen: (toast) => {
+          toast.onmouseenter = Swal.stopTimer;
+          toast.onmouseleave = Swal.resumeTimer;
+        },
       });
       return;
     }
@@ -251,65 +263,158 @@ export function SolicitudAltaUsuarios() {
 
       <AnimatePresence>
         {modalVisible && selectedRequest && (
+        <motion.div
+          className="fixed inset-0 z-[1000] flex items-center justify-center overflow-y-auto p-4"
+          style={{ backgroundColor: "rgba(0,0,0,.4)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
           <motion.div
-            className="fixed inset-0 flex items-center justify-center z-[9999]"
-            style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="
+            w-full
+            max-w-4xl
+            max-h-[90vh]
+            flex
+            flex-col
+            rounded-md
+            bg-white
+            shadow-xl
+            overflow-hidden
+            "
+            initial={{ opacity: 0, scale: .95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: .95, y: 20 }}
+            transition={{ duration: .2 }}
           >
-            <motion.div
-              className="bg-white w-[700px] rounded shadow-lg relative"
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            >
-              <div className="bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">
+             {/* HEADER */}
+             <div className="bg-gray-300 flex items-center justify-between px-4 py-3">
+              <h2 className="text-sm font-semibold text-gray-800">
                 Aprobar solicitud de alta
-              </div>
+              </h2>
+
               <button
                 onClick={handleCloseModal}
-                className="absolute top-1 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white"
               >
-                <Minus size={14} />
+                <Minus size={16} />
               </button>
+            </div>
+            
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-              <div className="p-6 space-y-4 text-xs">
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2">
-                    <label className="block mb-1">Nombre completo:</label>
+                {/* INFORMACIÓN PERSONAL */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8B1538]">
+                    Información personal
+                  </h3>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Nombre completo</label>
                     <input
                       value={selectedRequest.nombre || ""}
                       readOnly
-                      className="w-full border rounded px-2 py-1 bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     />
                   </div>
+
                   <div className="col-span-1">
-                    <label className="block mb-1">Iniciales:</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Iniciales</label>
                     <input
                       value={selectedRequest.iniciales || ""}
                       readOnly
-                      className="w-full border rounded px-2 py-1 bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
+                    />
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Sexo</label>
+                    <input
+                      value={selectedRequest.sexo || ""}
+                      readOnly
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
+                    />
+                  </div>
+
+                </div>
+
+               {/* INFORMACIÓN INSTITUCIONAL */}  
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8B1538]">
+                    Información institucional
+                  </h3>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Área de destino</label>
+                    <input
+                      value={selectedRequest.area?.nombre || selectedRequest.area || ""}
+                      readOnly
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-1">
-                    <label className="block mb-1">Sexo:</label>
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Teléfono institucional</label>
                     <input
-                      value={selectedRequest.sexo || ""}
+                      value={selectedRequest.telefono || ""}
                       readOnly
-                      className="w-full border rounded px-2 py-2 bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     />
                   </div>
-
                   <div className="col-span-1">
-                    <label className="block mb-1">Rol *:</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Ext</label>
+                    <input
+                      value={selectedRequest.ext || ""}
+                      readOnly
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="col-span-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Correo institucional</label>
+                    <input
+                      value={selectedRequest.email || ""}
+                      readOnly
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
+                    />
+                  </div>
+   
+                </div>
+
+                {/* CONFIGURACIÓN */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8B1538]">
+                    Configuración del usuario
+                  </h3>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-5">
+               
+                  <div className="col-span-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Rol <span className="text-red-600">*</span></label>
                     <select
                       value={selectedRol}
                       onChange={(e) => setSelectedRol(e.target.value)}
-                      className="w-full border rounded px-2 py-2"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     >
                       <option value="">Seleccionar</option>
                       <option value="ADMIN">ADMIN</option>
@@ -318,48 +423,8 @@ export function SolicitudAltaUsuarios() {
                       <option value="VALIDADOR">VALIDADOR</option>
                     </select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="col-span-2">
-                    <label className="block mb-1">Área de destino:</label>
-                    <input
-                      value={selectedRequest.area?.nombre || selectedRequest.area || ""}
-                      readOnly
-                      className="w-full border rounded px-2 py-2 bg-gray-100"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-6 gap-4">
-                  <div className="col-span-2">
-                    <label className="block mb-0">Teléfono institucional:</label>
-                    <input
-                      value={selectedRequest.telefono || ""}
-                      readOnly
-                      className="w-full border rounded px-2 py-1 bg-gray-100"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block mb-0">Ext:</label>
-                    <input
-                      value={selectedRequest.ext || ""}
-                      readOnly
-                      className="w-full border rounded px-2 py-1 bg-gray-100"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 items-center">
-                  <div>
-                    <label className="block mb-1">Correo institucional:</label>
-                    <input
-                      value={selectedRequest.email || ""}
-                      readOnly
-                      className="w-full border rounded px-2 py-1 bg-gray-100"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 mt-5">
+                  {/* <div className="flex items-center gap-2 mt-5">
                     <label>¿Recibe copia?</label>
                     <input
                       type="checkbox"
@@ -367,18 +432,28 @@ export function SolicitudAltaUsuarios() {
                       readOnly
                       className="accent-[#8B1538]"
                     />
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="flex justify-center pt-2">
                   <button
                     onClick={handleApprove}
-                    className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
+                    className="bg-[#8B1538]
+                      text-white
+                      font-medium
+                      px-10
+                      py-3
+                      rounded-lg
+                      hover:bg-[#6f102c]
+                      transition
+                      shadow-md
+                      hover:shadow-lg"
                   >
                     Aprobar alta
                   </button>
                 </div>
               </div>
+        
             </motion.div>
           </motion.div>
         )}

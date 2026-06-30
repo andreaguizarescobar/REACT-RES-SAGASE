@@ -163,374 +163,390 @@ export function ReporteAcuerdos() {
 
   const generarDocumentoReporteAcuerdos = async (datos) => {
 
-  const doc = new jsPDF("p", "mm", "a4");
+    const doc = new jsPDF("p", "mm", "letter");
 
-  // =========================
-  // FUENTES PERSONALIZADAS
-  // =========================
+    // =========================
+    // FUENTES PERSONALIZADAS
+    // =========================
 
-  // Gotham
-  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
-  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+    // Gotham
+    doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+    doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
 
-  // Montserrat
-  doc.addFont(MontserratRegular, "Montserrat", "normal");
-  doc.addFont(MontserratBold, "Montserrat", "bold");
+    // Montserrat
+    doc.addFont(MontserratRegular, "Montserrat", "normal");
+    doc.addFont(MontserratBold, "Montserrat", "bold");
 
-  const COLORS = {
-    grisPrincipal: [96, 89, 93],
-    beige1: [197, 176, 153],
-    beige2: [205, 177, 156],
-    beige3: [218, 206, 192],
-    vino: [121, 20, 42],
-    blanco: [255, 255, 255],
-    negro: [0, 0, 0],
-  };
-
-  const hoy = new Date();
-
-  const fechaHoy =
-    String(hoy.getDate()).padStart(2, "0") +
-    "/" +
-    String(hoy.getMonth() + 1).padStart(2, "0") +
-    "/" +
-    hoy.getFullYear();
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-
-  const margin = 10;
-  const contentWidth = pageWidth - margin * 2;
-
-  // =========================
-  // HEADER
-  // =========================
-
-    const dibujarEncabezadoPagina = () => {
-
-      doc.setLineWidth(0.2);
-
-      doc.setFillColor(...COLORS.beige3);
-
-      doc.rect(
-        margin,
-        12,
-        contentWidth,
-        18,
-        "F"
-      );
-
-      doc.addImage(
-        logoGobierno,
-        "PNG",
-        margin + 2,
-        12,
-        75,
-        18
-      );
-
-      doc.setFillColor(...COLORS.vino);
-
-      doc.roundedRect(
-        pageWidth - 60,
-        17,
-        25,
-        8,
-        2,
-        2,
-        "F"
-      );
-
-      doc.setTextColor(...COLORS.blanco);
-
-      doc.setFont("GothamRounded", "bold");
-      doc.setFontSize(9);
-
-      doc.text(
-        "FECHA",
-        pageWidth - 47,
-        22,
-        {
-          align: "center"
-        }
-      );
-
-      doc.setTextColor(...COLORS.grisPrincipal);
-
-      doc.text(
-        fechaHoy,
-        pageWidth - 22,
-        22,
-        {
-          align: "center"
-        }
-      );
+    // const COLORS = {
+    //   grisPrincipal: [96, 89, 93],
+    //   beige1: [197, 176, 153],
+    //   beige2: [205, 177, 156],
+    //   beige3: [218, 206, 192],
+    //   vino: [121, 20, 42],
+    //   blanco: [255, 255, 255],
+    //   negro: [0, 0, 0],
+    // };
+    const COLORS = {
+      grisPrincipal: [96, 89, 93],      // #60595D
+      grisSecundario: [155, 157, 154],  // #9B9D9A
+      blanco: [255, 255, 255],
+      negro: [0, 0, 0],
     };
 
-    // DIBUJAR HEADER EN LA PRIMERA PÁGINA
-  dibujarEncabezadoPagina();
-  
-  // =========================
-  // TITULO
-  // =========================
+    const hoy = new Date();
 
-  let y = 40;
+    const fechaHoy =
+      String(hoy.getDate()).padStart(2, "0") +
+      "/" +
+      String(hoy.getMonth() + 1).padStart(2, "0") +
+      "/" +
+      hoy.getFullYear();
 
-  doc.setTextColor(...COLORS.vino);
-  doc.setFontSize(16);
-  doc.setFont("GothamRounded", "bold");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-  doc.text(
-    "REPORTE DE ACUERDOS",
-    pageWidth / 2,
-    y,
-    { align: "center" }
-  );
+    const margin = 10;
+    const contentWidth = pageWidth - margin * 2;
 
-  y += 6;
+    // =========================
+    // HEADER
+    // =========================
 
-  doc.setTextColor(...COLORS.grisPrincipal);
-  doc.setFontSize(10);
+      const dibujarEncabezadoPagina = () => {
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return "-";
+        doc.setLineWidth(0.2);
 
-    const [anio, mes, dia] = fecha.split("-");
+        // doc.setFillColor(...COLORS.beige3);
+        doc.setFillColor(...COLORS.grisSecundario);
 
-    return `${dia}/${mes}/${anio}`;
-  };
+        doc.rect(
+          margin,
+          12,
+          contentWidth,
+          18,
+          "F"
+        );
 
-  doc.text(
-    `Periodo: ${formatearFecha(form.fechaInicio)} al ${formatearFecha(form.fechaFin)}`,
-    pageWidth / 2,
-    y,
-    { align: "center" }
-  );
+        doc.addImage(
+          logoGobierno,
+          "PNG",
+          margin + 2,
+          12,
+          85,
+          18
+        );
 
-  y += 5;
+        // doc.setFillColor(...COLORS.vino);
+        doc.setFillColor(...COLORS.grisPrincipal);
 
-  const formatearFechaBackend = (fecha) => {
-    if (!fecha) return "-";
+        doc.roundedRect(
+          pageWidth - 60,
+          17,
+          25,
+          8,
+          2,
+          2,
+          "F"
+        );
 
-    const d = new Date(fecha);
+        doc.setTextColor(...COLORS.blanco);
 
-    return d.toLocaleDateString("es-MX", {
-      timeZone: "UTC",
-    });
-  };
-  // =========================
-  // TABLA
-  // =========================
+        doc.setFont("GothamRounded", "bold");
+        doc.setFontSize(9);
 
-  const columnas = [
-    "FOLIO",
-    "TIPO",
-    "NO DOC.",
-    "REMITENTE",
-    "ASUNTO",
-    "INSTRUCCIÓN",
-    "FECHA"
-  ];
+        doc.text(
+          "FECHA",
+          pageWidth - 47,
+          22,
+          {
+            align: "center"
+          }
+        );
 
-  const anchos = [
-    19, // folio
-    19, // tipo
-    23, // documento
-    28, // remitente
-    45, // asunto
-    33, // instruccion
-    22  // fecha
-  ];
+        doc.setTextColor(...COLORS.grisPrincipal);
 
-  const dibujarEncabezadoTabla = () => {
+        doc.text(
+          fechaHoy,
+          pageWidth - 22,
+          22,
+          {
+            align: "center"
+          }
+        );
+      };
 
-    let x = margin;
+      // DIBUJAR HEADER EN LA PRIMERA PÁGINA
+    dibujarEncabezadoPagina();
+    
+    // =========================
+    // TITULO
+    // =========================
 
-    columnas.forEach((titulo, index) => {
+    let y = 40;
 
-      doc.setFillColor(...COLORS.vino);
+    // doc.setTextColor(...COLORS.vino);
+    doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setFontSize(16);
+    doc.setFont("GothamRounded", "bold");
 
-      doc.rect(
-        x,
-        y,
-        anchos[index],
-        10,
-        "F"
-      );
+    doc.text(
+      "REPORTE DE ACUERDOS",
+      pageWidth / 2,
+      y,
+      { align: "center" }
+    );
 
-      doc.setTextColor(...COLORS.blanco);
-      doc.setFont("Montserrat", "bold");
-      doc.setFontSize(9);
+    y += 6;
 
-      doc.text(
-        titulo,
-        x + anchos[index] / 2,
-        y + 6,
-        { align: "center" }
-      );
+    doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setFontSize(10);
 
-      x += anchos[index];
-    });
+    const formatearFecha = (fecha) => {
+      if (!fecha) return "-";
 
-    y += 10;
-  };
+      const [anio, mes, dia] = fecha.split("-");
 
-  dibujarEncabezadoTabla();
+      return `${dia}/${mes}/${anio}`;
+    };
 
-  let fila = 0;
+    doc.text(
+      `Periodo: ${formatearFecha(form.fechaInicio)} al ${formatearFecha(form.fechaFin)}`,
+      pageWidth / 2,
+      y,
+      { align: "center" }
+    );
 
-  datos.forEach((item) => {
+    y += 5;
 
-    (item.turnados || []).forEach((turno) => {
+    const formatearFechaBackend = (fecha) => {
+      if (!fecha) return "-";
 
-      const valores = [
-        item?.folio || "-",
-        item?.tipo?.tipo || "-",
-        item?.docId || "-",
-        item?.remitente?.name ||
-        item?.remitente?.nombre ||
-        "-",
-        item?.asunto || "-",
-        turno?.instruccion?.descripcion ||
-        turno?.instruccion ||
-        "-",
-        formatearFechaBackend(turno?.fechaTurnado) || "-"
-      ];
+      const d = new Date(fecha);
 
-      const lineasPorCelda = valores.map(
-        (valor, i) =>
-          doc.splitTextToSize(
-            String(valor),
-            anchos[i] - 3
-          )
-      );
+      return d.toLocaleDateString("es-MX", {
+        timeZone: "UTC",
+      });
+    };
+    // =========================
+    // TABLA
+    // =========================
 
-      const maxLineas = Math.max(
-        ...lineasPorCelda.map(
-          l => l.length
-        )
-      );
+    const columnas = [
+      "FOLIO",
+      "TIPO",
+      "NO DOC.",
+      "REMITENTE",
+      "ASUNTO",
+      "INSTRUCCIÓN",
+      "FECHA"
+    ];
 
-      const rowHeight =
-        Math.max(10, maxLineas * 4 + 4);
+    const anchos = [
+      19, // folio
+      19, // tipo
+      23, // documento
+      28, // remitente
+      45, // asunto
+      33, // instruccion
+      22  // fecha
+    ];
 
-      if (y + rowHeight > 270) {
-
-        doc.addPage();
-
-        dibujarEncabezadoPagina();
-
-        y = 40;
-
-        dibujarEncabezadoTabla();
-      }
-
-      const fondo =
-        fila % 2 === 0
-          ? COLORS.beige3
-          : COLORS.blanco;
+    const dibujarEncabezadoTabla = () => {
 
       let x = margin;
 
-      lineasPorCelda.forEach(
-        (lineas, i) => {
+      columnas.forEach((titulo, index) => {
 
-          doc.setFillColor(...fondo);
+        // doc.setFillColor(...COLORS.vino);
+        doc.setFillColor(...COLORS.grisPrincipal);
 
-          doc.rect(
-            x,
-            y,
-            anchos[i],
-            rowHeight,
-            "F"
-          );
+        doc.rect(
+          x,
+          y,
+          anchos[index],
+          10,
+          "F"
+        );
 
-          doc.setDrawColor(...COLORS.beige1);
+        doc.setTextColor(...COLORS.blanco);
+        doc.setFont("Montserrat", "bold");
+        doc.setFontSize(9);
 
-          doc.rect(
-            x,
-            y,
-            anchos[i],
-            rowHeight
-          );
+        doc.text(
+          titulo,
+          x + anchos[index] / 2,
+          y + 6,
+          { align: "center" }
+        );
 
-          doc.setTextColor(...COLORS.negro);
-          doc.setFont("Montserrat", "normal");
-          doc.setFontSize(9);
+        x += anchos[index];
+      });
 
-          doc.text(
-            lineas,
-            x + 1.5,
-            y + 4
-          );
+      y += 10;
+    };
 
-          x += anchos[i];
+    dibujarEncabezadoTabla();
+
+    let fila = 0;
+
+    datos.forEach((item) => {
+
+      (item.turnados || []).forEach((turno) => {
+
+        const valores = [
+          item?.folio || "-",
+          item?.tipo?.tipo || "-",
+          item?.docId || "-",
+          item?.remitente?.name ||
+          item?.remitente?.nombre ||
+          "-",
+          item?.asunto || "-",
+          turno?.instruccion?.descripcion ||
+          turno?.instruccion ||
+          "-",
+          formatearFechaBackend(turno?.fechaTurnado) || "-"
+        ];
+
+        const lineasPorCelda = valores.map(
+          (valor, i) =>
+            doc.splitTextToSize(
+              String(valor),
+              anchos[i] - 3
+            )
+        );
+
+        const maxLineas = Math.max(
+          ...lineasPorCelda.map(
+            l => l.length
+          )
+        );
+
+        const rowHeight = Math.max(10, maxLineas * 4 + 4);
+        const limiteInferior = pageHeight - 20;
+
+        if (y + rowHeight > limiteInferior) {
+
+          doc.addPage();
+
+          dibujarEncabezadoPagina();
+
+          y = 40;
+
+          dibujarEncabezadoTabla();
         }
-      );
 
-      y += rowHeight;
+        // const fondo =
+        //   fila % 2 === 0
+        //     ? COLORS.beige3
+        //     : COLORS.blanco;
+        const fondo =
+          fila % 2 === 0
+            ? COLORS.blanco
+            : [245, 245, 245]; // Gris muy claro
 
-      fila++;
+        let x = margin;
+
+        lineasPorCelda.forEach(
+          (lineas, i) => {
+
+            doc.setFillColor(...fondo);
+
+            doc.rect(
+              x,
+              y,
+              anchos[i],
+              rowHeight,
+              "F"
+            );
+
+            // doc.setDrawColor(...COLORS.beige1);
+            doc.setDrawColor(...COLORS.grisSecundario);
+
+            doc.rect(
+              x,
+              y,
+              anchos[i],
+              rowHeight
+            );
+
+            doc.setTextColor(...COLORS.negro);
+            doc.setFont("Montserrat", "normal");
+            doc.setFontSize(9);
+
+            doc.text(
+              lineas,
+              x + 1.5,
+              y + 4
+            );
+
+            x += anchos[i];
+          }
+        );
+
+        y += rowHeight;
+
+        fila++;
+      });
     });
-  });
 
-  // =========================
-  // FOOTER
-  // =========================
+    // =========================
+    // FOOTER
+    // =========================
 
-  const footerY =
-    pageHeight - 15;
+    const footerY =
+      pageHeight - 15;
 
-  doc.setDrawColor(...COLORS.vino);
+    // doc.setDrawColor(...COLORS.vino);
+    doc.setDrawColor(...COLORS.grisPrincipal);
 
-  doc.line(
-    margin,
-    footerY,
-    pageWidth - margin,
-    footerY
-  );
+    doc.line(
+      margin,
+      footerY,
+      pageWidth - margin,
+      footerY
+    );
 
-  doc.setTextColor(...COLORS.grisPrincipal);
+    doc.setTextColor(...COLORS.grisPrincipal);
 
-  doc.setFontSize(8);
+    doc.setFontSize(8);
 
-  doc.text(
-    "Sistema Automatizado de Gestión y Archivo de la Secretaría de Educación (SAGASE)",
-    pageWidth / 2,
-    footerY + 5,
-    { align: "center" }
-  );
+    doc.text(
+      "Sistema Automatizado de Gestión y Archivo de la Secretaría de Educación (SAGASE)",
+      pageWidth / 2,
+      footerY + 5,
+      { align: "center" }
+    );
 
-  const formatearFechaNombre = (fecha) => {
-    if (!fecha) return "";
+    const formatearFechaNombre = (fecha) => {
+      if (!fecha) return "";
 
-    const [anio, mes, dia] = fecha.split("-");
+      const [anio, mes, dia] = fecha.split("-");
 
-    return `${dia}-${mes}-${anio}`;
+      return `${dia}-${mes}-${anio}`;
+    };
+
+      const fechaInicioNombre =
+        formatearFechaNombre(form.fechaInicio);
+
+      const fechaFinNombre =
+        formatearFechaNombre(form.fechaFin);
+
+      const nombrePDF =
+        `Reporte_Acuerdos_${fechaInicioNombre}_al_${fechaFinNombre}.pdf`;
+
+    const pdfBlob = doc.output("blob");
+
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    // Descargar automáticamente
+    doc.save(nombrePDF);
+    
+    return {
+      url: pdfUrl,
+      nombre: nombrePDF,
+    };
+
   };
-
-    const fechaInicioNombre =
-      formatearFechaNombre(form.fechaInicio);
-
-    const fechaFinNombre =
-      formatearFechaNombre(form.fechaFin);
-
-    const nombrePDF =
-      `Reporte_Acuerdos_${fechaInicioNombre}_al_${fechaFinNombre}.pdf`;
-
-  const pdfBlob = doc.output("blob");
-
-  const pdfUrl = URL.createObjectURL(pdfBlob);
-
-  // Descargar automáticamente
-  doc.save(nombrePDF);
-  
-  return {
-    url: pdfUrl,
-    nombre: nombrePDF,
-  };
-
-};
 
   return (
     <div className="flex-1 w-full p-6 bg-gray-100 overflow-y-auto">

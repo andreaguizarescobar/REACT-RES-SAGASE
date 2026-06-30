@@ -1980,8 +1980,9 @@ const generarDocumentoTurno = async (turno) => {
     }
   }
   
-  const doc = new jsPDF();
-
+  // const doc = new jsPDF();
+  const doc = new jsPDF("p", "mm", "letter");
+  
   // =========================
   // FUENTES PERSONALIZADAS
   // =========================
@@ -1996,15 +1997,22 @@ const generarDocumentoTurno = async (turno) => {
 
   
   // ===== PALETA OFICIAL =====
+  // const COLORS = {
+  //   grisPrincipal: [96, 89, 93],      // #60595D
+  //   beige1: [197, 176, 153],          // #C5B099
+  //   beige2: [205, 177, 156],          // #CDB19C
+  //   beige3: [218, 206, 192],          // #DACEC0
+  //   vino: [121, 20, 42],              // #79142A
+  //   blanco: [255, 255, 255],
+  //   negro: [0, 0, 0],
+  //   grisBorde: [180, 180, 180],
+  // };
+
   const COLORS = {
     grisPrincipal: [96, 89, 93],      // #60595D
-    beige1: [197, 176, 153],          // #C5B099
-    beige2: [205, 177, 156],          // #CDB19C
-    beige3: [218, 206, 192],          // #DACEC0
-    vino: [121, 20, 42],              // #79142A
+    grisSecundario: [155, 157, 154],  // #9B9D9A
     blanco: [255, 255, 255],
     negro: [0, 0, 0],
-    grisBorde: [180, 180, 180],
   };
 
   const fechaHoy = formatearFechaPDF(new Date());
@@ -2022,7 +2030,8 @@ const generarDocumentoTurno = async (turno) => {
   // ===== HEADER =====
 
   // Fondo decorativo header
-  doc.setFillColor(...COLORS.beige3);
+  // doc.setFillColor(...COLORS.beige3);
+  doc.setFillColor(...COLORS.grisSecundario);
   doc.rect(margin, 12, contentWidth, 18, "F");
 
   // ===== LOGO INSTITUCIONAL =====
@@ -2040,7 +2049,8 @@ const generarDocumentoTurno = async (turno) => {
   );
 
   // ===== FECHA =====
-  doc.setFillColor(...COLORS.vino);
+  // doc.setFillColor(...COLORS.vino);
+  doc.setFillColor(...COLORS.grisPrincipal);
   doc.roundedRect(130, 17, 25, 8, 2, 2, "F");
 
   doc.setTextColor(...COLORS.blanco);
@@ -2053,7 +2063,8 @@ const generarDocumentoTurno = async (turno) => {
   doc.text(fechaHoy, 175, 22, { align: "center" });
 
   // ===== LÍNEA SEPARADORA =====
-  doc.setDrawColor(...COLORS.beige2);
+  // doc.setDrawColor(...COLORS.beige2);
+  doc.setDrawColor(...COLORS.grisSecundario);
   doc.setLineWidth(0.7);
   doc.line(margin, 35, pageWidth - margin, 35);
 
@@ -2088,7 +2099,8 @@ const generarDocumentoTurno = async (turno) => {
     );
 
     // Fondo
-    doc.setFillColor(...COLORS.beige3);
+    // doc.setFillColor(...COLORS.beige3);
+    doc.setFillColor(...COLORS.blanco);
     doc.rect(col1, yPos - 6, contentWidth, alturaFila, "F");
 
     // Label izquierda
@@ -2107,7 +2119,8 @@ const generarDocumentoTurno = async (turno) => {
 
     if (label2) {
       // Label derecha
-      doc.setFillColor(...COLORS.vino);
+      // doc.setFillColor(...COLORS.vino);
+      doc.setFillColor(...COLORS.grisPrincipal);
       doc.rect(col3, yPos - 6, 28, alturaFila, "F");
 
       doc.setTextColor(...COLORS.blanco);
@@ -2120,7 +2133,8 @@ const generarDocumentoTurno = async (turno) => {
       doc.text(lineas2, col4 + 3, yPos);
     }
 
-    doc.setDrawColor(...COLORS.beige1);
+    // doc.setDrawColor(...COLORS.beige1);
+    doc.setDrawColor(...COLORS.grisSecundario);
     doc.rect(col1, yPos - 6, contentWidth, alturaFila);
 
     return alturaFila;
@@ -2141,7 +2155,8 @@ const generarDocumentoTurno = async (turno) => {
       lineas.length * 5 + 4
     );
 
-    doc.setFillColor(...COLORS.beige3);
+    // doc.setFillColor(...COLORS.beige3);
+    doc.setFillColor(...COLORS.blanco);
     doc.rect(col1, yPos - 6, contentWidth, alturaFila, "F");
 
     doc.setFillColor(...COLORS.grisPrincipal);
@@ -2156,7 +2171,8 @@ const generarDocumentoTurno = async (turno) => {
     doc.setFont("Montserrat", "normal");
     doc.text(lineas, col2, yPos);
 
-    doc.setDrawColor(...COLORS.beige1);
+    // doc.setDrawColor(...COLORS.beige1);
+    doc.setDrawColor(...COLORS.grisSecundario);
     doc.rect(col1, yPos - 6, contentWidth, alturaFila);
 
     return alturaFila;
@@ -2197,13 +2213,16 @@ const generarDocumentoTurno = async (turno) => {
   );
 
   // RECIBIDO EN
-  doc.setFillColor(...COLORS.beige3);
+  // doc.setFillColor(...COLORS.beige3);
+  doc.setFillColor(...COLORS.blanco);
   doc.rect(col1, y - 6, contentWidth, rowHeight, "F");
 
-  doc.setDrawColor(...COLORS.beige1);
+  // doc.setDrawColor(...COLORS.beige1);
+  doc.setDrawColor(...COLORS.grisSecundario);
   doc.rect(col1, y - 6, contentWidth, rowHeight);
 
-  doc.setFillColor(...COLORS.vino);
+  // doc.setFillColor(...COLORS.vino);
+  doc.setFillColor(...COLORS.grisPrincipal);
   doc.rect(col3, y - 6, 28, rowHeight, "F");
 
   doc.setTextColor(...COLORS.blanco);
@@ -2281,7 +2300,8 @@ const generarDocumentoTurno = async (turno) => {
 
   // ===== ASUNTO =====
 
-  doc.setFillColor(...COLORS.vino);
+  // doc.setFillColor(...COLORS.vino);
+  doc.setFillColor(...COLORS.grisPrincipal);
   doc.roundedRect(col1, y - 6, 32, 8, 2, 2, "F");
 
   doc.setTextColor(...COLORS.blanco);
@@ -2306,10 +2326,12 @@ const generarDocumentoTurno = async (turno) => {
 
   const asuntoHeight = asuntoLineas.length * 5 + 10;
 
-  doc.setFillColor(...COLORS.beige3);
+  // doc.setFillColor(...COLORS.beige3);
+  doc.setFillColor(...COLORS.blanco);
   doc.rect(col1, y - 4, contentWidth, asuntoHeight, "F");
 
-  doc.setDrawColor(...COLORS.beige1);
+  // doc.setDrawColor(...COLORS.beige1);
+  doc.setDrawColor(...COLORS.grisSecundario);
   doc.rect(col1, y - 4, contentWidth, asuntoHeight);
 
   doc.setTextColor(...COLORS.negro);
@@ -2340,10 +2362,12 @@ const generarDocumentoTurno = async (turno) => {
 
   const acuerdoHeight = acuerdoLineas.length * 5 + 20;
 
-  doc.setFillColor(...COLORS.beige3);
+  // doc.setFillColor(...COLORS.beige3);
+  doc.setFillColor(...COLORS.blanco);
   doc.rect(col1, y - 4, contentWidth, acuerdoHeight, "F");
 
-  doc.setDrawColor(...COLORS.beige1);
+  // doc.setDrawColor(...COLORS.beige1);
+  doc.setDrawColor(...COLORS.grisSecundario);
   doc.rect(col1, y - 4, contentWidth, acuerdoHeight);
 
   doc.setTextColor(...COLORS.negro);
@@ -2367,7 +2391,8 @@ const generarDocumentoTurno = async (turno) => {
   );
 */
   // Línea firma
-  doc.setDrawColor(...COLORS.vino);
+  // doc.setDrawColor(...COLORS.vino);
+  doc.setDrawColor(...COLORS.grisPrincipal);
   doc.setLineWidth(1);
   doc.line(margin + 5, y + 15, margin + 75, y + 15);
 
@@ -2378,7 +2403,8 @@ const generarDocumentoTurno = async (turno) => {
   turno?.turna?.nombre ||
   "MTRA. NOMBRE DEL TITULAR";
 
-  doc.setTextColor(...COLORS.vino);
+  // doc.setTextColor(...COLORS.vino);
+  doc.setTextColor(...COLORS.grisPrincipal);
   doc.setFont("Montserrat", "bold");
   doc.setFontSize(9);
 
@@ -2403,7 +2429,8 @@ const generarDocumentoTurno = async (turno) => {
 
   // ===== SELLO =====
 
-  doc.setTextColor(...COLORS.vino);
+  // doc.setTextColor(...COLORS.vino);
+  doc.setTextColor(...COLORS.grisPrincipal);
   doc.setFont("Montserrat", "bold");
   doc.setFontSize(7);
 

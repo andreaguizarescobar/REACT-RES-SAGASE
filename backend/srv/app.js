@@ -16,6 +16,8 @@ import adicionalRoutes from './routes/adicional.route.js';
 import correspondenciaRoutes from './routes/correspondencia.route.js';
 import areaRoutes from './routes/area.route.js';
 import instruccionRoutes from './routes/instruccion.route.js';
+import dashboardRoutes from './routes/dashboard.route.js';
+
 await import('./config/db.js');
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +42,7 @@ app.use(`${api}/correspondencia`, correspondenciaRoutes);
 app.use(`${api}/adicional`, adicionalRoutes);
 app.use(`${api}/areas`, areaRoutes);
 app.use(`${api}/instruccion`, instruccionRoutes);
+app.use(`${api}/dashboard`, dashboardRoutes);
 console.log(`API URL: ${api}` + `, PORT: ${config.PORT}`);
 
 export default app;
