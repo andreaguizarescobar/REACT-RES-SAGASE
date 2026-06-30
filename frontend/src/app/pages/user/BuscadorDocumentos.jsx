@@ -102,10 +102,8 @@ export default function BuscadorDocumentos() {
           const usersRes = await getUsers(token);
           if (usersRes.ok) {
             const users = await usersRes.json();
-            setUsuarios(users.map((u) => ({
-              value: u._id,
-              label: `${u.name || u.nombre || ""}`.trim(),
-            })));
+            setUsuarios(users.map((u) => ({ value: u._id, label: `${u.name || u.nombre || ''}`.trim(), areaId: u.areaId }
+            )));
           }
         }
       } catch (error) {
@@ -235,13 +233,12 @@ useEffect(() => {
       const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
       const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
       const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
-      const selectedMaterialLabel = getReferenceLabel(fullDoc.adicional) || "";
       const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
       const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
       const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
       const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
       const remitenteId = fullDoc.remitente?._id || fullDoc.remitente || "";
-      const tipoRemitente = fullDoc.interno ? "interno" : "externo";
+      const tipoRemitente = fullDoc.remitente?.tipo;
       setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
       setDocumentoEditar(fullDoc);
       setFormEditar({
@@ -269,6 +266,7 @@ useEffect(() => {
       setBusquedaTemaPrincipal(selectedTemaLabel);
       setBusquedaTemaSecundario(selectedSecundarioLabel);
       setBusquedaMaterial("");
+      setBusquedaRemitenteInt(remitenteLabel);
       setBusquedaRemitenteExt(remitenteLabel);
       setAsuntoSeleccionado({ descripcion: fullDoc.asunto || "" });
       setDocumentoAnexos(fullDoc.anexos || []);
@@ -400,12 +398,10 @@ useEffect(() => {
     });
   };
 
-  const handleToggleFaltaInformacion = (value) =>
-    handleToggleFaltaInformacionHelper(value, setFormEditar, setFolioGenerado);
-
   // refs + dropdown states usados en UI
   const refTipoDoc = useRef(null);
   const refRemitenteExt = useRef(null);
+  const refRemitenteInt = useRef(null);
   const refMaterial = useRef(null);
   const refAsunto = useRef(null);
   const refTemaPrincipal = useRef(null);
@@ -414,17 +410,14 @@ useEffect(() => {
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
+  const [busquedaRemitenteInt, setBusquedaRemitenteInt] = useState("");
+  const [mostrarOpcionesRemitenteInt, setMostrarOpcionesRemitenteInt] = useState(false);
+
   const remitentesInternos = remitentes.filter((r) => r.tipo === "interno");
   const remitentesExternos = remitentes.filter((r) => r.tipo === "externo");
   const remitentesFiltrados = remitentesExternos.filter((r) =>
     r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
   );
-
-  const usuariosInstitucion = [
-    { id: 1, nombre: "Juan Pérez - Dirección General" },
-    { id: 2, nombre: "María López - Jurídico" },
-    { id: 3, nombre: "Carlos Ramírez - Administración" },
-  ];
 
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
@@ -433,10 +426,8 @@ useEffect(() => {
     tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
   );
 
-  const [asuntos] = useState([]);
   const [asuntoSeleccionado, setAsuntoSeleccionado] = useState(null);
 
-  const [busquedaAsunto, setBusquedaAsunto] = useState("");
   const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
 
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
@@ -461,9 +452,6 @@ const documentosFiltrados = documentos.filter((d) =>
   const temasFiltradosPrincipal = temasPrincipales.filter((t) =>
     t.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
   );
-  const temasFiltradosSecundario = temasPrincipales.filter((t) =>
-    t.label.toLowerCase().includes(busquedaTemaSecundario.toLowerCase())
-  );
 
   const [busquedaMaterial, setBusquedaMaterial] = useState("");
   const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
@@ -472,6 +460,9 @@ const documentosFiltrados = documentos.filter((d) =>
     const handleClickOutside = (event) => {
       if (refTipoDoc.current && !refTipoDoc.current.contains(event.target)) {
         setMostrarOpcionesTipoDoc(false);
+      }
+      if (refRemitenteInt.current && !refRemitenteInt.current.contains(event.target)) {
+        setMostrarOpcionesRemitenteInt(false);
       }
       if (refRemitenteExt.current && !refRemitenteExt.current.contains(event.target)) {
         setMostrarOpcionesRemitenteExt(false);
@@ -503,63 +494,6 @@ const documentosFiltrados = documentos.filter((d) =>
   
   const bitacoraRef = useRef(null);
 
-  const imprimirDoc = () => {
-    window.print();
-  };
-
-
-  const exportarExcelModal = () => {
-    const datos = documentosFiltrados;
-  
-    if (!datos.length) return;
-  
-    const encabezados = [
-      "Folio",
-      "No. Documento",
-      "Fecha",
-      "Síntesis",
-      "Remitente Interno",
-      "Remitente Externo",
-      "Estatus",
-      "Motivo"
-    ];
-  
-    const filas = datos.map((doc) => [
-      doc.folio,
-      doc.numeroDocumento,
-      doc.fecha,
-      doc.sintesis,
-      doc.remitenteInterno,
-      doc.remitenteExterno,
-      doc.estatus,
-      doc.motivo
-    ]);
-  
-    let contenidoCSV =
-      encabezados.join(",") + "\n" +
-      filas.map((fila) => fila.join(",")).join("\n");
-  
-    const blob = new Blob(["\uFEFF" + contenidoCSV], {
-      type: "text/csv;charset=utf-8;"
-    });
-  
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Documentos_${estatusSeleccionado}.csv`;
-    link.click();
-  };
-
-  const [copias, setCopias] = useState([
-    "Víctor Manuel Enríquez Paniagua",
-    "María Verónica Leal Camarena",
-    "Guillermo Bonilla Tenorio",
-    "Dirección de Administración",
-  ]);
-
-  const eliminarCopia = (index) => {
-    setCopias((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
   const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
   const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
@@ -574,23 +508,6 @@ const documentosFiltrados = documentos.filter((d) =>
     );
 
     const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
-
-  const turnosVerFiltrados = (turnosDocumento || []).filter((item) =>
-    [
-      item.instruccion?.descripcion || item.instruccion?.label || item.instruccion,
-      item.remitente?.nombre || item.remitente?.label || item.remitente,
-      item.areaDestino?.nombre || item.areaDestino?.label || item.areaDestino,
-      item.dirigido?.nombre || item.dirigido?.label || item.dirigido,
-      item.prioridad,
-      item.compromiso ? formatDateValue(item.compromiso) : item.fechaTurnado ? formatDateValue(item.fechaTurnado) : "",
-      item.turna?.nombre || item.turna?.label || item.turna,
-      item.status,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(busquedaVerTurnos.toLowerCase())
-  );
 
   const [mostrarModalTurno, setMostrarModalTurno] = useState(false);
 
@@ -613,12 +530,14 @@ const documentosFiltrados = documentos.filter((d) =>
     if (!form.instruccion) nuevosErrores.instruccion = true;
     if (!form.areaDestino) nuevosErrores.areaDestino = true;
     if (!form.prioridad) nuevosErrores.prioridad = true;
-    if (!form.fecha) nuevosErrores.fecha = true;
+    if (form.prioridad === "Urgente") if (!form.fecha) nuevosErrores.fecha = true;
 
     setErroresTurno(nuevosErrores);
 
     return Object.keys(nuevosErrores).length === 0;
   };
+
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleGuardarAltaInstruccion = async () => {
     if (!validarFormularioAltaInstruccion()) {
@@ -646,14 +565,13 @@ const documentosFiltrados = documentos.filter((d) =>
     try {
       const turnadoData = {
         instruccion: form.instruccion,
-        remitente: form.remitente,
+        remitente: documentoEditar.remitente,
         areaDestino: form.areaDestino,
         dirigido: form.dirigido,
         prioridad: form.prioridad,
         compromiso: form.fecha,
-        turna: form.turna,
+        turna: user.id || user._id,
         notas: form.notas,
-        status: form.autorizar ? "Autorizado" : "Pendiente",
       };
 
       const response = await addTurnado(currentDocId, turnadoData, token);
@@ -662,7 +580,7 @@ const documentosFiltrados = documentos.filter((d) =>
       const updatedDocumento = await response.json();
       setDocumentoEditar(updatedDocumento);
       setDocumentoSeleccionado(updatedDocumento);
-      setTurnosDocumento(updatedDocumento.turnados || []);
+      setTurnosDocumento(updatedDocumento.turnados);
       setMostrarModalTurno(false);
       setForm({
         instruccion: "",
@@ -673,7 +591,6 @@ const documentosFiltrados = documentos.filter((d) =>
         fecha: "",
         turna: "",
         notas: "",
-        autorizar: false,
       });
       setErroresTurno({});
 
@@ -693,6 +610,23 @@ const documentosFiltrados = documentos.filter((d) =>
       });
     }
   };
+
+    const turnosVerFiltrados = (turnosDocumento || []).filter((item) =>
+    [
+      item.instruccion?.descripcion || item.instruccion?.label || item.instruccion,
+      item.remitente?.nombre || item.remitente?.label || item.remitente,
+      item.areaDestino?.nombre || item.areaDestino?.label || item.areaDestino,
+      item.dirigido?.nombre || item.dirigido?.label || item.dirigido,
+      item.prioridad,
+      item.compromiso ? formatDateValue(item.compromiso) : item.fechaTurnado ? formatDateValue(item.fechaTurnado) : "",
+      item.turna?.nombre || item.turna?.label || item.turna,
+      item.status,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(busquedaVerTurnos.toLowerCase())
+  );
 
   const handleGuardarCopia = async () => {
     if (!selectedCopiaUsuario) {
@@ -838,7 +772,6 @@ const documentosFiltrados = documentos.filter((d) =>
       formData.append('nombre', nombreDoc);
       formData.append('docId', currentDocId);
 
-      console.log("Subiendo anexo con datos:", currentDocId);
       const response = await uploadAnexo(formData, token);
       if (!response.ok) throw new Error('Error subiendo el anexo');
 
@@ -1779,12 +1712,12 @@ const documentosFiltrados = documentos.filter((d) =>
                         label: "Anexos",
                       },
                       // verificar si el documento tiene material adicional para mostrar la pestaña
-                      ...documentoEditar?.adicional.tiene ? (
+                      ...documentoEditar?.adicional?.tiene ? ([
                         {
                           id: "materialAdicional",
                           label: "Material adicional",
-                        }
-                      ) : [],
+                        }]
+                      ) : null,
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
@@ -1870,69 +1803,46 @@ const documentosFiltrados = documentos.filter((d) =>
                           <div className="grid grid-cols-6 gap-4 items-end">
                             <div className="col-span-2">
                               <label className="text-xs text-gray-500">Tipo de remitente *</label>
-                              <select name="tipoRemitente" value={formEditar.tipoRemitente} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
-                                <option value="">Seleccionar</option>
-                                <option value="interno">Interno</option>
-                                <option value="externo">Externo</option>
-                              </select>
+                              <input
+                                value={
+                                  formEditar?.tipoRemitente === "interno"
+                                    ? "Interno"
+                                    : formEditar?.tipoRemitente === "externo"
+                                    ? "Externo"
+                                    : safeText(formEditar?.tipoRemitente, "Interno")
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
                             </div>
 
-                            {formEditar.tipoRemitente === "interno" && (
-                              <div className="col-span-4">
-                                <label className="text-xs text-gray-500">Funcionario / Área *</label>
-                                <select disabled name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed`}>
-                                  <option value="">Seleccionar</option>
-                                  {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
-                                    <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-
-                            {formEditar.tipoRemitente === "externo" && (
-                              <div className="col-span-4">
-                                <label className="text-xs text-gray-500">Selecciona remitente externo *</label>
-                                <div className="flex items-center gap-3">
-                                  <div ref={refRemitenteExt} className="flex-1 relative">
-                                    <div className={`flex items-center border rounded px-2 ${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
-                                      <Search size={16} className="text-gray-400" />
-                                      <input
-                                        value={busquedaRemitenteExt}
-                                        onChange={(e) => {
-                                          setBusquedaRemitenteExt(e.target.value);
-                                          setMostrarOpcionesRemitenteExt(true);
-                                        }}
-                                        onFocus={() => setMostrarOpcionesRemitenteExt(true)}
-                                        className="w-full px-2 py-1 outline-none"
-                                        placeholder="Buscar y seleccionar opción"
-                                      />
-                                    </div>
-
-                                    {mostrarOpcionesRemitenteExt && (
-                                      <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                        {remitentesFiltrados.length > 0 ? (
-                                          remitentesFiltrados.map((r) => (
-                                            <div
-                                              key={r.value}
-                                              onClick={() => {
-                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.value }));
-                                                setBusquedaRemitenteExt(r.label);
-                                                setMostrarOpcionesRemitenteExt(false);
-                                              }}
-                                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                            >
-                                              {r.label}
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                            <div className="col-span-4">
+                              <label className="text-xs text-gray-500">Remitente</label>
+                              <input
+                                value={
+                                  formEditar.tipoRemitente === "interno"
+                                    ? (remitentesInternos.find(r => r.value === formEditar.remitenteInterno)?.label ||
+                                       documentoEditar?.remitente?.name ||
+                                       documentoEditar?.remitente?.nombre ||
+                                       getReferenceLabel(documentoEditar?.remitente) ||
+                                       busquedaRemitenteInt ||
+                                       "")
+                                    : formEditar.tipoRemitente === "externo"
+                                    ? (remitentesExternos.find(r => r.value === formEditar.remitenteExterno)?.label ||
+                                       documentoEditar?.remitente?.name ||
+                                       documentoEditar?.remitente?.nombre ||
+                                       getReferenceLabel(documentoEditar?.remitente) ||
+                                       busquedaRemitenteExt ||
+                                       "")
+                                    : documentoEditar?.remitente?.name ||
+                                      documentoEditar?.remitente?.nombre ||
+                                      getReferenceLabel(documentoEditar?.remitente) ||
+                                      safeText(documentoEditar?.remitente, "")
+                                }
+                                disabled
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -3620,120 +3530,6 @@ const documentosFiltrados = documentos.filter((d) =>
                   />
                 </div>
 
-                {/* CLASE ASUNTO (CON BUSCADOR 🔥) */}
-                <div className="relative">
-                  <label className="text-xs text-gray-500">
-                    Clase asunto *
-                  </label>
-
-                  <div className="flex items-center border rounded px-2">
-                    <Search size={16} className="text-gray-400" />
-                    <input
-                      value={busquedaClaveAsunto}
-                      onChange={(e) => {
-                        setBusquedaClaveAsunto(e.target.value);
-                        setMostrarOpcionesClave(true);
-                      }}
-                      onFocus={() => setMostrarOpcionesClave(true)}
-                      className="w-full px-2 py-1 outline-none"
-                    />
-                  </div>
-
-                  {mostrarOpcionesClave && (
-                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                      {clavesFiltradas.map((c) => (
-                        <div
-                          key={c.value}
-                          onClick={() => {
-                            setNuevoAsunto({
-                              ...nuevoAsunto,
-                              clave: c.value,
-                            });
-                            setBusquedaClaveAsunto(c.label);
-                            setMostrarOpcionesClave(false);
-                          }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm"
-                        >
-                          {c.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* DESCRIPCIÓN */}
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-500">
-                    Descripción del asunto *
-                  </label>
-                  <input
-                    value={nuevoAsunto.descripcion}
-                    onChange={(e) =>
-                      setNuevoAsunto({
-                        ...nuevoAsunto,
-                        descripcion: e.target.value,
-                      })
-                    }
-                    className="w-full border rounded px-2 py-1"
-                  />
-                </div>
-
-              </div>
-
-              {/* FOOTER */}
-              <div className="flex justify-end p-4 gap-2">
-                <button
-                  onClick={() => setMostrarModalAltaAsunto(false)}
-                  className="px-4 py-2 border rounded"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (!nuevoAsunto.descripcion || !nuevoAsunto.clave) {
-                      Swal.fire({
-                        icon: "error",
-                        title: "Campos obligatorios",
-                        text: "Completa la información",
-                      });
-                      return;
-                    }
-
-                    const nuevo = {
-                      numero: `AS-${Date.now().toString().slice(-5)}`,
-                      ...nuevoAsunto,
-                      fecha: new Date().toLocaleDateString(),
-                    };
-
-                    setAsuntos([...asuntos, nuevo]);
-
-                    // seleccionar automáticamente
-                    setAsuntoSeleccionado(nuevo);
-                    setBusquedaAsunto(nuevo.descripcion);
-
-                    setNuevoAsunto({
-                      numero: "",
-                      clave: "",
-                      descripcion: "",
-                    });
-
-                    setBusquedaClaveAsunto("");
-                    setMostrarModalAltaAsunto(false);
-
-                    Swal.fire({
-                      toast: true,
-                      position: "top-end",
-                      icon: "success",
-                      title: "Asunto agregado",
-                      showConfirmButton: false,
-                      timer: 2000,
-                    });
-                  }}
-                  className="bg-[#8B1538] text-white px-6 py-2 rounded"
-                >
-                  Guardar
-                </button>
               </div>
 
             </motion.div>

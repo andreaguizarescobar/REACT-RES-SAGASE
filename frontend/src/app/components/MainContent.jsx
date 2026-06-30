@@ -31,7 +31,7 @@ import GothamRoundedBook from "../../styles/fonts/GothamRounded-Book.ttf";
 import MontserratBold from "../../styles/fonts/Montserrat-Bold.ttf";
 import MontserratRegular from "../../styles/fonts/Montserrat-Regular.ttf";
 
-export function MainContent({ currentView }) {
+export default function MainContent({ currentView }) {
 
   const BaseURL = "http://localhost:3333/";
   const [documentos, setDocumentos] = useState([]);
@@ -703,7 +703,8 @@ const moverAPendientes = () => {
         const [busquedaMaterial, setBusquedaMaterial] = useState("");
         const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
         const materialesFiltrados = materialesAdicionales.filter((m) =>
-          m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
+          m.tipo.toLowerCase().includes(busquedaMaterial.toLowerCase()) ||
+          m.descripcion.toLowerCase().includes(busquedaMaterial.toLowerCase())
         );
       
         useEffect(() => {
@@ -1521,19 +1522,42 @@ const moverAPendientes = () => {
                               </p>
                             </div>
 
-                            {/* SOLO VISUALIZAR
+                            {/* VISUALIZAR DOCUMENTO */}
                             <div className="flex flex-col gap-2">
                               <button
-                                onClick={() => {
-                                  setDocSeleccionado(doc);
-                                  setMostrarModal(true);
+                                onClick={async () => {
+                                  try {
+                                    const token = localStorage.getItem("token");
+                                    const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio;
+                                    if (!docId) return;
+
+                                    const response = await getDocumentById(docId, token);
+                                    if (!response.ok) return;
+
+                                    const data = await response.json();
+                                    const fullDoc = data.documento || data;
+                                    setDocSeleccionado(fullDoc);
+                                    setDocumentoAnexos(fullDoc.anexos || []);
+                                    setTurnosDocumento(fullDoc.turnados || []);
+                                    setCopiasDocumento(fullDoc.copias || []);
+                                    setBitacoraDocumento(fullDoc.bitacora || []);
+                                    setRelacionadosDocumento(
+                                      (fullDoc.relacionados || [])
+                                        .map(normalizeRelacionadoItem)
+                                        .filter(Boolean)
+                                    );
+                                    setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
+                                    setMostrarModal(true);
+                                  } catch (error) {
+                                    console.error("Error cargando documento:", error);
+                                  }
                                 }}
-                                className="w-6 h-6 bg-blue-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
+                                className="p-1 rounded hover:bg-gray-100 text-[#8B1538]"
                                 title="Visualizar documento"
                               >
-                                <Eye size={12} />
+                                <Eye size={16} />
                               </button>
-                            </div> */}
+                            </div>
 
                           </div>
 
@@ -1560,21 +1584,6 @@ const moverAPendientes = () => {
                           <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
 
                             <span>Concluido {tiempoTranscurrido(doc.fecha)}</span>
-
-                            <div className="flex gap-2 mt-2">
-
-                              <button
-                                onClick={() => {
-                                  setDocumentoEditar(doc);
-                                  setModalEditarAbierto(true);
-                                }}
-                                className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition"
-                              >
-                                <Check size={14} />
-                                Concluido
-                              </button>
-
-                            </div>
 
                           </div>
 
@@ -1779,8 +1788,6 @@ const moverAPendientes = () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const esValidador = user?.roles?.some((r) => r.rol === "VALIDADOR");
     const esEjecutor = user?.roles?.some((r) => r.rol === "EJECUTOR");
-
-    const [observacionesValidacion, setObservacionesValidacion] = useState("");
 
     const [validacionRespuesta, setValidacionRespuesta] = useState("");
     const [respuestaGuardada, setRespuestaGuardada] = useState(false);
@@ -2527,7 +2534,7 @@ const generarDocumentoTurno = async (turno) => {
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
-                  ...(docSeleccionado.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
+                  ...(docSeleccionado.adicional?.tiene ? [{ id: "materialAdicional", label: "Soporte adicional" }] : []),
                   ...(!esEjecutor ? [] : [{ id: "turnoRecibido", label: "Atender turno recibido" }]),
                   { id: "verTurnos", label: "Todos los turnos" },
                   { id: "copias", label: "Copias" },
@@ -2584,7 +2591,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.tipo.descripcion
+                                  docSeleccionado.tipo
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2606,7 +2613,7 @@ const generarDocumentoTurno = async (turno) => {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Material adicional
+                                Soporte adicional
                               </label>
                               <input
                                 value={
@@ -2728,7 +2735,7 @@ const generarDocumentoTurno = async (turno) => {
                               <textarea
                                 value={
                                   safeText(docSeleccionado.sintesis, "") ||
-                                  safeText(docSeleccionado.tema.descripcion, "") ||
+                                  safeText(docSeleccionado.tema, "") ||
                                   ""
                                 }
                                 disabled
@@ -2953,60 +2960,6 @@ const generarDocumentoTurno = async (turno) => {
                               </table>
                             </div>
                               
-                              {/* Modal ver archivo */}
-                              <AnimatePresence>
-                                {mostrarVisor && (
-                                  <motion.div
-                                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                  >
-                                    <motion.div
-                                      className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
-                                      initial={{ scale: 0.8 }}
-                                      animate={{ scale: 1 }}
-                                      exit={{ scale: 0.8 }}
-                                    >
-                                      {/* Botón cerrar */} <button onClick={() => setMostrarVisor(false)} className="absolute top-2 right-2 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition" > <Minus size={18} /> </button>
-        
-                                      {/* Contenido */}
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      {typeof archivoVista === "string" ? (
-                                        archivoVista.endsWith(".pdf") ? (
-                                          <iframe
-                                            src={archivoVista}
-                                            className="w-full h-full rounded"
-                                          />
-                                        ) : (
-                                          <img
-                                            src={archivoVista}
-                                            alt="preview"
-                                            className="max-h-full rounded"
-                                          />
-                                        )
-                                      ) : archivoVista?.type?.includes("image") ? (
-                                        <img
-                                          src={URL.createObjectURL(archivoVista)}
-                                          alt="preview"
-                                          className="max-h-full rounded"
-                                        />
-                                      ) : archivoVista?.type === "application/pdf" ? (
-                                        <iframe
-                                          src={URL.createObjectURL(archivoVista)}
-                                          className="w-full h-full rounded"
-                                        />
-                                      ) : (
-                                        <p className="text-gray-500">
-                                          No se puede previsualizar este archivo
-                                        </p>
-                                      )}
-                                    </div>
-        
-                                    </motion.div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
     
                           </div>
                     
@@ -3025,8 +2978,8 @@ const generarDocumentoTurno = async (turno) => {
                             </thead>
 
                             <tbody>
-                              {docSeleccionadoPendientes?.adicional?.adicionales?.length > 0 ? (
-                                docSeleccionadoPendientes.adicional.adicionales.map((item, index) => (
+                              {(docSeleccionado?.adicional?.adicionales || docSeleccionadoPendientes?.adicional?.adicionales || []).length > 0 ? (
+                                (docSeleccionado?.adicional?.adicionales || docSeleccionadoPendientes?.adicional?.adicionales || []).map((item, index) => (
                                   <tr key={item._id || index} className="border-t hover:bg-gray-50">
                                     <td className="px-4 py-2 text-gray-700">
                                       {safeText(item.tipo || item.tipoMaterial, "N/A")}
@@ -3663,7 +3616,7 @@ const generarDocumentoTurno = async (turno) => {
                       },
                       ...(documentoEditar?.adicional?.tiene ? [{
                         id: "materialAdicional",
-                        label: "Material adicional",
+                        label: "Soporte adicional",
                       }] : []),
                       {
                         id: "verTurnos",
@@ -3762,9 +3715,6 @@ const generarDocumentoTurno = async (turno) => {
                                 <label className="text-xs text-gray-500">Funcionario / Área *</label>
                                 <select name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 ${errores.remitenteInterno ? "border-red-500 bg-red-50" : ""}`}>
                                   <option value="">Seleccionar</option>
-                                  {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
-                                    <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
-                                  ))}
                                 </select>
                               </div>
                             )}
@@ -3787,28 +3737,6 @@ const generarDocumentoTurno = async (turno) => {
                                         placeholder="Buscar y seleccionar opción"
                                       />
                                     </div>
-
-                                    {mostrarOpcionesRemitenteExt && (
-                                      <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                        {remitentesFiltrados.length > 0 ? (
-                                          remitentesFiltrados.map((r) => (
-                                            <div
-                                              key={r.value}
-                                              onClick={() => {
-                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.value }));
-                                                setBusquedaRemitenteExt(r.label);
-                                                setMostrarOpcionesRemitenteExt(false);
-                                              }}
-                                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                            >
-                                              {r.label}
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -5246,7 +5174,7 @@ const generarDocumentoTurno = async (turno) => {
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
-                  ...(docSeleccionadoPendientes.adicional?.tiene ? [{ id: "materialAdicional", label: "Material adicional" }] : []),
+                  ...(docSeleccionadoPendientes.adicional?.tiene ? [{ id: "materialAdicional", label: "Soporte adicional" }] : []),
                   ...(esEjecutor ? [{ id: "turnoRecibido", label: "Atender turno recibido" }] : []),
                   // pestaña exclusiva para validadores (solo en Mis pendientes)
                   ...(esValidador ? [{ id: "respuestaValidar", label: "Respuesta a validar" }] : []),
@@ -5330,7 +5258,7 @@ const generarDocumentoTurno = async (turno) => {
 
                             <div>
                               <label className="block text-gray-500 mb-1">
-                                Material adicional
+                                Soporte adicional
                               </label>
                               <input
                                 value={
@@ -5670,9 +5598,9 @@ const generarDocumentoTurno = async (turno) => {
                                                   </tbody>
                       
                                                 </table>
-                                              </div>
-                      
-                      
+                                            </div>
+                    
+
                                             </div>
                     )}
 
@@ -5697,19 +5625,19 @@ const generarDocumentoTurno = async (turno) => {
                             </thead>
 
                             <tbody>
-                              {docSeleccionadoPendientes?.adicional?.length > 0 ? (
-                                docSeleccionadoPendientes.adicional.map((item, index) => (
+                              {(docSeleccionadoPendientes?.adicional?.adicionales || []).length > 0 ? (
+                                (docSeleccionadoPendientes?.adicional?.adicionales || []).map((item, index) => (
                                   <tr key={item._id || index} className="border-t hover:bg-gray-50">
                                     <td className="px-4 py-2 text-gray-700">
-                                      {safeText(item.tipo, "N/A")}
+                                      {safeText(item.tipo || item.tipoMaterial, "N/A")}
                                     </td>
 
                                     <td className="px-4 py-2 text-gray-700">
-                                      {item.descripcion || "Sin descripción"}
+                                      {item.descripcion || item.detalle || "Sin descripción"}
                                     </td>
 
                                     <td className="px-4 py-2 text-gray-700">
-                                      {item.registrador?.nombre || item.registrador?.name || "N/A"}
+                                      {item.registrador?.nombre || item.registrador?.name || item.registrador || "N/A"}
                                     </td>
                                   </tr>
                                 ))
@@ -6917,7 +6845,7 @@ const generarDocumentoTurno = async (turno) => {
                       },
                       ...documentoEditar?.adicional?.tiene ? [{
                         id: "materialAdicional",
-                        label: "Material adicional",
+                        label: "Soporte adicional",
                       }] : [],
                       {
                         id: "verTurnos",
@@ -7774,66 +7702,6 @@ const generarDocumentoTurno = async (turno) => {
                         )}
                       </AnimatePresence>
 
-                        {/* Modal ver archivo */}
-                      <AnimatePresence>
-                        {mostrarVisor && (
-                          <motion.div
-                            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                          >
-                            <motion.div
-                              className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
-                              initial={{ scale: 0.8 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0.8 }}
-                            >
-                              {/* Botón cerrar */}
-                              <button
-                                onClick={() => setMostrarVisor(false)}
-                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                              >
-                                ✕
-                              </button>
-
-                              {/* Contenido */}
-                            <div className="w-full h-full flex items-center justify-center">
-                              {typeof archivoVista === "string" ? (
-                                archivoVista.endsWith(".pdf") ? (
-                                  <iframe
-                                    src={archivoVista}
-                                    className="w-full h-full rounded"
-                                  />
-                                ) : (
-                                  <img
-                                    src={archivoVista}
-                                    alt="preview"
-                                    className="max-h-full rounded"
-                                  />
-                                )
-                              ) : archivoVista?.type?.includes("image") ? (
-                                <img
-                                  src={URL.createObjectURL(archivoVista)}
-                                  alt="preview"
-                                  className="max-h-full rounded"
-                                />
-                              ) : archivoVista?.type === "application/pdf" ? (
-                                <iframe
-                                  src={URL.createObjectURL(archivoVista)}
-                                  className="w-full h-full rounded"
-                                />
-                              ) : (
-                                <p className="text-gray-500">
-                                  No se puede previsualizar este archivo
-                                </p>
-                              )}
-                            </div>
-
-                            </motion.div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
 
                       </div>
                       
@@ -8543,6 +8411,65 @@ const generarDocumentoTurno = async (turno) => {
       </AnimatePresence>
 
     </AnimatePresence>
+
+    {/* Modal visor global */}
+    <AnimatePresence>
+      {mostrarVisor && (
+        <motion.div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+          >
+            <button
+              onClick={() => setMostrarVisor(false)}
+              className="absolute top-2 right-2 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
+            >
+              <Minus size={18} />
+            </button>
+
+            <div className="w-full h-full flex items-center justify-center">
+              {typeof archivoVista === "string" ? (
+                archivoVista.endsWith(".pdf") ? (
+                  <iframe
+                    src={archivoVista}
+                    className="w-full h-full rounded"
+                  />
+                ) : (
+                  <img
+                    src={archivoVista}
+                    alt="preview"
+                    className="max-h-full rounded"
+                  />
+                )
+              ) : archivoVista?.type?.includes("image") ? (
+                <img
+                  src={URL.createObjectURL(archivoVista)}
+                  alt="preview"
+                  className="max-h-full rounded"
+                />
+              ) : archivoVista?.type === "application/pdf" ? (
+                <iframe
+                  src={URL.createObjectURL(archivoVista)}
+                  className="w-full h-full rounded"
+                />
+              ) : (
+                <p className="text-gray-500">
+                  No se puede previsualizar este archivo
+                </p>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
     </div>
   );
 }

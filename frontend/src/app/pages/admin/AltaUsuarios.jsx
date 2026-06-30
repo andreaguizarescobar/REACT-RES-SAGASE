@@ -1,4 +1,4 @@
-import { Minus } from "lucide-react";
+import { Minus, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAreas } from "../../services/catalogos.service.js";
@@ -156,12 +156,16 @@ export function AltaUsuarios() {
 
     const [errors, setErrors] = useState({});
     const [areas, setAreas] = useState([]);
-    const [loadingAreas, setLoadingAreas] = useState(false);
+    const [busquedaArea, setBusquedaArea] = useState("");
+    const [mostrarOpcionesArea, setMostrarOpcionesArea] = useState(false);
+
+    const areasFiltradas = areas.filter((area) =>
+      (area.nombre || "").toLowerCase().includes(busquedaArea.toLowerCase())
+    );
 
     useEffect(() => {
         const cargarAreas = async () => {
             try {
-                setLoadingAreas(true);
                 const response = await getAreas();
                 if (response.ok) {
                     const data = await response.json();
@@ -171,8 +175,6 @@ export function AltaUsuarios() {
                 }
             } catch (error) {
                 console.error("Error cargando áreas:", error);
-            } finally {
-                setLoadingAreas(false);
             }
         };
 
@@ -295,43 +297,86 @@ export function AltaUsuarios() {
         </div> */}
 
         {/* FILA 4 */}
+
+        {/* INFORMACIÓN INSTITUCIONAL */}
         <div className="flex items-center gap-3 mb-5">
-            <div className="h-px flex-1 bg-gray-300" />
+          <div className="h-px flex-1 bg-gray-300" />
 
-            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                Información institucional
-            </h2>
+          <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+            Información institucional
+          </h2>
 
-            <div className="h-px flex-1 bg-gray-300" />
+          <div className="h-px flex-1 bg-gray-300" />
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="col-span-1">
+          <div className="col-span-1 relative">
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Área de destino
               <span className="text-red-600"> *</span>
             </label>
-            <select
-            name="area"
-            value={form.area}
-            onChange={handleChange}
-            disabled={loadingAreas}
-            className={`w-full rounded-lg border px-3 py-2.5 transition
-              focus:border-[#8B1538]
-              focus:ring-2
-              focus:ring-[#8B1538]/20
-              outline-none ${
-            errors.area ? "border-red-500 bg-red-50" : ""
-            } ${loadingAreas ? "bg-gray-100 cursor-not-allowed" : ""}`}
+
+            <div
+              className={`flex items-center rounded-lg border px-3 py-2.5 transition
+              focus-within:border-[#8B1538]
+              focus-within:ring-2
+              focus-within:ring-[#8B1538]/20
+              ${
+                errors.area
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
             >
-            <option value="">{loadingAreas ? "Cargando áreas..." : "Seleccionar"}</option>
-            {areas.map((area) => (
-            <option key={area.nombre} value={area.nombre}>
-                {area.nombre}
-            </option>
-            ))}
-            </select>
-        </div>
- 
+              <Search size={16} className="text-gray-400 mr-2 shrink-0" />
+
+              <input
+                type="text"
+                value={busquedaArea}
+                onChange={(e) => {
+                  setBusquedaArea(e.target.value);
+                  setForm({ ...form, area: e.target.value });
+
+                  if (errors.area) {
+                    setErrors({ ...errors, area: false });
+                  }
+                }}
+                onFocus={() => setMostrarOpcionesArea(true)}
+                className="w-full outline-none bg-transparent text-sm"
+                placeholder="Buscar y seleccionar área"
+              />
+            </div>
+
+            {mostrarOpcionesArea && (
+              <div
+                className="absolute z-50 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-white shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {areasFiltradas.length > 0 ? (
+                  areasFiltradas.map((area) => (
+                    <div
+                      key={area._id}
+                      className="cursor-pointer px-3 py-2 text-sm hover:bg-gray-100"
+                      onClick={() => {
+                        setForm({ ...form, area: area.nombre });
+                        setBusquedaArea(area.nombre);
+                        setMostrarOpcionesArea(false);
+
+                        if (errors.area) {
+                          setErrors({ ...errors, area: false });
+                        }
+                      }}
+                    >
+                      {area.nombre}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-gray-400">
+                    Sin resultados
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* FILA 5 */}

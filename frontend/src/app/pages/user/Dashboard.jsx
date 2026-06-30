@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
-import { MainContent } from "../../components/MainContent";
+import MainContent from "../../components/MainContent";
 
 export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);

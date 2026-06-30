@@ -164,13 +164,13 @@ export function TableroControl() {
       }
 
       docs.map((doc) => { 
-        if (doc.registrador.area === user.area || doc.validador.area === user.area || doc.turnados.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")) {
+        if (doc.turnados.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")) {
         if (doc.status === "Sin instrucciones" && doc.turnados.length === 0) {
           contador["Sin instrucciones"] += 1;
         }else if(doc.status === "Autorizado y turnado" || doc.status === "Validado" || doc.status === "Con respuesta registrada" || doc.status === "Recibido, en ejecución") {
           contador["Con instrucción turnada"] += 1; 
           if(doc.status === "Recibido, en ejecución") {
-            if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+            if(doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
               contador["Recibido, en ejecución de usuario"] += 1;
             }
             contador["Recibido, en ejecución"] += 1;
@@ -178,12 +178,12 @@ export function TableroControl() {
               contador["Autorizado y turnado"] += 1;
           } else {
             if(doc.status === "Validado") {
-              if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+              if(doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
                 contador["Validado de usuario"] += 1;
               }
               contador["Validado"] += 1;
             } else if(doc.status === "Con respuesta registrada") {
-              if(doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+              if(doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
                 contador["Con respuesta registrada de usuario"] += 1;
               }
               contador["Con respuesta registrada"] += 1;
@@ -195,7 +195,7 @@ export function TableroControl() {
         }else if(doc.eliminado) {
           contador["Eliminados"] += 1;
         }
-        if (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
+        if (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
           contador["Registrado de usuario"] += 1;
         }
         contador["Registrado"] += 1;
@@ -251,10 +251,10 @@ export function TableroControl() {
     (doc.eliminado && estatusSeleccionado === "Eliminados") ||
     (doc.copias.some(copia => copia.status === "Leído") && estatusSeleccionado === "Leído") ||
     (doc.copias.some(copia => copia.status === "Por leer") && estatusSeleccionado === "Por leer")) && (doc.registrador.area === user.area || doc.turnados?.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR"))
-    || (estatusSeleccionado === "Validado de usuario" && doc.status === "Validado" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))) ||
-    estatusSeleccionado === "Con respuesta registrada de usuario" && doc.status === "Con respuesta registrada" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))
-    || (estatusSeleccionado === "Recibido, en ejecución de usuario" && doc.status === "Recibido, en ejecución" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)))
-    || (estatusSeleccionado === "Registrado de usuario" && (doc.registrador._id === user._id || doc.validador._id === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)))
+    || (estatusSeleccionado === "Validado de usuario" && doc.status === "Validado" && (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))) ||
+    estatusSeleccionado === "Con respuesta registrada de usuario" && doc.status === "Con respuesta registrada" && (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id))
+    || (estatusSeleccionado === "Recibido, en ejecución de usuario" && doc.status === "Recibido, en ejecución" && (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)))
+    || (estatusSeleccionado === "Registrado de usuario" && (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido?._id === user._id)))
   );
 
   const tablaModalRef = useRef(null);

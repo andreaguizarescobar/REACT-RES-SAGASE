@@ -153,7 +153,7 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
             importancia: 'Media',
         }},
          $set: { status: "Autorizado y turnado" } },
-        { session }
+        { new: true, session }
     )
     .populate('remitente')
     .populate('tipo')

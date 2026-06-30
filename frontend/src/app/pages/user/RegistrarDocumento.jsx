@@ -279,8 +279,6 @@ export function RegistrarDocumento() {
     c.label.toLowerCase().includes(busquedaClaveAsunto.toLowerCase())
   );
 
-  const [busquedaMaterial, setBusquedaMaterial] = useState("");
-
   const handleSave = () => {
 
     if (!validarFormulario()) {
@@ -317,6 +315,15 @@ export function RegistrarDocumento() {
             observaciones: form.observaciones,
             relacionados: form.relacionados,
             materialAdicional: form.materialAdicional,
+            adicional: form.materialAdicional && nuevosMaterialesCreacion.length > 0
+              ? {
+                  tiene: true,
+                  adicionales: nuevosMaterialesCreacion.map((m) => ({
+                    tipo: m.tipo,
+                    descripcion: m.descripcion,
+                  })),
+                }
+              : undefined,
           };
 
           const dataForm = new FormData();
@@ -357,6 +364,8 @@ export function RegistrarDocumento() {
             // guardar para el modal
             setDocumentoEditar(dataGuardado);
             setFormEditar(dataGuardado);
+            setNuevosMaterialesCreacion([]);
+            setMaterialesAdicionales(nuevosMaterialesCreacion);
 
             Swal.fire({
               toast: true,
@@ -398,7 +407,16 @@ export function RegistrarDocumento() {
   const bitacoraRef = useRef(null);
 
   const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
-  const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
+  const [mostrarOpcionesFuncionario, setMostrarOpcionesFuncionario] = useState(false);
+
+    const [busquedaFuncionario, setBusquedaFuncionario] = useState("");
+
+  const funcionariosFiltrados = usuarios
+    .filter((u) =>
+      u.label.toLowerCase().includes(busquedaFuncionario.toLowerCase()) &&
+      !copiasDocumento.some((copia) => (copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "").toLowerCase() === u.label.toLowerCase())
+    );
+
   const [selectedCopiaUsuario, setSelectedCopiaUsuario] = useState(null);
 
   const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
@@ -441,12 +459,14 @@ export function RegistrarDocumento() {
     if (!formTurno.instruccion) nuevosErrores.instruccion = true;
     if (!formTurno.areaDestino) nuevosErrores.areaDestino = true;
     if (!formTurno.prioridad) nuevosErrores.prioridad = true;
-    if (!formTurno.fecha) nuevosErrores.fecha = true;
+    if (formTurno.prioridad === "Urgente") if (!formTurno.fecha) nuevosErrores.fecha = true;
 
     setErroresTurno(nuevosErrores);
 
     return Object.keys(nuevosErrores).length === 0;
   };
+
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleGuardarAltaInstruccion = async () => {
     if (!validarFormularioAltaInstruccion()) {
@@ -479,7 +499,7 @@ export function RegistrarDocumento() {
         dirigido: formTurno.dirigido,
         prioridad: formTurno.prioridad,
         compromiso: formTurno.fecha,
-        turna: localStorage.getItem("user")._id,
+        turna: user.id || user._id,
         notas: formTurno.notas,
       };
 
@@ -489,7 +509,7 @@ export function RegistrarDocumento() {
       const updatedDocumento = await response.json();
       setDocumentoEditar(updatedDocumento);
       setDocumentoSeleccionado(updatedDocumento);
-      setTurnosDocumento(updatedDocumento.turnados || []);
+      await setTurnosDocumento(updatedDocumento.turnados);
       setMostrarModalTurno(false);
       setFormTurno({
         instruccion: "",
@@ -520,6 +540,62 @@ export function RegistrarDocumento() {
       });
     }
   };
+
+    const handleGuardarCopia = async () => {
+      if (!selectedCopiaUsuario) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Selecciona un funcionario",
+          showConfirmButton: false,
+          timer: 2500,
+        });
+        return;
+      }
+  
+      const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+      if (!currentDocId) {
+        Swal.fire({
+          icon: "error",
+          title: "Documento no seleccionado",
+          text: "Abre un documento antes de guardar la copia.",
+        });
+        return;
+      }
+  
+      try {
+        const copiaData = {
+          funcionario: selectedCopiaUsuario.value,
+        };
+  
+        const response = await addCopia(currentDocId, copiaData, token);
+        if (!response.ok) throw new Error("Error agregando la copia");
+  
+        const updatedDocumento = await response.json();
+        setDocumentoEditar(updatedDocumento);
+        setDocumentoSeleccionado(updatedDocumento);
+        setCopiasDocumento(updatedDocumento.copias || []);
+        setMostrarModalCopias(false);
+        setBusquedaFuncionario("");
+        setSelectedCopiaUsuario(null);
+  
+        Swal.fire({
+          icon: "success",
+          title: "Copia guardada",
+          text: "La copia se agregó correctamente.",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+      } catch (error) {
+        console.error(error);
+        Swal.fire({
+          icon: "error",
+          title: "Error al guardar la copia",
+          text: "No se pudo guardar la copia.",
+        });
+      }
+    };
 
   const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
   const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
@@ -604,8 +680,9 @@ export function RegistrarDocumento() {
       formData.append('archivo', archivo);
       formData.append('mensaje', mensaje);
       formData.append('nombre', nombreDoc);
+      formData.append('docId', currentDocId);
 
-      const response = await uploadAnexo(currentDocId, formData, token);
+      const response = await uploadAnexo(formData, token);
       if (!response.ok) throw new Error('Error subiendo el anexo');
 
       const updatedDocumento = await response.json();
@@ -757,6 +834,9 @@ export function RegistrarDocumento() {
 
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
 
+  const [busquedaRemitenteInt, setBusquedaRemitenteInt] = useState("");
+  const [mostrarOpcionesRemitenteInt, setMostrarOpcionesRemitenteInt] = useState(false);
+
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
 
@@ -765,6 +845,10 @@ export function RegistrarDocumento() {
   );
   const remitentesExternos = remitentes.filter(
     (r) => (r.tipo || "").toLowerCase() === "externo"
+  );
+
+  const remitentesIntFiltrados = remitentesInternos.filter((r) =>
+    r.label.toLowerCase().includes(busquedaRemitenteInt.toLowerCase())
   );
 
   const remitentesFiltrados = remitentesExternos.filter((r) =>
@@ -783,6 +867,7 @@ export function RegistrarDocumento() {
 const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
 
 const refTipoDoc = useRef(null);
+const refRemitenteInt = useRef(null);
 const refRemitenteExt = useRef(null);
 const refMaterial = useRef(null);
 const refAsunto = useRef(null);
@@ -793,6 +878,10 @@ useEffect(() => {
   const handleClickOutside = (event) => {
     if (refTipoDoc.current && !refTipoDoc.current.contains(event.target)) {
       setMostrarOpcionesTipoDoc(false);
+    }
+
+    if (refRemitenteInt.current && !refRemitenteInt.current.contains(event.target)) {
+      setMostrarOpcionesRemitenteInt(false);
     }
 
     if (refRemitenteExt.current && !refRemitenteExt.current.contains(event.target)) {
@@ -907,15 +996,22 @@ const obtenerLabel = (lista, id) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
       }, []);
 
-      const [materialesAdicionales, setMaterialesAdicionales] = useState([]);
-    
-      const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
-    
-      const [nuevoMaterial, setNuevoMaterial] = useState({
-        tipo: "",
-        descripcion: "",
-      });
-    
+  const [materialesAdicionales, setMaterialesAdicionales] = useState([]);
+
+  const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
+
+  const [nuevoMaterial, setNuevoMaterial] = useState({
+    tipo: "",
+    descripcion: "",
+  });
+
+  // 📦 Materiales adicionales para el formulario de creación (antes de guardar el documento)
+  const [nuevosMaterialesCreacion, setNuevosMaterialesCreacion] = useState([]);
+  const [formMaterialCreacion, setFormMaterialCreacion] = useState({
+    tipo: "",
+    descripcion: "",
+  });
+
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
       <div className="max-w-6xl mx-auto bg-white rounded shadow">
@@ -1228,21 +1324,48 @@ const obtenerLabel = (lista, id) => {
                     <label className="text-xs text-gray-500">
                       Funcionario / Área *
                     </label>
-                    <select
-                      name="remitenteInterno"
-                      value={form.remitenteInterno}
-                      onChange={handleChange}
-                      className={`w-full border rounded px-2 py-1 ${
+                    <div ref={refRemitenteInt} className="relative">
+                      <div className={`flex items-center border rounded px-2 ${
                         errores.remitenteInterno ? "border-red-500 bg-red-50" : ""
-                      }`}
-                    >
-                      <option value="">Seleccionar</option>
-                      {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map(u => ({ value:u.nombre, label:u.nombre }))).map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
+                      }`}>
+                        <Search size={16} className="text-gray-400" />
+                        <input
+                          value={busquedaRemitenteInt}
+                          onChange={(e) => {
+                            setBusquedaRemitenteInt(e.target.value);
+                            setMostrarOpcionesRemitenteInt(true);
+                            if (errores.remitenteInterno) {
+                              setErrores({ ...errores, remitenteInterno: false });
+                            }
+                          }}
+                          onFocus={() => setMostrarOpcionesRemitenteInt(true)}
+                          className="w-full px-2 py-1 outline-none"
+                          placeholder="Buscar y seleccionar opción"
+                        />
+                      </div>
+
+                      {mostrarOpcionesRemitenteInt && (
+                        <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                          {remitentesIntFiltrados.length > 0 ? (
+                            remitentesIntFiltrados.map((r) => (
+                              <div
+                                key={r.value}
+                                onClick={() => {
+                                  setForm({ ...form, remitenteInterno: r.value });
+                                  setBusquedaRemitenteInt(r.label);
+                                  setMostrarOpcionesRemitenteInt(false);
+                                }}
+                                className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                              >
+                                {r.label}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1 text-gray-400">Sin resultados</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </motion.div>
                 )}
 
@@ -1352,26 +1475,109 @@ const obtenerLabel = (lista, id) => {
                 />
               </div>
 
-              <div className="flex items-center gap-20">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start gap-10 col-span-1">
+                <div className="flex items-center gap-2 pt-0">
                   <label className="text-xs text-gray-500 flex items-center justify-between">
-                  <span>Soporte adicional</span>
+                    <span>Soporte adicional</span>
                   </label>
                   <Toggle
                     checked={form.materialAdicional}
-                    onChange={(value) => setForm({ ...form, materialAdicional: value })}
+                    onChange={(value) => {
+                      setForm({ ...form, materialAdicional: value });
+                      if (!value) {
+                        // Si se desactiva, limpiar la lista
+                        setNuevosMaterialesCreacion([]);
+                        setFormMaterialCreacion({ tipo: "", descripcion: "" });
+                      }
+                    }}
                   />
                 </div>
-                
-                <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
-                <Toggle
-                  checked={form.electronica}
-                  onChange={(value) => setForm({ ...form, electronica: value })}
-                />
-                </div>
-              </div>
+                {form.materialAdicional && (
+                  <div className="flex-1 space-y-3 border pl-6 py-3">
+                    {/* Formulario para agregar material */}
+                    <div className="flex gap-3 items-end mb-3 pr-2">
+                      <div>
+                        <label className="text-xs text-gray-500">Nombre del material: </label>
+                        <input
+                          type="text"
+                          value={formMaterialCreacion.tipo}
+                          onChange={(e) =>
+                            setFormMaterialCreacion({ ...formMaterialCreacion, tipo: e.target.value })
+                          }
+                          className="w-48 border rounded px-2 py-1 text-sm"
+                          placeholder="Ej. USB, CD, Documento..."
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500">Descripción</label>
+                        <input
+                          type="text"
+                          value={formMaterialCreacion.descripcion}
+                          onChange={(e) =>
+                            setFormMaterialCreacion({ ...formMaterialCreacion, descripcion: e.target.value })
+                          }
+                          className="w-full border rounded px-2 py-1 text-sm"
+                          placeholder="Breve descripción del material"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!formMaterialCreacion.tipo.trim() || !formMaterialCreacion.descripcion.trim()) {
+                            Swal.fire({
+                              toast: true,
+                              position: "top-end",
+                              icon: "warning",
+                              title: "Ambos campos son obligatorios",
+                              showConfirmButton: false,
+                              timer: 2000,
+                            });
+                            return;
+                          }
+                          setNuevosMaterialesCreacion([
+                            ...nuevosMaterialesCreacion,
+                            { ...formMaterialCreacion },
+                          ]);
+                          setFormMaterialCreacion({ tipo: "", descripcion: "" });
+                        }}
+                        className="bg-[#8B1538] text-white px-4 py-2 rounded text-sm whitespace-nowrap"
+                      >
+                        Agregar
+                      </button>
+                    </div>
 
+                    {/* Textarea con resumen de materiales agregados */}
+                    <div className="flex flex-col gap-2 pr-2">
+                      <label className="text-xs text-gray-500">Materiales agregados:</label>
+                      <textarea
+                        value={
+                          nuevosMaterialesCreacion.length > 0
+                            ? nuevosMaterialesCreacion
+                                .map((m, i) => `${i + 1}. ${m.tipo} - ${m.descripcion}`)
+                                .join("\n")
+                            : "No se han agregado materiales"
+                        }
+                        readOnly
+                        className="w-full border rounded px-2 py-1 h-[68px] resize-none bg-gray-50 text-sm"
+                      />
+                    </div>
+
+                    {/* Botón para limpiar la lista */}
+                    {nuevosMaterialesCreacion.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNuevosMaterialesCreacion([]);
+                          setFormMaterialCreacion({ tipo: "", descripcion: "" });
+                        }}
+                        className="text-red-600 text-xs underline hover:no-underline"
+                      >
+                        Limpiar lista
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="col-span-1">
                 <label className="text-xs text-gray-500">Observaciones</label>
@@ -2271,7 +2477,7 @@ const obtenerLabel = (lista, id) => {
                           <th className="px-3 py-2 text-left">Registrador del anexo y mensaje</th>
                           <th className="px-3 py-2 text-left">Mensaje</th>
                           <th className="px-3 py-2 text-left">Documento anexo</th>
-                          <th className="px-3 py-2 text-left">Nombre del documento</th>
+                          <th className="px-3 py-2 text-left">Número del documento</th>
                         </tr>
                       </thead>
 
@@ -3330,6 +3536,95 @@ const obtenerLabel = (lista, id) => {
                             </tbody>
                           </table>
                         </div>
+                        
+                                <AnimatePresence>
+                                  {mostrarModalCopias && (
+                                    <motion.div
+                                      className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                    >
+                                      <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0.9, opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="bg-white w-[600px] rounded shadow-lg overflow-visible"
+                                      >
+                                        {/* HEADER */}
+                                        <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
+                                          <span className="text-white text-sm">
+                                            Destinatario de la copia
+                                          </span>
+                        
+                                          <button
+                                            onClick={() => setMostrarModalCopias(false)}
+                                            className="bg-[#8B1538] text-white p-2 rounded-full flex items-center justify-center"
+                                          >
+                                            <Minus size={16} />
+                                          </button>
+                                        </div>
+                        
+                                        {/* BODY */}
+                                        <div className="p-6 space-y-4">
+                                          <div className="relative">
+                                            <label className="text-xs text-gray-500">Funcionario:</label>
+                        
+                                            <div className="flex items-center border rounded px-2">
+                                              <Search size={16} className="text-gray-400" />
+                                              <input
+                                                value={busquedaFuncionario}
+                                                onChange={(e) => {
+                                                  setBusquedaFuncionario(e.target.value);
+                                                  setMostrarOpcionesFuncionario(true);
+                                                }}
+                                                onFocus={() => setMostrarOpcionesFuncionario(true)}
+                                                className="w-full px-2 py-2 outline-none"
+                                                placeholder="Buscar y seleccionar opción"
+                                              />
+                                            </div>
+                        
+                                            {/* Dropdown */}
+                                            {mostrarOpcionesFuncionario && (
+                                              <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                                                {funcionariosFiltrados.length > 0 ? (
+                                                  funcionariosFiltrados.map((e) => (
+                                                    <div
+                                                      key={e.value}
+                                                      onClick={() => {
+                                                        setBusquedaFuncionario(e.label);
+                                                        setSelectedCopiaUsuario(e);
+                                                        setMostrarOpcionesFuncionario(false);
+                                                      }}
+                                                      className="px-2 py-2 hover:bg-gray-100 cursor-pointer"
+                                                    >
+                                                      {e.label}
+                                                    </div>
+                                                  ))
+                                                ) : (
+                                                  <div className="px-2 py-2 text-gray-400">
+                                                    Sin resultados
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                        
+                                        {/* FOOTER */}
+                                        <div className="flex justify-end p-4">
+                                          <button
+                                            onClick={handleGuardarCopia}
+                                            className="bg-[#C53030] text-white px-6 py-2 rounded"
+                                          >
+                                            Guardar
+                                          </button>
+                                        </div>
+                                      </motion.div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
 
                         {/* PAGINACIÓN */}
                         <div className="flex justify-between items-center text-xs text-gray-500">
