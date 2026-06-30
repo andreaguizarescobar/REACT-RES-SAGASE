@@ -39,10 +39,7 @@ export const create = async (req, res) => {
         const {data} = req.body;
         const documentoData = JSON.parse(data).data; // Manejar ambos casos
         documentoData.anexos = [anexoData];
-        // si el documento tiene material adicional, agregarlo al documentoData
-        if (documentoData.materialAdicional) {
-            documentoData.adicional = {tiene: true, adicionales: []};
-        }
+
         const newDocumento = await documentoService.create(documentoData, user);
         res.status(201).json(newDocumento);
     } catch (error) {

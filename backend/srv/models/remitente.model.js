@@ -6,7 +6,8 @@ const RemitenteSchema = new Schema({
   tipo: String,
   cargo: String,
   area: String,
-  dependencia: String
+  dependencia: String,
+  activo: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default model('Remitentes', RemitenteSchema);

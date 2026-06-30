@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PieChart,
   Route,     
@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import { getRemitentes, createRemitente, updateRemitente, deleteRemitente } from "../../services/remitente.service";
+import { getTemaPrincipal, getInstrucciones, getAreas, createTemaPrincipal, updateTemaPrincipal, deleteTemaPrincipal, createInstruccion, updateInstruccion, deleteInstruccion } from "../../services/catalogos.service";
+import { getTipoDocument, createTipoDocument, updateTipoDocument, deleteTipoDocument } from "../../services/tipoDocumento.service";
+import { getFondos, createFondo, updateFondo, deleteFondo } from "../../services/fondo.service";
 
 export function Projects() {
   const [proyectos, setProyectos] = useState([
@@ -33,12 +37,6 @@ export function Projects() {
       clave: "SAGA_AGN",
       fecha: "2021-04-12",
     },
-    // {
-    //   id: 2,
-    //   nombre: "Portal Educativo",
-    //   clave: "PORTAL_EDU",
-    //   fecha: "2023-01-10",
-    // },
   ]);
 
   const [nuevo, setNuevo] = useState("");
@@ -61,33 +59,13 @@ export function Projects() {
 
   const [openConfigModal, setOpenConfigModal] = useState(false);
   const [configTab, setConfigTab] = useState("fondo");
-  const [fondosTablasAdicionales, setMaterialesAdicionales] = useState([]);
+  const [fondos, setFondos] = useState([]);
 
-  const [busquedaMaterial, setBusquedaMaterial] = useState("");
-  const [mostrarOpcionesMaterial, setMostrarOpcionesMaterial] = useState(false);
-  const fondosTablasFiltrados = fondosTablasAdicionales.filter((m) =>
-    m.label.toLowerCase().includes(busquedaMaterial.toLowerCase())
-  );
-
-   const [fondosTablas, setMateriales] = useState([
-      {
-        id: 1,
-        nombre: "CD",
-        abreviatura: "Contiene información digital del asunto",
-        direccion: "Víctor Manuel Enríquez Paniagua",
-        correo: "example@gmail.com",
-        telefono: "1234567890",
-      },
-    ]);
-
-  const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
+  const [busquedaFondo, setBusquedaFondo] = useState("");
   
-    const fondosFiltrados = fondosTablas.filter((m) =>
-      m.nombre.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-      m.abreviatura.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-      m.direccion.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-      m.correo.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-      m.telefono.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase())
+    const fondosFiltrados = fondos.filter((m) => 
+      m.nombre?.toLowerCase().includes(busquedaFondo.toLowerCase()) ||
+      m.abreviatura?.toLowerCase().includes(busquedaFondo.toLowerCase())
     );
   
   const [mostrarModalFondo, setMostrarModalFondo] = useState(false);
@@ -98,12 +76,10 @@ export function Projects() {
     id: null,
     nombre: "",
     abreviatura: "",
-    direccion: "",
-    correo: "",
-    telefono: "",
-    encabezado: "",
-    pie: "",
-    background: "",
+    encabezado: null,
+    pie: null,
+    fondo: null,
+    activo: true
   });
 
   const [mostrarModalTipoDocumento, setMostrarModalTipoDocumento] = useState(false);
@@ -113,6 +89,7 @@ export function Projects() {
     id: null,
     nombre: "",
     descripcion: "",
+    activo: true
   });
 
 
@@ -124,120 +101,133 @@ export function Projects() {
     id: null,
     nombre: "",
     descripcion: "",
-    validacion: true,
+    activo: true,
   });
 
-/* 🧍 REMITENTES INTERNOS */
-const remitentesInternosMock = [
-  {
-    id: 1,
-    nombreCompleto: "Juan Carlos Pérez López",
-    cargo: "Jefe de Departamento",
-    areaAdscripcion: "Recursos Humanos",
-  },
-  {
-    id: 2,
-    nombreCompleto: "María Fernanda Ruiz",
-    cargo: "Auxiliar Administrativo",
-    areaAdscripcion: "Secretaría General",
-  },
-  {
-    id: 3,
-    nombreCompleto: "Luis Alberto Sánchez",
-    cargo: "Director",
-    areaAdscripcion: "Tecnologías de la Información",
-  },
-];
+const [remitentesInternos, setRemitentesInternos] = useState([]);
+const [busquedaInterno, setBusquedaInterno] = useState("");
 
-/* 🌎 REMITENTES EXTERNOS */
-const remitentesExternosMock = [
-  {
-    id: 1,
-    nombreCompleto: "Ana Sofía Martínez",
-    cargo: "Gerente General",
-    areaAdscripcion: "Empresa XYZ",
-  },
-  {
-    id: 2,
-    nombreCompleto: "Carlos Eduardo Ramírez",
-    cargo: "Representante Legal",
-    areaAdscripcion: "Gobierno del Estado",
-  },
-  {
-    id: 3,
-    nombreCompleto: "Patricia Hernández Gómez",
-    cargo: "Coordinadora",
-    areaAdscripcion: "Universidad Autónoma",
-  },
-];
+const [remitentesExternos, setRemitentesExternos] = useState([]);
+const [busquedaExterno, setBusquedaExterno] = useState("");
 
-/* 📄 TIPOS DE DOCUMENTO */
-const tiposDocumentoMock = [
-  {
-    id: 1,
-    nombre: "Oficio",
-    descripcion:
-      "Documento oficial utilizado para comunicación interna y externa.",
-  },
-  {
-    id: 2,
-    nombre: "Memorándum",
-    descripcion:
-      "Documento breve utilizado para comunicación interna.",
-  },
-  {
-    id: 3,
-    nombre: "Circular",
-    descripcion:
-      "Documento informativo dirigido a múltiples personas.",
-  },
-];
+const [tiposDocumento, setTiposDocumento] = useState([]);
 
-/* 🏷 TEMAS PRINCIPALES */
-const temasPrincipalesMock = [
-  {
-    id: 1,
-    nombre: "Recursos Humanos",
-    descripcion:
-      "Temas relacionados con personal, incidencias y administración.",
-    validacion: true,
-  },
-  {
-    id: 2,
-    nombre: "Finanzas",
-    descripcion:
-      "Documentación relacionada con presupuestos y pagos.",
-    validacion: false,
-  },
-  {
-    id: 3,
-    nombre: "Infraestructura",
-    descripcion:
-      "Temas relacionados con mantenimiento y equipamiento.",
-    validacion: true,
-  },
-];
+const [temasPrincipales, setTemasPrincipales] = useState([]);
 
+const [instrucciones, setInstrucciones] = useState([]);
 
-/* ============================= */
-/* 🧠 STATES */
-/* ============================= */
+const [instruccionEditando, setInstruccionEditando] = useState({
+  id: null,
+  descripcion: "",
+  activo: true,
+});
 
-const [remitentesInternos, setRemitentesInternos] = useState(
-  remitentesInternosMock
+const [busquedaInstruccion, setBusquedaInstruccion] = useState("");
+
+const [areas, setAreas] = useState([]);
+
+const [mostrarModalInstruccion, setMostrarModalInstruccion] = useState(false);
+
+const [mostrarModalRemitenteInterno, setMostrarModalRemitenteInterno] = useState(false);
+const [mostrarModalRemitenteExterno, setMostrarModalRemitenteExterno] = useState(false);
+const [busquedaAreaInterno, setBusquedaAreaInterno] = useState("");
+const [mostrarOpcionesArea, setMostrarOpcionesArea] = useState(false);
+
+const areasFiltradasInterno = areas.filter((area) =>
+  (area.nombre || area.descripcion || "").toLowerCase().includes(busquedaAreaInterno.toLowerCase())
 );
 
-const [remitentesExternos, setRemitentesExternos] = useState(
-  remitentesExternosMock
-);
+const [remitenteEditando, setRemitenteEditando] = useState({
+  id: null,
+  name: "",
+  cargo: "",
+  area: "",
+  dependencia: "",
+  tipo: "Interno",
+  activo: true
+});
 
-const [tiposDocumento, setTiposDocumento] = useState(
-  tiposDocumentoMock
-);
+  useEffect(() => {
+  const fetchAreas = async () => {
+    try {
+      const response = await getAreas();
+      if (response.ok) {
+        const data = await response.json();
+        setAreas(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener las áreas:", error);
+    }
+  };
 
-const [temasPrincipales, setTemasPrincipales] = useState(
-  temasPrincipalesMock
-);
+  const fetchFondos = async () => {
+    try {
+      const response = await getFondos();
+      if (response.ok) {
+        const data = await response.json();
+        setFondos(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener los fondos:", error);
+    }
+  };
+
+  const fetchRemitentesInternos = async () => {
+    try {
+      const response = await getRemitentes();
+      if (response.ok) {
+        const data = await response.json();
+        setRemitentesInternos(data.filter((r) => r.tipo === "Interno"));
+        setRemitentesExternos(data.filter((r) => r.tipo === "Externo"));
+      }
+    } catch (error) {
+      console.error("Error al obtener los remitentes:", error);
+    }
+  };
+
+  const fetchTiposDocumento = async () => {
+    try {
+      const response = await getTipoDocument();
+      if (response.ok) {
+        const data = await response.json();
+        setTiposDocumento(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener los tipos de documento:", error);
+    }
+  };
+
+  const fetchTemasPrincipales = async () => {
+    try {
+      const response = await getTemaPrincipal();
+      if (response.ok) {
+        const data = await response.json();
+        setTemasPrincipales(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener los temas principales:", error);
+    }
+  };
+
+  const fetchInstrucciones = async () => {
+    try {
+      const response = await getInstrucciones();
+      if (response.ok) {
+        const data = await response.json();
+        setInstrucciones(data);
+      }
+    } catch (error) {
+      console.error("Error al obtener las instrucciones:", error);
+    }
+  };
+
+  fetchAreas();
+  fetchFondos();
+  fetchRemitentesInternos();
+  fetchTiposDocumento();
+  fetchTemasPrincipales();
+  fetchInstrucciones();
+}, []);
 
 
 /* ============================= */
@@ -246,51 +236,338 @@ const [temasPrincipales, setTemasPrincipales] = useState(
 
 const remitentesInternosFiltrados =
   remitentesInternos.filter((item) =>
-    item.nombreCompleto
+    item.name
       .toLowerCase()
-      .includes(busquedaMaterial.toLowerCase())
+      .includes(busquedaInterno.toLowerCase()) ||
+    item.cargo
+      .toLowerCase()
+      .includes(busquedaInterno.toLowerCase()) ||
+    item.dependencia
+      .toLowerCase()
+      .includes(busquedaInterno.toLowerCase()) ||
+    item.area
+      .toLowerCase()
+      .includes(busquedaInterno.toLowerCase())
   );
 
 const remitentesExternosFiltrados =
   remitentesExternos.filter((item) =>
-    item.nombreCompleto
+    item.name
       .toLowerCase()
-      .includes(busquedaMaterial.toLowerCase())
+      .includes(busquedaExterno.toLowerCase()) ||
+    item.cargo
+      .toLowerCase()
+      .includes(busquedaExterno.toLowerCase()) ||
+    item.dependencia
+      .toLowerCase()
+      .includes(busquedaExterno.toLowerCase()) ||
+    item.area
+      .toLowerCase()
+      .includes(busquedaExterno.toLowerCase())
   );
 
 const tiposDocumentoFiltrados =
   tiposDocumento.filter((item) =>
-    item.nombre
+    item.tipo
       .toLowerCase()
       .includes(busquedaTipoDocumento.toLowerCase())
   );
 
 const temasPrincipalesFiltrados =
   temasPrincipales.filter((item) =>
-    item.nombre
+    item.descripcion
       .toLowerCase()
       .includes(busquedaTemaPrincipal.toLowerCase())
   );
 
+const instruccionesFiltrados =
+  instrucciones.filter((item) =>
+    item.descripcion
+      .toLowerCase()
+      .includes(busquedaInstruccion.toLowerCase())
+  );
+
+/* ============================= */
+/* 🎯 HANDLE ACTIVO TOGGLE */
+/* ============================= */
+
+const handleActivoTipoDocumento = async (e, id) => {
+  const checked = e.target.checked;
+  try {
+    const tipoDoc = tiposDocumento.find(t => t.id === id || t._id === id);
+    if (!tipoDoc) return;
+    const response = await updateTipoDocument(tipoDoc.tipo, { activo: checked });
+    if (response.ok) {
+      setTiposDocumento(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, activo: checked } : t));
+    }
+  } catch (error) {
+    console.error("Error al actualizar tipo de documento:", error);
+  }
+};
+
+const handleActivoTemaPrincipal = async (e, id) => {
+  const checked = e.target.checked;
+  try {
+    const response = await updateTemaPrincipal(id, { activo: checked });
+    if (response.ok) {
+      setTemasPrincipales(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, activo: checked } : t));
+    }
+  } catch (error) {
+    console.error("Error al actualizar tema principal:", error);
+  }
+};
+
+const handleActivoInstruccion = async (e, id) => {
+  const checked = e.target.checked;
+  try {
+    const response = await updateInstruccion(id, { activo: checked });
+    if (response.ok) {
+      setInstrucciones(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, activo: checked } : t));
+    }
+  } catch (error) {
+    console.error("Error al actualizar instrucción:", error);
+  }
+};
+
+const handleActivoFondo = async (e, id) => {
+  const checked = e.target.checked;
+  try {
+    const response = await updateFondo(id, { activo: checked });
+    if (response.ok) {
+      setFondos(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, activo: checked } : t));
+    }
+  } catch (error) {
+    console.error("Error al actualizar fondo:", error);
+  }
+};
+
+const handleActivoRemitente = async (e, remId) => {
+  const checked = e.target.checked;
+  try {
+    const response = await updateRemitente(remId, { activo: checked });
+    if (response.ok) {
+      setRemitentesInternos(prev => prev.map(r => r.remId === remId ? { ...r, activo: checked } : r));
+      setRemitentesExternos(prev => prev.map(r => r.remId === remId ? { ...r, activo: checked } : r));
+    }
+  } catch (error) {
+    console.error("Error al actualizar remitente:", error);
+  }
+};
+
+/* ============================= */
+/* 💾 SAVE HANDLERS */
+/* ============================= */
+
+const handleSaveFondo = async () => {
+  try {
+    const hasFiles = fondoEditando.encabezado instanceof File || 
+                     fondoEditando.pie instanceof File || 
+                     fondoEditando.fondo instanceof File;
+
+    let response;
+    if (hasFiles) {
+      const formData = new FormData();
+      formData.append('nombre', fondoEditando.nombre);
+      formData.append('abreviatura', fondoEditando.abreviatura);
+      formData.append('activo', fondoEditando.activo !== undefined ? fondoEditando.activo : true);
+      
+      if (fondoEditando.encabezado instanceof File) {
+        formData.append('encabezado', fondoEditando.encabezado);
+      }
+      if (fondoEditando.pie instanceof File) {
+        formData.append('pie', fondoEditando.pie);
+      }
+      if (fondoEditando.fondo instanceof File) {
+        formData.append('fondo', fondoEditando.fondo);
+      }
+
+      if (modoEdicion && fondoEditando.id) {
+        response = await updateFondo(fondoEditando.id, formData);
+      } else {
+        response = await createFondo(formData);
+      }
+    } else {
+      const data = {
+        nombre: fondoEditando.nombre,
+        abreviatura: fondoEditando.abreviatura,
+        encabezado: fondoEditando.encabezado,
+        pie: fondoEditando.pie,
+        fondo: fondoEditando.fondo,
+        activo: fondoEditando.activo !== undefined ? fondoEditando.activo : true,
+      };
+
+      if (modoEdicion && fondoEditando.id) {
+        response = await updateFondo(fondoEditando.id, data);
+      } else {
+        response = await createFondo(data);
+      }
+    }
+
+    if (response.ok) {
+      const updatedData = await response.json();
+      if (modoEdicion) {
+        setFondos(prev => prev.map(f => (f.id === fondoEditando.id || f._id === fondoEditando.id) ? updatedData : f));
+      } else {
+        setFondos(prev => [...prev, updatedData]);
+      }
+      setMostrarModalFondo(false);
+      Swal.fire("Éxito", modoEdicion ? "Fondo actualizado correctamente" : "Fondo creado correctamente", "success");
+    } else {
+      const err = await response.json();
+      Swal.fire("Error", err.error || "Error al guardar fondo", "error");
+    }
+  } catch (error) {
+    console.error("Error al guardar fondo:", error);
+    Swal.fire("Error", "Error al guardar fondo", "error");
+  }
+};
+
+const handleSaveTipoDocumento = async () => {
+  try {
+    const data = {
+      tipo: tipoDocumentoEditando.nombre,
+      activo: tipoDocumentoEditando.activo !== undefined ? tipoDocumentoEditando.activo : true,
+    };
+
+    let response;
+    if (modoEdicion && tipoDocumentoEditando.id) {
+      const tipoDoc = tiposDocumento.find(t => t.id === tipoDocumentoEditando.id || t._id === tipoDocumentoEditando.id);
+      response = await updateTipoDocument(tipoDoc?.tipo || tipoDocumentoEditando.nombre, data);
+    } else {
+      response = await createTipoDocument(data);
+    }
+
+    if (response.ok) {
+      const updatedData = await response.json();
+      if (modoEdicion) {
+        setTiposDocumento(prev => prev.map(t => (t.id === tipoDocumentoEditando.id || t._id === tipoDocumentoEditando.id) ? updatedData : t));
+      } else {
+        setTiposDocumento(prev => [...prev, updatedData]);
+      }
+      setMostrarModalTipoDocumento(false);
+      Swal.fire("Éxito", modoEdicion ? "Tipo de documento actualizado" : "Tipo de documento creado", "success");
+    } else {
+      const err = await response.json();
+      Swal.fire("Error", err.error || "Error al guardar tipo de documento", "error");
+    }
+  } catch (error) {
+    console.error("Error al guardar tipo de documento:", error);
+    Swal.fire("Error", "Error al guardar tipo de documento", "error");
+  }
+};
+
+const handleSaveTemaPrincipal = async () => {
+  try {
+    const data = {
+      descripcion: temaPrincipalEditando.descripcion,
+      validacion: temaPrincipalEditando.validacion || false,
+      activo: temaPrincipalEditando.activo !== undefined ? temaPrincipalEditando.activo : true,
+    };
+
+    let response;
+    if (modoEdicion && temaPrincipalEditando.id) {
+      response = await updateTemaPrincipal(temaPrincipalEditando.id, data);
+    } else {
+      response = await createTemaPrincipal(data);
+    }
+
+    if (response.ok) {
+      const updatedData = await response.json();
+      if (modoEdicion) {
+        setTemasPrincipales(prev => prev.map(t => (t.id === temaPrincipalEditando.id || t._id === temaPrincipalEditando.id) ? updatedData : t));
+      } else {
+        setTemasPrincipales(prev => [...prev, updatedData]);
+      }
+      setMostrarModalTemaPrincipal(false);
+      Swal.fire("Éxito", modoEdicion ? "Tema principal actualizado" : "Tema principal creado", "success");
+    } else {
+      const err = await response.json();
+      Swal.fire("Error", err.error || "Error al guardar tema principal", "error");
+    }
+  } catch (error) {
+    console.error("Error al guardar tema principal:", error);
+    Swal.fire("Error", "Error al guardar tema principal", "error");
+  }
+};
+
+const handleSaveInstruccion = async () => {
+  try {
+    const data = {
+      descripcion: instruccionEditando.descripcion,
+      activo: instruccionEditando.activo !== undefined ? instruccionEditando.activo : true,
+    };
+
+    let response;
+    if (modoEdicion && instruccionEditando.id) {
+      response = await updateInstruccion(instruccionEditando.id, data);
+    } else {
+      response = await createInstruccion(data);
+    }
+
+    if (response.ok) {
+      const updatedData = await response.json();
+      if (modoEdicion) {
+        setInstrucciones(prev => prev.map(t => (t.id === instruccionEditando.id || t._id === instruccionEditando.id) ? updatedData : t));
+      } else {
+        setInstrucciones(prev => [...prev, updatedData]);
+      }
+      setMostrarModalInstruccion(false);
+      Swal.fire("Éxito", modoEdicion ? "Instrucción actualizada" : "Instrucción creada", "success");
+    } else {
+      const err = await response.json();
+      Swal.fire("Error", err.error || "Error al guardar instrucción", "error");
+    }
+  } catch (error) {
+    console.error("Error al guardar instrucción:", error);
+    Swal.fire("Error", "Error al guardar instrucción", "error");
+  }
+};
+
+const handleSaveRemitente = async (tipo) => {
+  try {
+    const data = {
+      name: remitenteEditando.name,
+      cargo: remitenteEditando.cargo,
+      area: remitenteEditando.area,
+      dependencia: remitenteEditando.dependencia || "",
+      tipo: tipo,
+      activo: true,
+    };
+
+    let response;
+    if (modoEdicion && remitenteEditando.id) {
+      response = await updateRemitente(remitenteEditando.id, data);
+    } else {
+      response = await createRemitente(data);
+    }
+
+    if (response.ok) {
+      // Refresh the lists
+      const allResponse = await getRemitentes();
+      if (allResponse.ok) {
+        const allData = await allResponse.json();
+        setRemitentesInternos(allData.filter((r) => r.tipo === "Interno"));
+        setRemitentesExternos(allData.filter((r) => r.tipo === "Externo"));
+      }
+      if (tipo === "Interno") {
+        setMostrarModalRemitenteInterno(false);
+      } else {
+        setMostrarModalRemitenteExterno(false);
+      }
+      Swal.fire("Éxito", modoEdicion ? "Remitente actualizado" : "Remitente creado", "success");
+    } else {
+      const err = await response.json();
+      Swal.fire("Error", err.error || "Error al guardar remitente", "error");
+    }
+  } catch (error) {
+    console.error("Error al guardar remitente:", error);
+    Swal.fire("Error", "Error al guardar remitente", "error");
+  }
+};
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <h1 className="text-xl mb-4 text-gray-800">Proyectos</h1>
-
-      {/* Input */}
-      {/* <div className="flex gap-2 mb-6">
-        <input
-          value={nuevo}
-          onChange={(e) => setNuevo(e.target.value)}
-          placeholder="Nuevo proyecto"
-          className="border px-3 py-2 rounded w-100 text-sm"
-        />
-        <button
-          onClick={agregarProyecto}
-          className="bg-[#79142A] text-white px-4 rounded text-sm hover:opacity-90"
-        >
-          Agregar
-        </button>
-      </div> */}
 
       {/* GRID DE TARJETAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -315,13 +592,7 @@ const temasPrincipalesFiltrados =
 
             {/* ICONOS */}
             <div className="relative">
-              {/* BOTÓN / ÁREA HOVER */}
              <div className="flex gap-3 text-[#8B1538] mt-2 cursor-pointer">
-                {/* <PieChart size={16} />
-                <Route size={16} />
-                <Coins size={16} /> */}
-
-                {/* 👇 SOLO ESTE CONTROLA EL MENÚ */}
                 <div className="relative group/boxes">
                   <Boxes size={16} />
 
@@ -335,10 +606,6 @@ const temasPrincipalesFiltrados =
                               pointer-events-none group-hover/boxes:pointer-events-auto
                               z-[9999]"
                   >
-                    {/* <Clock className="hover:scale-110 cursor-pointer" size={16} />
-                    <List className="hover:scale-110 cursor-pointer" size={16} />
-                    <FileText className="hover:scale-110 cursor-pointer" size={16} /> */}
-
                     <div className="relative group/item">
                       <FileUp
                         size={16}
@@ -386,16 +653,8 @@ const temasPrincipalesFiltrados =
                         ></div>
                       </div>
                     </div>
-                    {/* <FileOutput className="hover:scale-110 cursor-pointer" size={16} />
-                    <LogOut className="hover:scale-110 cursor-pointer" size={16} />
-                    <Mail className="hover:scale-110 cursor-pointer" size={16} />
-                    <Undo className="hover:scale-110 cursor-pointer" size={16} /> */}
                   </div>
                 </div>
-{/* 
-                <ListChecks size={16} />
-                <KeyRound size={16} />
-                <Info size={16} /> */}
               </div>
 
             </div>
@@ -535,7 +794,11 @@ const temasPrincipalesFiltrados =
                     },
                     {
                       id: "temaPrincipal",
-                      label: "Tema principal",
+                      label: "Asuntos",
+                    },
+                    {
+                      id: "Instrucciones",
+                      label: "Instrucciones",
                     },
                   ].map((tab) => (
 
@@ -589,12 +852,10 @@ const temasPrincipalesFiltrados =
                                 id: null,
                                 nombre: "",
                                 abreviatura: "",
-                                direccion: "",
-                                correo: "",
-                                telefono: "",
-                                encabezado: "",
-                                pie: "",
-                                background: "",
+                                encabezado: null,
+                                pie: null,
+                                fondo: null,
+                                activo: true,
                               });
 
                               setMostrarModalFondo(true);
@@ -608,10 +869,10 @@ const temasPrincipalesFiltrados =
                           <div className="flex-1 flex items-center border rounded px-2">
                             <Search size={16} className="text-gray-400" />
                             <input
-                              value={busquedaMaterial}
-                              onChange={(e) => setBusquedaMaterial(e.target.value)}
+                              value={busquedaFondo}
+                              onChange={(e) => setBusquedaFondo(e.target.value)}
                               className="w-full px-2 py-2 outline-none text-sm"
-                              placeholder="Buscar fondosTabla..."
+                              placeholder="Buscar fondos..."
                             />
                           </div>
   
@@ -626,16 +887,17 @@ const temasPrincipalesFiltrados =
                                 <th className="px-4 py-2 text-left">Editar</th>
                                 <th className="px-4 py-2 text-left">Nombre Fondo</th>
                                 <th className="px-4 py-2 text-left">Abreviatura</th>
-                                <th className="px-4 py-2 text-left">Dirección</th>
-                                <th className="px-4 py-2 text-left">Correo</th>
-                                <th className="px-4 py-2 text-left">Teléfono</th>
+                                <th className="px-4 py-2 text-left">Encabezado</th>
+                                <th className="px-4 py-2 text-left">Pie</th>
+                                <th className="px-4 py-2 text-left">Fondo</th>
+                                <th className="px-4 py-2 text-left">Activo</th>
                               </tr>
                             </thead>
   
                             <tbody>
                               {fondosFiltrados.length > 0 ? (
                                 fondosFiltrados.map((fondosTabla) => (
-                                  <tr key={fondosTabla.id} className="border-t hover:bg-gray-50">
+                                  <tr key={fondosTabla.id || fondosTabla._id} className="border-t hover:bg-gray-50">
   
                                     {/* 🗑 ELIMINAR */}
                                     <td className="px-4 py-2">
@@ -645,15 +907,13 @@ const temasPrincipalesFiltrados =
                                           setModoEdicion(true);
 
                                           setFondoEditando({
-                                            id: fondosTabla.id,
+                                            id: fondosTabla.id || fondosTabla._id,
                                             nombre: fondosTabla.nombre || "",
                                             abreviatura: fondosTabla.abreviatura || "",
-                                            direccion: fondosTabla.direccion || "",
-                                            correo: "correo@ejemplo.com",
-                                            telefono: "3111234567",
-                                            encabezado: "",
-                                            pie: "",
-                                            background: "",
+                                            encabezado: fondosTabla.encabezado || "",
+                                            pie: fondosTabla.pie || "",
+                                            fondo: fondosTabla.fondo || "",
+                                            activo: fondosTabla.activo !== undefined ? fondosTabla.activo : true,
                                           });
 
                                           setMostrarModalFondo(true);
@@ -673,23 +933,32 @@ const temasPrincipalesFiltrados =
                                     </td>
   
                                     <td className="px-4 py-2 text-gray-700">
-                                      {fondosTabla.direccion}
+                                      {fondosTabla.encabezado}
                                     </td>
   
                                     <td className="px-4 py-2 text-gray-700">
-                                      {fondosTabla.correo}
+                                      {fondosTabla.pie}
                                     </td>
 
                                     <td className="px-4 py-2 text-gray-700">
-                                      {fondosTabla.telefono}
+                                      {fondosTabla.fondo}
+                                    </td>
+  
+                                    <td className="px-4 py-2 text-gray-700 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={fondosTabla.activo}
+                                        onChange={(e) => handleActivoFondo(e, fondosTabla.id || fondosTabla._id)}
+                                        className="cursor-pointer w-5 h-5"
+                                      />
                                     </td>
 
                                   </tr>
                                 ))
                               ) : (
                                 <tr>
-                                  <td colSpan={4} className="text-center py-4 text-gray-400">
-                                    Sin fondosTablas adicionales
+                                  <td colSpan={7} className="text-center py-4 text-gray-400">
+                                    Sin fondos registrados
                                   </td>
                                 </tr>
                               )}
@@ -839,57 +1108,60 @@ const temasPrincipalesFiltrados =
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Imagen encabezado
                                         </label>
-
-                                        <textarea
-                                          value={fondoEditando.encabezado}
-                                            onChange={(e) =>
-                                              setFondoEditando({
-                                                ...fondoEditando,
-                                                encabezado: e.target.value,
-                                              })
-                                            }
-                                          rows={3}
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese URL o ruta de la imagen"
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) =>
+                                            setFondoEditando({
+                                              ...fondoEditando,
+                                              encabezado: e.target.files[0] || null,
+                                            })
+                                          }
+                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                         />
+                                        {fondoEditando.encabezado && typeof fondoEditando.encabezado === 'string' && (
+                                          <p className="text-xs text-gray-500 mt-1">Archivo actual: {fondoEditando.encabezado.split('/').pop()}</p>
+                                        )}
                                       </div>
 
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Imagen pie de página
                                         </label>
-
-                                        <textarea
-                                          value={fondoEditando.pie}
+                                        <input
+                                          type="file"
+                                          accept="image/*"
                                           onChange={(e) =>
                                             setFondoEditando({
                                               ...fondoEditando,
-                                              pie: e.target.value,
+                                              pie: e.target.files[0] || null,
                                             })
                                           }
-                                          rows={3}
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese URL o ruta de la imagen"
+                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                         />
+                                        {fondoEditando.pie && typeof fondoEditando.pie === 'string' && (
+                                          <p className="text-xs text-gray-500 mt-1">Archivo actual: {fondoEditando.pie.split('/').pop()}</p>
+                                        )}
                                       </div>
 
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Background de reporte
                                         </label>
-
-                                        <textarea
-                                          value={fondoEditando.background}
-                                            onChange={(e) =>
-                                              setFondoEditando({
-                                                ...fondoEditando,
-                                                background: e.target.value,
-                                              })
-                                            }
-                                          rows={4}
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese URL o configuración"
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) =>
+                                            setFondoEditando({
+                                              ...fondoEditando,
+                                              fondo: e.target.files[0] || null,
+                                            })
+                                          }
+                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                         />
+                                        {fondoEditando.fondo && typeof fondoEditando.fondo === 'string' && (
+                                          <p className="text-xs text-gray-500 mt-1">Archivo actual: {fondoEditando.fondo.split('/').pop()}</p>
+                                        )}
                                       </div>
 
                                     </div>
@@ -906,6 +1178,7 @@ const temasPrincipalesFiltrados =
                                   </button>
 
                                   <button
+                                    onClick={handleSaveFondo}
                                     className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
                                   >
                                     Guardar
@@ -926,7 +1199,7 @@ const temasPrincipalesFiltrados =
                     {configTab === "remitentesInternos" && (
 
                       <motion.div
-                        key="fondo"
+                        key="remitentesInternos"
                         initial={{ opacity: 0, x: 15 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -15 }}
@@ -943,18 +1216,21 @@ const temasPrincipalesFiltrados =
                               onClick={() => {
                                 setModoEdicion(false);
 
-                                setFondoEditando({
+                                setRemitenteEditando({
                                   id: null,
-                                  nombreCompleto: "",
+                                  name: "",
                                   cargo: "",
-                                  areaAdscripcion: "",
+                                  area: "",
+                                  dependencia: "",
+                                  tipo: "Interno",
+                                  activo: true,
                                 });
 
-                                setMostrarModalFondo(true);
+                                setMostrarModalRemitenteInterno(true);
                               }}
                               className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
                             >
-                              Añadir rem internos
+                              Añadir remitente
                             </button>
 
                             {/* 🔍 Buscador */}
@@ -962,8 +1238,8 @@ const temasPrincipalesFiltrados =
                               <Search size={16} className="text-gray-400" />
 
                               <input
-                                value={busquedaMaterial}
-                                onChange={(e) => setBusquedaMaterial(e.target.value)}
+                                value={busquedaInterno}
+                                onChange={(e) => setBusquedaInterno(e.target.value)}
                                 className="w-full px-2 py-2 outline-none text-sm"
                                 placeholder="Buscar remitente..."
                               />
@@ -980,8 +1256,8 @@ const temasPrincipalesFiltrados =
                                   <th className="px-4 py-3 text-left">Editar</th>
                                   <th className="px-4 py-3 text-left">Nombre completo</th>
                                   <th className="px-4 py-3 text-left">Cargo</th>
-                                  <th className="px-4 py-3 text-left">Área de adscripción</th>
-                                  <th className="px-4 py-3 text-center">Eliminar</th>
+                                  <th className="px-4 py-3 text-left">Área</th>
+                                  <th className="px-4 py-3 text-center">Activo</th>
                                 </tr>
                               </thead>
 
@@ -989,7 +1265,7 @@ const temasPrincipalesFiltrados =
                                 {remitentesInternosFiltrados.length > 0 ? (
                                   remitentesInternosFiltrados.map((remitente) => (
                                     <tr
-                                      key={remitente.id}
+                                      key={remitente.id || remitente._id}
                                       className="border-t hover:bg-gray-50 transition"
                                     >
 
@@ -1000,15 +1276,17 @@ const temasPrincipalesFiltrados =
 
                                             setModoEdicion(true);
 
-                                            setFondoEditando({
-                                              id: remitente.id,
-                                              nombreCompleto: remitente.nombreCompleto || "",
+                                            setRemitenteEditando({
+                                              id: remitente.remId,
+                                              name: remitente.name || "",
                                               cargo: remitente.cargo || "",
-                                              areaAdscripcion:
-                                                remitente.areaAdscripcion || "",
+                                              area: remitente.area || "",
+                                              dependencia: remitente.dependencia || "",
+                                              tipo: "Interno",
+                                              activo: remitente.activo !== undefined ? remitente.activo : true,
                                             });
 
-                                            setMostrarModalFondo(true);
+                                            setMostrarModalRemitenteInterno(true);
                                           }}
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
@@ -1018,7 +1296,7 @@ const temasPrincipalesFiltrados =
 
                                       {/* NOMBRE */}
                                       <td className="px-4 py-3 text-gray-700">
-                                        {remitente.nombreCompleto}
+                                        {remitente.name}
                                       </td>
 
                                       {/* CARGO */}
@@ -1028,48 +1306,16 @@ const temasPrincipalesFiltrados =
 
                                       {/* ÁREA */}
                                       <td className="px-4 py-3 text-gray-700">
-                                        {remitente.areaAdscripcion}
+                                        {remitente.area}
                                       </td>
 
-                                      {/* 🗑 ELIMINAR */}
                                       <td className="px-4 py-3 text-center">
-                                        <button
-                                          onClick={async () => {
-
-                                            const result = await Swal.fire({
-                                              title: "¿Eliminar remitente interno?",
-                                              text: "Esta acción no se puede deshacer.",
-                                              icon: "warning",
-                                              showCancelButton: true,
-                                              confirmButtonColor: "#8B1538",
-                                              cancelButtonColor: "#6B7280",
-                                              confirmButtonText: "Sí, eliminar",
-                                              cancelButtonText: "Cancelar",
-                                            });
-
-                                            if (result.isConfirmed) {
-
-                                              setRemitentesInternos((prev) =>
-                                                prev.filter((item) => item.id !== remitente.id)
-                                              );
-
-                                              Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: "El remitente interno fue eliminado.",
-                                                showConfirmButton: false,
-                                                timer: 3000,
-                                                timerProgressBar: true,
-                                                background: "#fff",
-                                                color: "#333",
-                                              });
-                                            }
-                                          }}
-                                          className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        <input
+                                          type="checkbox"
+                                          checked={remitente.activo}
+                                          onChange={(e) => handleActivoRemitente(e, remitente.remId)}
+                                          className="cursor-pointer w-5 h-5"
+                                        />
                                       </td>
 
                                     </tr>
@@ -1089,9 +1335,9 @@ const temasPrincipalesFiltrados =
                             </table>
                           </div>
 
-                          {/* MODAL */}
+                          {/* MODAL REMITENTE INTERNO */}
                           <AnimatePresence>
-                            {mostrarModalFondo && (
+                            {mostrarModalRemitenteInterno && (
                               <motion.div
                                 className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
                                 initial={{ opacity: 0 }}
@@ -1099,7 +1345,7 @@ const temasPrincipalesFiltrados =
                                 exit={{ opacity: 0 }}
                               >
                                 <motion.div
-                                  className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden"
+                                  className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl"
                                   initial={{ scale: 0.9, opacity: 0 }}
                                   animate={{ scale: 1, opacity: 1 }}
                                   exit={{ scale: 0.9, opacity: 0 }}
@@ -1114,7 +1360,7 @@ const temasPrincipalesFiltrados =
                                     </h2>
 
                                     <button
-                                      onClick={() => setMostrarModalFondo(false)}
+                                      onClick={() => setMostrarModalRemitenteInterno(false)}
                                       className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:bg-[#74112F] transition"
                                     >
                                       <Minus size={16} />
@@ -1122,7 +1368,7 @@ const temasPrincipalesFiltrados =
                                   </div>
 
                                   {/* CONTENIDO */}
-                                  <div className="p-6">
+                                  <div className="p-6 overflow-visible">
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -1134,11 +1380,11 @@ const temasPrincipalesFiltrados =
 
                                         <input
                                           type="text"
-                                          value={fondoEditando.nombreCompleto}
+                                          value={remitenteEditando.name}
                                           onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              nombreCompleto: e.target.value,
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
+                                              name: e.target.value,
                                             })
                                           }
                                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
@@ -1154,10 +1400,10 @@ const temasPrincipalesFiltrados =
 
                                         <input
                                           type="text"
-                                          value={fondoEditando.cargo}
+                                          value={remitenteEditando.cargo}
                                           onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
                                               cargo: e.target.value,
                                             })
                                           }
@@ -1167,23 +1413,58 @@ const temasPrincipalesFiltrados =
                                       </div>
 
                                       {/* ÁREA */}
-                                      <div>
+                                      <div className="relative">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Área de adscripción
                                         </label>
 
-                                        <input
-                                          type="text"
-                                          value={fondoEditando.areaAdscripcion}
-                                          onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              areaAdscripcion: e.target.value,
-                                            })
-                                          }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese área"
-                                        />
+                                        <div className="flex items-center border rounded-lg px-3">
+                                          <Search size={16} className="text-gray-400" />
+                                          <input
+                                            type="text"
+                                            value={busquedaAreaInterno}
+                                            onChange={(e) => {
+                                              setBusquedaAreaInterno(e.target.value);
+                                              setRemitenteEditando({
+                                                ...remitenteEditando,
+                                                area: e.target.value,
+                                              });
+                                            }}
+                                            onFocus={() => setMostrarOpcionesArea(true)}
+                                            className="w-full px-2 py-2 outline-none text-sm"
+                                            placeholder="Buscar y seleccionar área"
+                                          />
+                                        </div>
+
+                                        {mostrarOpcionesArea && (
+                                          <div 
+                                            className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-50 rounded-lg shadow-lg"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {areasFiltradasInterno.length > 0 ? (
+                                              areasFiltradasInterno.map((area) => (
+                                                <div
+                                                  key={area.clave || area._id}
+                                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                                  onClick={() => {
+                                                    setRemitenteEditando({
+                                                      ...remitenteEditando,
+                                                      area: area.nombre,
+                                                    });
+                                                    setBusquedaAreaInterno(area.nombre);
+                                                    setMostrarOpcionesArea(false);
+                                                  }}
+                                                >
+                                                  {area.nombre}
+                                                </div>
+                                              ))
+                                            ) : (
+                                              <div className="px-3 py-2 text-gray-400 text-sm">
+                                                Sin resultados
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
 
                                     </div>
@@ -1192,13 +1473,14 @@ const temasPrincipalesFiltrados =
                                   {/* FOOTER */}
                                   <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
                                     <button
-                                      onClick={() => setMostrarModalFondo(false)}
+                                      onClick={() => setMostrarModalRemitenteInterno(false)}
                                       className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition"
                                     >
                                       Cancelar
                                     </button>
 
                                     <button
+                                      onClick={() => handleSaveRemitente("Interno")}
                                       className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
                                     >
                                       Guardar
@@ -1236,18 +1518,21 @@ const temasPrincipalesFiltrados =
                               onClick={() => {
                                 setModoEdicion(false);
 
-                                setFondoEditando({
+                                setRemitenteEditando({
                                   id: null,
-                                  nombreCompleto: "",
+                                  name: "",
                                   cargo: "",
-                                  areaAdscripcion: "",
+                                  area: "",
+                                  dependencia: "",
+                                  tipo: "Externo",
+                                  activo: true,
                                 });
 
-                                setMostrarModalFondo(true);
+                                setMostrarModalRemitenteExterno(true);
                               }}
                               className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
                             >
-                              Añadir rem externos
+                              Añadir remitente
                             </button>
 
                             {/* 🔍 Buscador */}
@@ -1255,8 +1540,8 @@ const temasPrincipalesFiltrados =
                               <Search size={16} className="text-gray-400" />
 
                               <input
-                                value={busquedaMaterial}
-                                onChange={(e) => setBusquedaMaterial(e.target.value)}
+                                value={busquedaExterno}
+                                onChange={(e) => setBusquedaExterno(e.target.value)}
                                 className="w-full px-2 py-2 outline-none text-sm"
                                 placeholder="Buscar remitente..."
                               />
@@ -1274,7 +1559,8 @@ const temasPrincipalesFiltrados =
                                   <th className="px-4 py-3 text-left">Nombre completo</th>
                                   <th className="px-4 py-3 text-left">Cargo</th>
                                   <th className="px-4 py-3 text-left">Área de adscripción</th>
-                                  <th className="px-4 py-3 text-center">Eliminar</th>
+                                  <th className="px-4 py-3 text-center">Dependencia</th>
+                                  <th className="px-4 py-3 text-center">Activo</th>
                                 </tr>
                               </thead>
 
@@ -1282,7 +1568,7 @@ const temasPrincipalesFiltrados =
                                 {remitentesExternosFiltrados.length > 0 ? (
                                   remitentesExternosFiltrados.map((remitenteExt) => (
                                     <tr
-                                      key={remitenteExt.id}
+                                      key={remitenteExt.id || remitenteExt._id}
                                       className="border-t hover:bg-gray-50 transition"
                                     >
 
@@ -1293,16 +1579,17 @@ const temasPrincipalesFiltrados =
 
                                             setModoEdicion(true);
 
-                                            setFondoEditando({
-                                              id: remitenteExt.id,
-                                              nombreCompleto:
-                                                remitenteExt.nombreCompleto || "",
+                                            setRemitenteEditando({
+                                              id: remitenteExt.remId,
+                                              name: remitenteExt.name || "",
                                               cargo: remitenteExt.cargo || "",
-                                              areaAdscripcion:
-                                                remitenteExt.areaAdscripcion || "",
+                                              area: remitenteExt.area || "",
+                                              dependencia: remitenteExt.dependencia || "",
+                                              tipo: "Externo",
+                                              activo: remitenteExt.activo !== undefined ? remitenteExt.activo : true,
                                             });
 
-                                            setMostrarModalFondo(true);
+                                            setMostrarModalRemitenteExterno(true);
                                           }}
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
@@ -1312,7 +1599,7 @@ const temasPrincipalesFiltrados =
 
                                       {/* NOMBRE */}
                                       <td className="px-4 py-3 text-gray-700">
-                                        {remitenteExt.nombreCompleto}
+                                        {remitenteExt.name}
                                       </td>
 
                                       {/* CARGO */}
@@ -1322,48 +1609,21 @@ const temasPrincipalesFiltrados =
 
                                       {/* ÁREA */}
                                       <td className="px-4 py-3 text-gray-700">
-                                        {remitenteExt.areaAdscripcion}
+                                        {remitenteExt.area}
                                       </td>
 
-                                      {/* 🗑 ELIMINAR */}
+                                      {/* DEPENDENCIA */}
+                                      <td className="px-4 py-3 text-gray-700">
+                                        {remitenteExt.dependencia}
+                                      </td>
+
                                       <td className="px-4 py-3 text-center">
-                                        <button
-                                          onClick={async () => {
-
-                                            const result = await Swal.fire({
-                                              title: "¿Eliminar remitente externo?",
-                                              text: "Esta acción no se puede deshacer.",
-                                              icon: "warning",
-                                              showCancelButton: true,
-                                              confirmButtonColor: "#8B1538",
-                                              cancelButtonColor: "#6B7280",
-                                              confirmButtonText: "Sí, eliminar",
-                                              cancelButtonText: "Cancelar",
-                                            });
-
-                                            if (result.isConfirmed) {
-
-                                              setRemitentesExternos((prev) =>
-                                                prev.filter((item) => item.id !== remitenteExt.id)
-                                              );
-
-                                              Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: "El remitente externo fue eliminado.",
-                                                showConfirmButton: false,
-                                                timer: 3000,
-                                                timerProgressBar: true,
-                                                background: "#fff",
-                                                color: "#333",
-                                              });
-                                            }
-                                          }}
-                                          className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
+                                        <input
+                                          type="checkbox"
+                                          checked={remitenteExt.activo}
+                                          onChange={(e) => handleActivoRemitente(e, remitenteExt.remId)}
+                                          className="cursor-pointer w-5 h-5"
+                                        />
                                       </td>
 
                                     </tr>
@@ -1371,7 +1631,7 @@ const temasPrincipalesFiltrados =
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={5}
+                                      colSpan={6}
                                       className="text-center py-6 text-gray-400"
                                     >
                                       Sin remitentes externos registrados
@@ -1383,9 +1643,9 @@ const temasPrincipalesFiltrados =
                             </table>
                           </div>
 
-                          {/* MODAL */}
+                          {/* MODAL REMITENTE EXTERNO */}
                           <AnimatePresence>
-                            {mostrarModalFondo && (
+                            {mostrarModalRemitenteExterno && (
                               <motion.div
                                 className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
                                 initial={{ opacity: 0 }}
@@ -1408,7 +1668,7 @@ const temasPrincipalesFiltrados =
                                     </h2>
 
                                     <button
-                                      onClick={() => setMostrarModalFondo(false)}
+                                      onClick={() => setMostrarModalRemitenteExterno(false)}
                                       className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:bg-[#74112F] transition"
                                     >
                                       <Minus size={16} />
@@ -1428,11 +1688,11 @@ const temasPrincipalesFiltrados =
 
                                         <input
                                           type="text"
-                                          value={fondoEditando.nombreCompleto}
+                                          value={remitenteEditando.name}
                                           onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              nombreCompleto: e.target.value,
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
+                                              name: e.target.value,
                                             })
                                           }
                                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
@@ -1448,10 +1708,10 @@ const temasPrincipalesFiltrados =
 
                                         <input
                                           type="text"
-                                          value={fondoEditando.cargo}
+                                          value={remitenteEditando.cargo}
                                           onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
                                               cargo: e.target.value,
                                             })
                                           }
@@ -1468,15 +1728,33 @@ const temasPrincipalesFiltrados =
 
                                         <input
                                           type="text"
-                                          value={fondoEditando.areaAdscripcion}
+                                          value={remitenteEditando.area}
                                           onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              areaAdscripcion: e.target.value,
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
+                                              area: e.target.value,
                                             })
                                           }
                                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
                                           placeholder="Ingrese área"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Dependencia
+                                        </label>
+
+                                        <input
+                                          type="text"
+                                          value={remitenteEditando.dependencia}
+                                          onChange={(e) =>
+                                            setRemitenteEditando({
+                                              ...remitenteEditando,
+                                              dependencia: e.target.value,
+                                            })
+                                          }
+                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
+                                          placeholder="Ingrese dependencia"
                                         />
                                       </div>
 
@@ -1486,13 +1764,14 @@ const temasPrincipalesFiltrados =
                                   {/* FOOTER */}
                                   <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
                                     <button
-                                      onClick={() => setMostrarModalFondo(false)}
+                                      onClick={() => setMostrarModalRemitenteExterno(false)}
                                       className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition"
                                     >
                                       Cancelar
                                     </button>
 
                                     <button
+                                      onClick={() => handleSaveRemitente("Externo")}
                                       className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
                                     >
                                       Guardar
@@ -1535,13 +1814,14 @@ const temasPrincipalesFiltrados =
                                   id: null,
                                   nombre: "",
                                   descripcion: "",
+                                  activo: true
                                 });
 
                                 setMostrarModalTipoDocumento(true);
                               }}
                               className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
                             >
-                              Añadir tipo documento
+                              Añadir tipo de documento
                             </button>
 
                             {/* 🔍 BUSCADOR */}
@@ -1568,11 +1848,7 @@ const temasPrincipalesFiltrados =
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
                                   <th className="px-4 py-3 text-left">Nombre</th>
-                                  <th className="px-4 py-3 text-left">
-                                    Descripción del tipo de documento
-                                  </th>
-                                  <th className="px-4 py-3 text-center">Histórico</th>
-                                  <th className="px-4 py-3 text-center">Eliminar</th>
+                                  <th className="px-4 py-3 text-center">Activo</th>
                                 </tr>
                               </thead>
 
@@ -1580,7 +1856,7 @@ const temasPrincipalesFiltrados =
                                 {tiposDocumentoFiltrados.length > 0 ? (
                                   tiposDocumentoFiltrados.map((tipo) => (
                                     <tr
-                                      key={tipo.id}
+                                      key={tipo.id || tipo._id}
                                       className="border-t hover:bg-gray-50 transition"
                                     >
 
@@ -1592,9 +1868,10 @@ const temasPrincipalesFiltrados =
                                             setModoEdicion(true);
 
                                             setTipoDocumentoEditando({
-                                              id: tipo.id,
-                                              nombre: tipo.nombre || "",
+                                              id: tipo.id || tipo._id,
+                                              nombre: tipo.tipo || "",
                                               descripcion: tipo.descripcion || "",
+                                              activo: tipo.activo
                                             });
 
                                             setMostrarModalTipoDocumento(true);
@@ -1607,70 +1884,26 @@ const temasPrincipalesFiltrados =
 
                                       {/* 📄 NOMBRE */}
                                       <td className="px-4 py-3 text-gray-700">
-                                        {tipo.nombre}
+                                        {tipo.tipo}
                                       </td>
 
-                                      {/* 📝 DESCRIPCIÓN */}
-                                      <td className="px-4 py-3 text-gray-700">
-                                        {tipo.descripcion}
-                                      </td>
-
-                                      {/* 🕘 HISTÓRICO */}
-                                      <td className="px-4 py-3 text-center">
-                                        <button
-                                          className="p-2 rounded hover:bg-yellow-100 text-gray-500 hover:text-yellow-600 transition"
-                                        >
-                                          <History size={16} />
-                                        </button>
-                                      </td>
-
-                                      {/* 🗑 ELIMINAR */}
-                                      <td className="px-4 py-3 text-center">
-                                        <button
-                                          onClick={async () => {
-
-                                            const result = await Swal.fire({
-                                              title: "¿Eliminar tipo de documento?",
-                                              text: "Esta acción no se puede deshacer.",
-                                              icon: "warning",
-                                              showCancelButton: true,
-                                              confirmButtonColor: "#8B1538",
-                                              cancelButtonColor: "#6B7280",
-                                              confirmButtonText: "Sí, eliminar",
-                                              cancelButtonText: "Cancelar",
-                                            });
-
-                                            if (result.isConfirmed) {
-
-                                              setTiposDocumento((prev) =>
-                                                prev.filter((item) => item.id !== tipo.id)
-                                              );
-
-                                              Swal.fire({
-                                                toast: true,
-                                                position: "top-end",
-                                                icon: "success",
-                                                title: "El tipo de documento fue eliminado.",
-                                                showConfirmButton: false,
-                                                timer: 3000,
-                                                timerProgressBar: true,
-                                                background: "#fff",
-                                                color: "#333",
-                                              });
-                                            }
-                                          }}
-                                          className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </td>
+                                    <td className="px-4 py-2 text-gray-700 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={tipo.activo}
+                                        onChange={(e) => {
+                                          handleActivoTipoDocumento(e, tipo.id || tipo._id);
+                                        }}
+                                        className="cursor-pointer w-5 h-5"
+                                      />
+                                    </td>
 
                                     </tr>
                                   ))
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={5}
+                                      colSpan={3}
                                       className="text-center py-6 text-gray-400"
                                     >
                                       Sin tipos de documento registrados
@@ -1779,6 +2012,7 @@ const temasPrincipalesFiltrados =
                                     </button>
 
                                     <button
+                                      onClick={handleSaveTipoDocumento}
                                       className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
                                     >
                                       Guardar
@@ -1823,7 +2057,7 @@ const temasPrincipalesFiltrados =
                                   id: null,
                                   nombre: "",
                                   descripcion: "",
-                                  validacion: true,
+                                  activo: true,
                                 });
 
                                 setMostrarModalTemaPrincipal(true);
@@ -1866,15 +2100,7 @@ const temasPrincipalesFiltrados =
                                   </th>
 
                                   <th className="px-4 py-3 text-center">
-                                    Con validación
-                                  </th>
-
-                                  <th className="px-4 py-3 text-center">
-                                    Histórico
-                                  </th>
-
-                                  <th className="px-4 py-3 text-center">
-                                    Eliminar
+                                    Activo
                                   </th>
                                 </tr>
                               </thead>
@@ -1883,7 +2109,7 @@ const temasPrincipalesFiltrados =
                                 {temasPrincipalesFiltrados.length > 0 ? (
                                   temasPrincipalesFiltrados.map((tema) => (
                                     <tr
-                                      key={tema.id}
+                                      key={tema.id || tema._id}
                                       className="border-t hover:bg-gray-50 transition"
                                     >
 
@@ -1895,10 +2121,10 @@ const temasPrincipalesFiltrados =
                                             setModoEdicion(true);
 
                                             setTemaPrincipalEditando({
-                                              id: tema.id,
+                                              id: tema.id || tema._id,
                                               nombre: tema.nombre || "",
                                               descripcion: tema.descripcion || "",
-                                              validacion: tema.validacion || false,
+                                              activo: tema.activo !== undefined ? tema.activo : true,
                                             });
 
                                             setMostrarModalTemaPrincipal(true);
@@ -1919,75 +2145,23 @@ const temasPrincipalesFiltrados =
                                         {tema.descripcion}
                                       </td>
 
-                                      {/* ✅ VALIDACIÓN */}
-                                      <td className="px-4 py-3 text-center">
-                                        <span
-                                          className={`px-3 py-1 rounded-full text-xs font-medium
-                                            ${tema.validacion
-                                              ? "bg-green-100 text-green-700"
-                                              : "bg-red-100 text-red-700"
-                                            }`}
-                                        >
-                                          {tema.validacion ? "Sí" : "No"}
-                                        </span>
-                                      </td>
-
-                                      {/* 🕘 HISTÓRICO */}
-                                      <td className="px-4 py-3 text-center">
-                                        <button
-                                          className="p-2 rounded hover:bg-yellow-100 text-gray-500 hover:text-yellow-600 transition"
-                                        >
-                                          <History size={16} />
-                                        </button>
-                                      </td>
-
-                                      {/* 🗑 ELIMINAR */}
-                                      <td className="px-4 py-3 text-center">
-                                        <button
-                                          onClick={async () => {
-
-                                            const result = await Swal.fire({
-                                              title: "¿Eliminar tema principal?",
-                                              text: "Esta acción no se puede deshacer.",
-                                              icon: "warning",
-                                              showCancelButton: true,
-                                              confirmButtonColor: "#8B1538",
-                                              cancelButtonColor: "#6B7280",
-                                              confirmButtonText: "Sí, eliminar",
-                                              cancelButtonText: "Cancelar",
-                                            });
-
-                                            if (result.isConfirmed) {
-
-                                              setTemasPrincipales((prev) =>
-                                                prev.filter((item) => item.id !== tema.id)
-                                              );
-
-                                              Swal.fire({
-                                              toast: true,
-                                              position: "top-end",
-                                              icon: "success",
-                                              title: "El tema principal fue eliminado.",
-                                              showConfirmButton: false,
-                                              timer: 3000,
-                                              timerProgressBar: true,
-                                              background: "#fff",
-                                              color: "#333",
-                                            });
-                                            }
-                                          }}
-                                          className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </td>
+                                    <td className="px-4 py-2 text-gray-700 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={tema.activo}
+                                        onChange={(e) => {
+                                          handleActivoTemaPrincipal(e, tema.id || tema._id);
+                                        }}
+                                        className="cursor-pointer w-5 h-5"
+                                      />
+                                    </td>
 
                                     </tr>
                                   ))
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={6}
+                                      colSpan={4}
                                       className="text-center py-6 text-gray-400"
                                     >
                                       Sin temas principales registrados
@@ -2119,6 +2293,257 @@ const temasPrincipalesFiltrados =
                                     </button>
 
                                     <button
+                                      onClick={handleSaveTemaPrincipal}
+                                      className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
+                                    >
+                                      Guardar
+                                    </button>
+
+                                  </div>
+
+                                </motion.div>
+
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                        </div>
+
+                      </motion.div>
+                    )}
+
+                  {configTab === "Instrucciones" && (
+
+                      <motion.div
+                        key="Instrucciones"
+                        initial={{ opacity: 0, x: 15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -15 }}
+                        transition={{ duration: 0.2 }}
+                      >
+
+                        <div className="space-y-4">
+
+                          {/* 🔥 HEADER */}
+                          <div className="flex items-center gap-2 mb-2">
+
+                            {/* ➕ AÑADIR */}
+                            <button
+                              onClick={() => {
+
+                                setModoEdicion(false);
+
+                                setInstruccionEditando({
+                                  id: null,
+                                  descripcion: "",
+                                  activo: true,
+                                });
+
+                                setMostrarModalInstruccion(true);
+                              }}
+                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
+                            >
+                              Añadir instrucción
+                            </button>
+
+                            {/* 🔍 BUSCADOR */}
+                            <div className="flex-1 flex items-center border rounded px-2">
+                              <Search size={16} className="text-gray-400" />
+
+                              <input
+                                value={busquedaInstruccion}
+                                onChange={(e) =>
+                                  setBusquedaInstruccion(e.target.value)
+                                }
+                                className="w-full px-2 py-2 outline-none text-sm"
+                                placeholder="Buscar instrucción..."
+                              />
+                            </div>
+
+                          </div>
+
+                          {/* 🧾 TABLA */}
+                          <div className="overflow-x-auto rounded-lg border border-gray-200">
+                            <table className="w-full text-sm">
+
+                              <thead className="bg-[#8B1538] text-white">
+                                <tr>
+                                  <th className="px-4 py-3 text-left">Editar</th>
+
+                                  <th className="px-4 py-3 text-left">
+                                    Instrucción
+                                  </th>
+
+
+                                  <th className="px-4 py-3 text-center">
+                                    Activo
+                                  </th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {instruccionesFiltrados.length > 0 ? (
+                                  instruccionesFiltrados.map((instruccion) => (
+                                    <tr
+                                      key={instruccion.id || instruccion._id}
+                                      className="border-t hover:bg-gray-50 transition"
+                                    >
+
+                                      {/* ✏️ EDITAR */}
+                                      <td className="px-4 py-3">
+                                        <button
+                                          onClick={() => {
+
+                                            setModoEdicion(true);
+
+                                            setInstruccionEditando({
+                                              id: instruccion.id || instruccion._id,
+                                              descripcion: instruccion.descripcion || "",
+                                              activo: instruccion.activo !== undefined ? instruccion.activo : true,
+                                            });
+
+                                            setMostrarModalInstruccion(true);
+                                          }}
+                                          className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
+                                        >
+                                          <Pencil size={16} />
+                                        </button>
+                                      </td>
+
+                                      {/* 📝 DESCRIPCIÓN */}
+                                      <td className="px-4 py-3 text-gray-700">
+                                        {instruccion.descripcion}
+                                      </td>
+
+                                    <td className="px-4 py-2 text-gray-700 text-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={instruccion.activo}
+                                        onChange={(e) => {
+                                          handleActivoInstruccion(e, instruccion.id || instruccion._id);
+                                        }}
+                                        className="cursor-pointer w-5 h-5"
+                                      />
+                                    </td>
+
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td
+                                      colSpan={3}
+                                      className="text-center py-6 text-gray-400"
+                                    >
+                                      Sin instrucciones registradas
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+
+                            </table>
+                          </div>
+
+                          {/* 🪟 MODAL */}
+                          <AnimatePresence>
+                            {mostrarModalInstruccion && (
+                              <motion.div
+                                className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                              >
+
+                                <motion.div
+                                  className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden"
+                                  initial={{ scale: 0.9, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0.9, opacity: 0 }}
+                                >
+
+                                  {/* HEADER */}
+                                  <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+
+                                    <h2 className="text-xl font-semibold text-gray-800">
+                                      {modoEdicion
+                                        ? "Editar instruccion"
+                                        : "Agregar instruccion"}
+                                    </h2>
+
+                                    <button
+                                      onClick={() =>
+                                        setMostrarModalInstruccion(false)
+                                      }
+                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:bg-[#74112F] transition"
+                                    >
+                                      <Minus size={16} />
+                                    </button>
+
+                                  </div>
+
+                                  {/* CONTENIDO */}
+                                  <div className="p-6">
+
+                                    <div className="space-y-5">
+
+                                      {/* 📝 DESCRIPCIÓN */}
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Descripción de la instrucción
+                                        </label>
+
+                                        <textarea
+                                          rows={5}
+                                          value={instruccionEditando.descripcion}
+                                          onChange={(e) =>
+                                            setInstruccionEditando({
+                                              ...instruccionEditando,
+                                              descripcion: e.target.value,
+                                            })
+                                          }
+                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
+                                          placeholder="Ingrese descripción"
+                                        />
+                                      </div>
+
+                                      {/* ✅ ACTIVO */}
+                                      <div className="flex items-center gap-3">
+
+                                        <input
+                                          type="checkbox"
+                                          checked={instruccionEditando.activo}
+                                          onChange={(e) =>
+                                            setInstruccionEditando({
+                                              ...instruccionEditando,
+                                              activo: e.target.checked,
+                                            })
+                                          }
+                                          className="w-4 h-4 accent-[#8B1538]"
+                                        />
+
+                                        <label className="text-sm font-medium text-gray-700">
+                                          Activo
+                                        </label>
+
+                                      </div>
+
+                                    </div>
+
+                                  </div>
+
+                                  {/* FOOTER */}
+                                  <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+
+                                    <button
+                                      onClick={() =>
+                                        setMostrarModalInstruccion(false)
+                                      }
+                                      className="px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 transition"
+                                    >
+                                      Cancelar
+                                    </button>
+
+                                    <button
+                                      onClick={handleSaveInstruccion}
                                       className="px-5 py-2 rounded-lg bg-[#8B1538] hover:bg-[#74112F] text-white shadow-md transition"
                                     >
                                       Guardar

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import bgNayarit from "../../assets/images/personajenayarit2.jpg";
@@ -97,14 +98,17 @@ export function LlenarDatosAlta() {
     }
   };
 
-  const errors = {};
   const [areas, setAreas] = useState([]);
-  const [loadingAreas, setLoadingAreas] = useState(false);
+  const [busquedaArea, setBusquedaArea] = useState("");
+  const [mostrarOpcionesArea, setMostrarOpcionesArea] = useState(false);
+
+  const areasFiltradas = areas.filter((area) =>
+    (area.nombre || "").toLowerCase().includes(busquedaArea.toLowerCase())
+  );
   
       useEffect(() => {
           const cargarAreas = async () => {
               try {
-                  setLoadingAreas(true);
                   const response = await getAreas();
                   if (response.ok) {
                       const data = await response.json();
@@ -114,8 +118,6 @@ export function LlenarDatosAlta() {
                   }
               } catch (error) {
                   console.error("Error cargando áreas:", error);
-              } finally {
-                  setLoadingAreas(false);
               }
           };
   
@@ -169,26 +171,50 @@ export function LlenarDatosAlta() {
               <option value="">Seleccione sexo</option>
               <option>Masculino</option>
               <option>Femenino</option>
+              <option>Otro</option>
             </select>
 
-            <div className="col-span-2">
+            <div className="relative">
                 <label className="block mb-1 text-sm">Área de destino:</label>
-                <select
-                name="area"
-                value={form.area}
-                onChange={handleChange}
-                disabled={loadingAreas}
-                className={`w-full border rounded px-2 py-2 ${
-                errors.area ? "border-red-500 bg-red-50" : ""
-                } ${loadingAreas ? "bg-gray-100 cursor-not-allowed" : ""}`}
-                >
-                <option value="">{loadingAreas ? "Cargando áreas..." : "Seleccionar área de destino"}</option>
-                {areas.map((area) => (
-                <option key={area._id} value={area._id}>
-                    {area.nombre}
-                </option>
-                ))}
-                </select>
+                <div className="flex items-center border rounded px-2 py-2">
+                    <Search size={16} className="text-gray-400 mr-1" />
+                    <input
+                    type="text"
+                    value={busquedaArea}
+                    onChange={(e) => {
+                        setBusquedaArea(e.target.value);
+                        setForm({...form, area: e.target.value});
+                    }}
+                    onFocus={() => setMostrarOpcionesArea(true)}
+                    className="w-full outline-none text-sm"
+                    placeholder="Buscar y seleccionar área"
+                    />
+                </div>
+
+                {mostrarOpcionesArea && (
+                    <div 
+                    className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-50 rounded-lg shadow-lg"
+                    onClick={(e) => e.stopPropagation()}
+                    >
+                    {areasFiltradas.length > 0 ? (
+                        areasFiltradas.map((area) => (
+                        <div
+                            key={area._id}
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                            onClick={() => {
+                            setForm({...form, area: area.nombre || area._id});
+                            setBusquedaArea(area.nombre);
+                            setMostrarOpcionesArea(false);
+                            }}
+                        >
+                            {area.nombre}
+                        </div>
+                        ))
+                    ) : (
+                        <div className="px-3 py-2 text-gray-400 text-sm">Sin resultados</div>
+                    )}
+                    </div>
+                )}
             </div>
 
             <div className="flex gap-2">
