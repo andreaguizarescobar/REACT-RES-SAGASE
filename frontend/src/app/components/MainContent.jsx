@@ -1045,53 +1045,6 @@ const moverAPendientes = () => {
               }
             };
           
-            const handleSaveRelacionados = async () => {
-              const currentDocId = documentoEditar?.docId || documentoEditar?._id;
-              if (!currentDocId) return;
-          
-              try {
-                let updatedDocumento = documentoEditar;
-                const newIds = documentosSeleccionados.filter(
-                  (id) => !relacionadosDocumento.some((doc) => doc.value === id)
-                );
-                for (const id of newIds) {
-                  const doc = documentos.find(d => d.docId === id.docId);
-                  const folio = doc ? doc.folio : id;
-                  Swal.fire({
-                    title: 'Guardando documento relacionado',
-                    text: `Guardando folio: ${folio}`,
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    timer: 1500,
-                  });
-                  const response = await addRelacionado(currentDocId, { relacionado: { item: id, modelo: "Documento" } }, token);
-                  if (!response.ok) throw new Error('Error agregando documento relacionado');
-                  updatedDocumento = await response.json();
-                }
-          
-                setRelacionadosDocumento(
-                  (updatedDocumento.relacionados || [])
-                    .map(normalizeRelacionadoItem)
-                    .filter(Boolean)
-                );
-                setDocumentosSeleccionados(
-                  (updatedDocumento.relacionados || []).map((rel) =>
-                    typeof rel === 'object' ? (rel._id || rel.value) : rel
-                  )
-                );
-                setDocumentoEditar(updatedDocumento);
-                setDocumentoSeleccionado(updatedDocumento);
-                setMostrarModalRelacionado(false);
-              } catch (error) {
-                console.error(error);
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error al agregar documento relacionado',
-                  text: 'No se pudo guardar la relación.',
-                });
-              }
-            };
-          
             const handleRemoveRelacionado = async (relatedId) => {
               const currentDocId = documentoEditar?.docId || documentoEditar?._id;
               if (!currentDocId) return;
@@ -3122,13 +3075,13 @@ const generarDocumentoTurno = async (turno) => {
                             </thead>
 
                             <tbody>
-                              {copiasDocumento.map((funcionario, index) => (
+                              {copiasDocumento.map((copia, index) => (
                                 <tr
-                                  key={index}
+                                  key={copia._id || index}
                                   className="border-t hover:bg-gray-50"
                                 >
                                   <td className="px-4 py-2 text-gray-700">
-                                    {funcionario}
+                                    {copia.funcionario?.nombre || 'N/A'}
                                   </td>
                                 </tr>
                               ))}
@@ -5875,13 +5828,13 @@ const generarDocumentoTurno = async (turno) => {
                             </thead>
 
                             <tbody>
-                              {copiasDocumento.map((funcionario, index) => (
+                              {copiasDocumento.map((copia, index) => (
                                 <tr
-                                  key={index}
+                                  key={copia._id || index}
                                   className="border-t hover:bg-gray-50"
                                 >
                                   <td className="px-4 py-2 text-gray-700">
-                                    {funcionario}
+                                    {copia.funcionario?.nombre || 'N/A'}
                                   </td>
                                 </tr>
                               ))}

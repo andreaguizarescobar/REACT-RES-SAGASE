@@ -18,3 +18,17 @@ export const sendResetEmail = async (email, token) => {
 
   await transporter.sendMail(msg)
 };
+
+export const enviarUsuario = async (email, user, password) => {
+  const msg = {
+    to: email,
+    from: process.env.EMAIL_USER,
+    subject: 'Usuario SAGASE',
+    html: `<h2>Registro exitoso</h2>
+      <p>Nombre de usuario: ${user}</p>
+      <p>Contraseña: ${password}</p>
+      <p>¡Bienvenido a SAGASE!</p>
+      `
+  }
+  await transporter.sendMail(msg)
+};

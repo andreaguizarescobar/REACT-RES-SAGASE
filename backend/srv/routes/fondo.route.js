@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as fondoController from "../controllers/fondo.controller.js";
 import { verifyToken } from "../middlewares/auth.middlewares.js";
-import { authorizeRole } from "../middlewares/role.middleware.js";
+import authorizeRole from "../middlewares/role.middleware.js";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';

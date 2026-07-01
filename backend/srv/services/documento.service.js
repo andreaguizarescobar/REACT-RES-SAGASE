@@ -44,6 +44,7 @@ const getById = async (docId) => {
     return documento;
 };
 
+import { obtenerSiguienteNumero } from './contador.service.js';
 import userModel from '../models/user.model.js';
 const create = async (documentoData, user) => {
     // Verificar si ya existe un documento con el mismo docId
@@ -56,7 +57,8 @@ const create = async (documentoData, user) => {
     let existingFolio = await documentoModel.findOne({ folio: documentoData.folio });
     if (existingFolio) {
         // Generar un nuevo folio si ya existe
-        documentoData.folio = `Folio ${Math.floor(Math.random() * 9000) + 1000}-${new Date().getFullYear()}-${Date.now()}`;
+        const numero = await obtenerSiguienteNumero("documento");
+        documentoData.folio = `${numero}-${new Date().getFullYear()}-${Date.now()}`;
     }
 
     // Asegurar que las fechas sean objetos Date válidos
@@ -144,6 +146,8 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     session.startTransaction();
     const area = await areaModel.findById(turnadoData.areaDestino);
     const instruccion = await instruccionModel.findById(turnadoData.instruccion); // Manejar ambos casos
+    const numero = await obtenerSiguienteNumero("turnado");
+    turnadoData.numero = numero.toString().padStart(6, "0");
     const doc = await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { turnados: turnadoData,  bitacora: {
@@ -219,6 +223,16 @@ const patchBitacoraDocumento = async (docId, bitacoraData) => {
 
 const patchCopiaDocumento = async (docId, copiaData) => {
     const funcionario = await userModel.findById(copiaData.funcionario);
+
+    funcionario.copias.push(docId);
+    funcionario.notificaciones.push({ 
+        tarea: 'Copia de documento',
+        descripcion: `Agregada copia del documento ${docId}`,
+        fecha: new Date(),
+        status: 'Sin leer',
+        documento: docId,
+     });
+
     return await documentoModel.findOneAndUpdate(
         { docId },
         { $push: { copias: copiaData, bitacora: {

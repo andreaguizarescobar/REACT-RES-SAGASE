@@ -2,7 +2,7 @@ import { hash, compare } from 'bcryptjs';
 import crypto from 'crypto';
 import userModel from '../models/user.model.js';
 import jwt from '../config/jwt.js';
-import { sendResetEmail } from './mail.service.js';
+import { sendResetEmail, enviarUsuario } from './mail.service.js';
 import path from 'path';
 
 const registerUser = async (data) => {
@@ -17,6 +17,7 @@ const registerUser = async (data) => {
     ...data,
     password: hashedPassword
   });
+  await enviarUsuario(data.email, data.username, data.password);
   return user;
 };
 

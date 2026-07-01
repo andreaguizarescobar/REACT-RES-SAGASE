@@ -13,7 +13,7 @@ const UserSchema = new Schema({
   email: String,
   status: { type: String, default: "Activo" },
   sexo: String,
-  copia: Boolean,
+  copias: [{ type: Schema.Types.ObjectId, ref: 'Documento' }],
   roles: [{rol: { type: String },
   proceso: { type: String }}
   ],

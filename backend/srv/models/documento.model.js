@@ -44,6 +44,7 @@ const TurnadoSchema = new Schema({
   turna: {type: Schema.Types.ObjectId, ref: 'users'},
   notas: String,
   status: {type: String, default: "Registrado"},
+  numero: { type: String, unique: true},
 }, { _id: true });
 
 const AdicionalSchema = new Schema({
