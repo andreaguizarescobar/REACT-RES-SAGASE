@@ -66,8 +66,12 @@ export function RegistrarDocumento() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const documentosFiltrados = documentos.filter((d) =>
+  const documentosFiltrados = documentos
+  .filter(d =>
     d.folio.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase())
+  )
+  .filter(d =>
+    !documentosSeleccionados.some(sel => sel.docId === d.docId)
   );
 
   const formatDateValue = (value, withTime = false) => {
@@ -734,14 +738,41 @@ export function RegistrarDocumento() {
   };
 
   const handleSaveRelacionados = async () => {
+
+    setMostrarModalRelacionado(false);
+    
+    // Toast de carga en la esquina superior derecha
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "info",
+      title: "Guardando documentos relacionados...",
+      timer: 2000,
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    }); 
+    
     const currentDocId = documentoEditar?.docId || documentoEditar?._id;
     if (!currentDocId) return;
 
     try {
       let updatedDocumento = documentoEditar;
       const newIds = documentosSeleccionados.filter(
-        (id) => !relacionadosDocumento.some((doc) => doc.value === id)
+        (docSel) =>
+          !relacionadosDocumento.some((rel) => {
+            const relId =
+              rel?.value?.docId ||
+              rel?.value?._id ||
+              rel?.docId ||
+              rel?._id;
+
+            return relId === docSel.docId;
+          })
       );
+
       for (const id of newIds) {
         const doc = documentos.find(d => d.docId === id.docId);
         const folio = doc ? doc.folio : id;
@@ -1015,9 +1046,9 @@ const obtenerLabel = (lista, id) => {
       <div className="max-w-6xl mx-auto bg-white rounded shadow">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center bg-gray-200 px-4 py-2 rounded-t">
+        <div className="bg-gray-300 rounded-t-md flex items-center justify-between px-4 py-2">
           <h1 className="text-sm font-semibold text-gray-800">Registro de documento</h1>
-          <button className="bg-[#8B1538] text-white p-2 rounded-full">
+          <button className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white">
             <Minus size={16} />
           </button>
         </div>
@@ -1069,7 +1100,16 @@ const obtenerLabel = (lista, id) => {
                 name="ejercicio"
                 value={form.ejercicio}
                 onChange={handleChange}
-                className={`w-full border rounded px-2 py-1 ${
+                className={`w-full
+                  rounded-lg
+                  border
+                  px-3
+                  py-2
+                  transition
+                  focus:border-[#8B1538]
+                  focus:ring-2
+                  focus:ring-[#8B1538]/20
+                  outline-none ${
                   errores.ejercicio ? "border-red-500 bg-red-50" : ""
                 }`}
               >
@@ -1083,16 +1123,22 @@ const obtenerLabel = (lista, id) => {
 
           {/* DATOS ESPECÍFICOS */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-0">
-              Datos específicos
-            </h2>
+            <div className="flex items-center gap-3 mb-3">
+                <div className="h-px flex-1 bg-gray-300" />
 
-            <div className="grid grid-cols-6 gap-4 items-end ">
+                <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                    Datos específicos
+                </h2>
+
+                <div className="h-px flex-1 bg-gray-300" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
               {/* Tipo documento con buscador */}
-                <div ref={refTipoDoc} className="col-span-2 relative">
-                  <label className="text-xs text-gray-500">
-                    Selecciona tipo de documento *
+                <div ref={refTipoDoc} className="relative">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Selecciona tipo de documento <span className="text-red-600"> *</span>
                   </label>
                   <div
                     className={`flex items-center border rounded px-2 ${
@@ -1137,46 +1183,36 @@ const obtenerLabel = (lista, id) => {
                 </div>
 
                 {/* Relacionado */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-gray-500">Relacionado con:</span>
-                  <Toggle
-                    checked={form.relacionadoCon}
-                    onChange={(v) => {
-                      setFormEditar({ ...form, relacionadoCon: v });
+                <div className="flex flex-col">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Relacionado con</label>
 
-                      if (v) {
-                        setMostrarModalRelacionado(true);
-                      } else {
-                        setMostrarModalRelacionado(false);
+                    <div className="h-[38px] flex items-center">
+                    <Toggle
+                      checked={form.relacionadoCon}
+                      onChange={(v) => {
+                        setForm({ ...form, relacionadoCon: v });
 
-                        // 👇 LIMPIAR ASUNTO
-                        setAsuntoSeleccionado(null);
-                        setBusquedaAsunto("");
-                      }
-                    }}
-                  />
+                        if (v) {
+                          setMostrarModalRelacionado(true);
+                        } else {
+                          setMostrarModalRelacionado(false);
+
+                          // Limpiar asunto
+                          setAsuntoSeleccionado(null);
+                          setBusquedaAsunto("");
+
+                          // Limpiar documentos relacionados
+                          setDocumentosSeleccionados([]);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* Asunto */}
-                <div className="col-span-2 self-start">
-                  <label className="text-xs text-gray-500">Anexos</label>
-                  <textarea
-                    value={asuntoSeleccionado?.descripcion || ""}
-                    disabled
-                    className="w-full border rounded px-2 py-1 h-[34px] resize-none bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mt-4">
-
-              {/* Tema */}
-              <div>
-          
                 <div ref={refTemaPrincipal} className="relative">
-                  <label className="text-xs text-gray-500">
-                    Selecciona asunto *
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Selecciona asunto <span className="text-red-600"> *</span>
                   </label>
 
                   <div className={`flex items-center border rounded px-2 ${
@@ -1217,7 +1253,38 @@ const obtenerLabel = (lista, id) => {
                     </div>
                   )}
                 </div>
+
+                {/* Anexos */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">Anexos</label>
+                  <textarea
+                      value={
+                        documentosSeleccionados
+                          .map(doc => `${doc.folio} - ${doc.docId}`)
+                          .join("\n")
+                      }
+                    disabled
+                    className="w-full
+                     rounded-lg
+                      border
+                      bg-gray-50
+                      px-3
+                      py-3
+                      text-sm
+                      leading-7
+                      min-h-[90px]
+                      max-h-36
+                      resize-none
+                      overflow-y-auto
+                      cursor-default"
+                  />
+                </div>
+
               </div>
+
+              <div className="grid grid-cols-3 gap-4 mt-4">
+
+         
 
               </div>
 
@@ -1225,58 +1292,100 @@ const obtenerLabel = (lista, id) => {
 
           {/* DATOS GENERALES */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-2">
-              Datos generales
-            </h2>
+            <div className="flex items-center gap-3 mb-2">
+                <div className="h-px flex-1 bg-gray-300" />
 
+                <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                    Datos generales
+                </h2>
+
+                <div className="h-px flex-1 bg-gray-300" />
+            </div>
+            
             <div className="grid grid-cols-3 gap-4 items-end">
 
               <div>
-                <label className="text-xs text-gray-500">No. de documento *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">No. de documento <span className="text-red-600"> *</span></label>
                 <input
                   name="noDocumento"
                   value={form.noDocumento}
                   onChange={handleChange}
-                  className={`w-full border rounded px-2 py-1 ${
+                  className={`w-full
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none ${
                     errores.noDocumento ? "border-red-500 bg-red-50" : ""
                   }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">Fecha de documento *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de documento <span className="text-red-600"> *</span></label>
                 <input
                   type="date"
                   name="fechaDocumento"
                   value={form.fechaDocumento}
                   onChange={handleChange}
-                   className={`w-full border rounded px-2 py-1 ${
+                   className={`w-full
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none ${
                     errores.fechaDocumento ? "border-red-500 bg-red-50" : ""
                   }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">Fecha de recibido *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de recibido <span className="text-red-600"> *</span></label>
                 <input
                   type="date"
                   name="fechaAcuse"
                   value={form.fechaAcuse}
                   onChange={handleChange}
-                  className={`w-full border rounded px-2 py-1 ${
+                  className={`w-full
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none ${
                     errores.fechaAcuse ? "border-red-500 bg-red-50" : ""
                   }`}
                 />
               </div>
 
               <div className="hidden">
-                <label className="text-xs text-gray-500">Fecha de registro *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de registro <span className="text-red-600"> *</span></label>
                 <input
                   type="datetime-local"
                   name="fechaRegistro"
                   value={form.fechaRegistro}
                   readOnly
-                  className="w-full border rounded px-2 py-1 bg-gray-100"
+                  className="w-full
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none bg-gray-100"
                 />
               </div>
 
@@ -1285,20 +1394,35 @@ const obtenerLabel = (lista, id) => {
 
           {/* REMITENTE */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-2">
-              Remitente
-            </h2>
+            <div className="flex items-center gap-3 mb-2">
+                <div className="h-px flex-1 bg-gray-300" />
+
+                <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                    Remitente
+                </h2>
+
+                <div className="h-px flex-1 bg-gray-300" />
+            </div>
 
             <div className="grid grid-cols-6 gap-4 items-end">
 
              {/* Tipo de remitente */}
               <div className="col-span-2">
-                <label className="text-xs text-gray-500">Tipo de remitente *</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de remitente <span className="text-red-600"> *</span></label>
                 <select
                   name="tipoRemitente"
                   value={form.tipoRemitente}
                   onChange={handleChange}
-                    className={`w-full border rounded px-2 py-1 ${
+                    className={`w-full
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none ${
                       errores.tipoRemitente ? "border-red-500 bg-red-50" : ""
                     }`}
                 >
@@ -1319,8 +1443,8 @@ const obtenerLabel = (lista, id) => {
                     transition={{ duration: 0.2 }}
                     className="col-span-4"
                   >
-                    <label className="text-xs text-gray-500">
-                      Funcionario / Área *
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Funcionario / Área <span className="text-red-600"> *</span>
                     </label>
                     <div ref={refRemitenteInt} className="relative">
                       <div className={`flex items-center border rounded px-2 ${
@@ -1376,8 +1500,8 @@ const obtenerLabel = (lista, id) => {
                     transition={{ duration: 0.2 }}
                     className="col-span-3"
                   >
-                    <label className="text-xs text-gray-500">
-                      Selecciona remitente externo *
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Selecciona remitente externo <span className="text-red-600"> *</span>
                     </label>
 
                     {/* CONTENEDOR BUSCADOR + TOGGLE */}
@@ -1429,7 +1553,7 @@ const obtenerLabel = (lista, id) => {
 
                       {/* TOGGLE */}
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        <span className="text-xs text-gray-500">
+                        <span className="mb-1 block text-sm font-medium text-gray-700">
                           Otro funcionario o ciudadano
                         </span>
                         <Toggle
@@ -1453,21 +1577,36 @@ const obtenerLabel = (lista, id) => {
 
           {/* DATOS ESPECÍFICOS */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-2">
-              Información complementaría
-            </h2>
+            <div className="flex items-center gap-3 mb-2">
+                <div className="h-px flex-1 bg-gray-300" />
+
+                <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                    Información complementaria
+                </h2>
+
+                <div className="h-px flex-1 bg-gray-300" />
+            </div>
 
             <div className="grid grid-cols-1 gap-4 items-end">
        
               <div className="col-span-1">
-                <label className="text-xs text-gray-500">
-                  Síntesis del asunto *
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Síntesis del asunto <span className="text-red-600"> *</span>
                 </label>
                 <textarea
                   name="sintesis"
                   value={form.sintesis}
                   onChange={handleChange}
-                  className={`w-full border rounded px-2 py-1 ${
+                  className={`w-full
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none ${
                     errores.sintesis ? "border-red-500 bg-red-50" : ""
                   }`}
                 />
@@ -1475,7 +1614,7 @@ const obtenerLabel = (lista, id) => {
 
               <div className="flex items-start gap-10 col-span-1">
                 <div className="flex items-center gap-2 pt-0">
-                  <label className="text-xs text-gray-500 flex items-center justify-between">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between">
                     <span>Soporte adicional</span>
                   </label>
                   <Toggle
@@ -1495,7 +1634,7 @@ const obtenerLabel = (lista, id) => {
                     {/* Formulario para agregar material */}
                     <div className="flex gap-3 items-end mb-3 pr-2">
                       <div>
-                        <label className="text-xs text-gray-500">Nombre del material: </label>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">Nombre del material: </label>
                         <input
                           type="text"
                           value={formMaterialCreacion.tipo}
@@ -1507,14 +1646,23 @@ const obtenerLabel = (lista, id) => {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-xs text-gray-500">Descripción</label>
+                        <label className="mb-1 block text-sm font-medium text-gray-700">Descripción</label>
                         <input
                           type="text"
                           value={formMaterialCreacion.descripcion}
                           onChange={(e) =>
                             setFormMaterialCreacion({ ...formMaterialCreacion, descripcion: e.target.value })
                           }
-                          className="w-full border rounded px-2 py-1 text-sm"
+                          className="w-full
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            transition
+                            focus:border-[#8B1538]
+                            focus:ring-2
+                            focus:ring-[#8B1538]/20
+                            outline-none text-sm"
                           placeholder="Breve descripción del material"
                         />
                       </div>
@@ -1546,7 +1694,7 @@ const obtenerLabel = (lista, id) => {
 
                     {/* Textarea con resumen de materiales agregados */}
                     <div className="flex flex-col gap-2 pr-2">
-                      <label className="text-xs text-gray-500">Materiales agregados:</label>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Materiales agregados:</label>
                       <textarea
                         value={
                           nuevosMaterialesCreacion.length > 0
@@ -1556,7 +1704,16 @@ const obtenerLabel = (lista, id) => {
                             : "No se han agregado materiales"
                         }
                         readOnly
-                        className="w-full border rounded px-2 py-1 h-[68px] resize-none bg-gray-50 text-sm"
+                        className="w-full
+                          rounded-lg
+                          border
+                          px-3
+                          py-2
+                          transition
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                          outline-none h-[68px] resize-none bg-gray-50 text-sm"
                       />
                     </div>
 
@@ -1578,9 +1735,18 @@ const obtenerLabel = (lista, id) => {
               </div>
 
               <div className="col-span-1">
-                <label className="text-xs text-gray-500">Observaciones</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Observaciones</label>
                 <textarea 
-                  name="observaciones" value={form.observaciones} onChange={handleChange} className="w-full border rounded px-2 py-1" />
+                  name="observaciones" value={form.observaciones} onChange={handleChange} className="w-full
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none" />
               </div>
 
             </div>
@@ -1711,31 +1877,58 @@ const obtenerLabel = (lista, id) => {
               {/* BODY */}
               <div className="p-6 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-gray-500">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Nombre completo:
                   </label>
                   <input
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full
+rounded-lg
+border
+px-3
+py-2
+transition
+focus:border-[#8B1538]
+focus:ring-2
+focus:ring-[#8B1538]/20
+outline-none"
                     value={nuevoRemitente.nombreCompleto}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, nombreCompleto: e.target.value })}
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-500">Cargo:</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Cargo:</label>
                   <input
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full
+rounded-lg
+border
+px-3
+py-2
+transition
+focus:border-[#8B1538]
+focus:ring-2
+focus:ring-[#8B1538]/20
+outline-none"
                     value={nuevoRemitente.cargo}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, cargo: e.target.value })}
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="text-xs text-gray-500">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Dependencia:
                   </label>
                   <input
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full
+rounded-lg
+border
+px-3
+py-2
+transition
+focus:border-[#8B1538]
+focus:ring-2
+focus:ring-[#8B1538]/20
+outline-none"
                     value={nuevoRemitente.dependencia}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, dependencia: e.target.value })}
                   />
@@ -1803,7 +1996,7 @@ const obtenerLabel = (lista, id) => {
         )}
       </AnimatePresence>
 
-
+      {/* MODAL DOCUMENTOS RELACIONADOS */}
       <AnimatePresence>
         {mostrarModalRelacionado && (
           <motion.div
@@ -1839,8 +2032,8 @@ const obtenerLabel = (lista, id) => {
 
                 {/* Buscador */}
                 <div className="relative">
-                  <label className="text-xs text-gray-500">
-                    Buscar documento:
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Buscar documento
                   </label>
 
                   <div className="flex items-center border rounded px-2">
@@ -1865,8 +2058,8 @@ const obtenerLabel = (lista, id) => {
                           <div
                             key={d.docId}
                             onClick={() => {
-                              if (!documentosSeleccionados.includes(d)) {
-                                setDocumentosSeleccionados([...documentosSeleccionados, d]);
+                              if (!documentosSeleccionados.some(doc => doc.docId === d.docId)) {
+                                  setDocumentosSeleccionados(prev => [...prev, d]);
 
                                 //  AQUÍ asigna lo que quieres mostrar en Anexos
                                 setAsuntoSeleccionado({
@@ -1892,7 +2085,7 @@ const obtenerLabel = (lista, id) => {
 
                 {/* Lista seleccionados */}
                 <div>
-                  <label className="text-xs text-gray-500">Seleccionados:</label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Seleccionados</label>
                   <div className="border rounded p-2 max-h-32 overflow-y-auto">
                     {documentosSeleccionados.length > 0 ? (
                       documentosSeleccionados.map((id) => {
@@ -1967,19 +2160,28 @@ const obtenerLabel = (lista, id) => {
 
                 {/* No. asunto */}
                 <div>
-                  <label className="text-xs text-gray-500">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     No. de asunto:
                   </label>
                   <input
                     disabled
                     placeholder="Autogenerado"
-                    className="w-full border rounded px-2 py-1 bg-gray-100"
+                    className="w-full
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none bg-gray-100"
                   />
                 </div>
 
                 {/* CLASE ASUNTO (CON BUSCADOR 🔥) */}
                 <div className="relative">
-                  <label className="text-xs text-gray-500">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Clase asunto *
                   </label>
 
@@ -2020,7 +2222,7 @@ const obtenerLabel = (lista, id) => {
 
                 {/* DESCRIPCIÓN */}
                 <div className="col-span-2">
-                  <label className="text-xs text-gray-500">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Descripción del asunto *
                   </label>
                   <input
@@ -2031,7 +2233,16 @@ const obtenerLabel = (lista, id) => {
                         descripcion: e.target.value,
                       })
                     }
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                   />
                 </div>
 
@@ -2182,7 +2393,16 @@ const obtenerLabel = (lista, id) => {
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-80">
                         <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
-                        <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
+                        <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full
+                          rounded-lg
+                          border
+                          px-3
+                          py-2.5
+                          transition
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                          outline-none">
                           <option value="">Seleccionar tipo de ejercicio</option>
                           <option value="2024">2024</option>
                           <option value="2025">2025</option>
@@ -2195,25 +2415,61 @@ const obtenerLabel = (lista, id) => {
                       <h2 className="text-sm font-semibold text-gray-600 mb-2">Datos generales</h2>
                       <div className="grid grid-cols-4 gap-4 items-end">
                         <div>
-                          <label className="text-xs text-gray-500">No. de documento *</label>
-                          <input  name="noDocumento" value={documentoEditar?.noDocumento || ""} disabled className="w-full border rounded px-2 py-1 bg-gray-100" />
+                          <label className="mb-1 block text-sm font-medium text-gray-700">No. de documento *</label>
+                          <input  name="noDocumento" value={documentoEditar?.noDocumento || ""} disabled className="w-full
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            transition
+                            focus:border-[#8B1538]
+                            focus:ring-2
+                            focus:ring-[#8B1538]/20
+                            outline-none bg-gray-100" />
                         </div>
 
                         <div>
-                          <label className="text-xs text-gray-500">Fecha de documento *</label>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de documento *</label>
                           <input type="date" name="fechaDocumento"   value={documentoEditar?.fechaDocumento || ""}
                               disabled
-                              className="w-full border rounded px-2 py-1 bg-gray-100" />
+                              className="w-full
+                                rounded-lg
+                                border
+                                px-3
+                                py-2
+                                transition
+                                focus:border-[#8B1538]
+                                focus:ring-2
+                                focus:ring-[#8B1538]/20
+                                outline-none bg-gray-100" />
                         </div>
 
                         <div>
-                          <label className="text-xs text-gray-500">Fecha de acuse *</label>
-                          <input type="date" name="fechaAcuse" value={documentoEditar?.fechaAcuse || ""} disabled className="w-full border rounded px-2 py-1 bg-gray-100" />
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de acuse *</label>
+                          <input type="date" name="fechaAcuse" value={documentoEditar?.fechaAcuse || ""} disabled className="w-full
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            transition
+                            focus:border-[#8B1538]
+                            focus:ring-2
+                            focus:ring-[#8B1538]/20
+                            outline-none bg-gray-100" />
                         </div>
 
                         <div className="hidden">
-                          <label className="text-xs text-gray-500">Fecha de registro *</label>
-                          <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de registro *</label>
+                          <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            transition
+                            focus:border-[#8B1538]
+                            focus:ring-2
+                            focus:ring-[#8B1538]/20
+                            outline-none bg-gray-100 cursor-not-allowed" />
                         </div>
 
                       </div>
@@ -2224,8 +2480,17 @@ const obtenerLabel = (lista, id) => {
                       <h2 className="text-sm font-semibold text-gray-600 mt-2">Remitente</h2>
                       <div className="grid grid-cols-6 gap-4 items-end">
                         <div className="col-span-2">
-                          <label className="text-xs text-gray-500">Tipo de remitente *</label>
-                          <select name="tipoRemitente" value={formEditar.tipoRemitente} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de remitente *</label>
+                          <select name="tipoRemitente" value={formEditar.tipoRemitente} disabled className="w-full
+                              rounded-lg
+                              border
+                              px-3
+                              py-2
+                              transition
+                              focus:border-[#8B1538]
+                              focus:ring-2
+                              focus:ring-[#8B1538]/20
+                              outline-none bg-gray-100 cursor-not-allowed">
                             <option value="">Seleccionar</option>
                             <option value="interno">Interno</option>
                             <option value="externo">Externo</option>
@@ -2234,12 +2499,21 @@ const obtenerLabel = (lista, id) => {
 
                         {formEditar.tipoRemitente === "interno" && (
                           <div className="col-span-4">
-                            <label className="text-xs text-gray-500">Funcionario / Área *</label>
+                            <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario / Área *</label>
                             <select 
                               name="remitenteInterno" 
                               onChange={handleChange} 
                               disabled
-                              className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
+                              className="w-full
+                                rounded-lg
+                                border
+                                px-3
+                                py-2
+                                transition
+                                focus:border-[#8B1538]
+                                focus:ring-2
+                                focus:ring-[#8B1538]/20
+                                outline-none bg-gray-100 cursor-not-allowed"
                               value={obtenerLabel(usuariosInstitucion, documentoEditar?.remitenteInterno)}
                             >
                               <option value="">{
@@ -2250,16 +2524,24 @@ const obtenerLabel = (lista, id) => {
 
                         {formEditar.tipoRemitente === "externo" && (
                           <div className="col-span-4">
-                            <label className="text-xs text-gray-500">Selecciona remitente externo *</label>
+                            <label className="mb-1 block text-sm font-medium text-gray-700">Selecciona remitente externo *</label>
                             <div className="flex items-center gap-3">
                               <div ref={refRemitenteExt} className="flex-1 relative">
-                                <div className={`flex items-center border rounded px-2 ${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
+                                <div className={`flex items-center
+                                    rounded-lg
+                                    border
+                                    px-3
+                                    py-2.5
+                                    transition
+                                    focus-within:border-[#8B1538]
+                                    focus-within:ring-2
+                                    focus-within:ring-[#8B1538]/20${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
                                   {/* <Search size={16} className="text-gray-400" /> */}
                                   <input
                                     value={busquedaRemitenteExt}
                                     disabled
                                     onFocus={() => setMostrarOpcionesRemitenteExt(true)}
-                                    className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
+                                    className="w-full outline-none bg-transparent text-sm"
                                     placeholder="Buscar y seleccionar opción"
                                   />
                                 </div>
@@ -2302,7 +2584,7 @@ const obtenerLabel = (lista, id) => {
 
                         {/* Tipo documento con buscador */}
                         <div ref={refTipoDoc} className="col-span-2 relative">
-                          <label className="text-xs text-gray-500">
+                          <label className="mb-1 block text-sm font-medium text-gray-700">
                             Selecciona tipo de documento *
                           </label>
                           <div
@@ -2314,7 +2596,16 @@ const obtenerLabel = (lista, id) => {
                             <input
                               value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento)?.label || ""}
                               disabled
-                              className="w-full border rounded px-2 py-1 bg-gray-100"
+                              className="w-full
+                                rounded-lg
+                                border
+                                px-3
+                                py-2
+                                transition
+                                focus:border-[#8B1538]
+                                focus:ring-2
+                                focus:ring-[#8B1538]/20
+                                outline-none bg-gray-100"
                             />
                           </div>
 
@@ -2322,7 +2613,7 @@ const obtenerLabel = (lista, id) => {
 
                         {/* Relacionado */}
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-gray-500">Relacionado con:</span>
+                          <span className="mb-1 block text-sm font-medium text-gray-700">Relacionado con:</span>
                           <Toggle
                             checked={formEditar.relacionadoCon}
                             onChange={(v) => {
@@ -2343,11 +2634,20 @@ const obtenerLabel = (lista, id) => {
 
                         {/* Asunto */}
                         <div className="col-span-2">
-                          <label className="text-xs text-gray-500">Anexos</label>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Anexos</label>
                           <textarea
                             value={asuntoSeleccionado?.descripcion || ""}
                             disabled
-                            className="w-full border rounded px-2 py-1 h-[34px] resize-none bg-gray-100 cursor-not-allowed"
+                            className="w-full
+                            rounded-lg
+                            border
+                            px-3
+                            py-2
+                            transition
+                            focus:border-[#8B1538]
+                            focus:ring-2
+                            focus:ring-[#8B1538]/20
+                            outline-none h-[34px] resize-none bg-gray-100 cursor-not-allowed"
                           />
                         </div>
 
@@ -2359,7 +2659,7 @@ const obtenerLabel = (lista, id) => {
                         <div>
 
                           <div ref={refTemaPrincipal} className="relative">
-                            <label className="text-xs text-gray-500">
+                            <label className="mb-1 block text-sm font-medium text-gray-700">
                               Selecciona asunto *
                             </label>
 
@@ -2370,7 +2670,16 @@ const obtenerLabel = (lista, id) => {
                                 value={busquedaTemaPrincipal}
                                 disabled
                                 onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
-                                className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
+                                className="w-full
+                                  rounded-lg
+                                  border
+                                  px-3
+                                  py-2
+                                  transition
+                                  focus:border-[#8B1538]
+                                  focus:ring-2
+                                  focus:ring-[#8B1538]/20
+                                  outline-none bg-gray-100 cursor-not-allowed"
                                 placeholder="Buscar y seleccionar opción"
                               />
                             </div>
@@ -2379,7 +2688,7 @@ const obtenerLabel = (lista, id) => {
                         </div>
                         <div className="flex items-center gap-10">
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-gray-500 flex items-center justify-between">
+                            <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between">
                             <span>Soporte adicional</span>
                             </label>
                             <Toggle
@@ -2390,7 +2699,7 @@ const obtenerLabel = (lista, id) => {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
+                          <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
                           <Toggle
                             checked={form.electronica}
                             onChange={(value) => setForm({ ...form, electronica: value })}
@@ -2400,7 +2709,7 @@ const obtenerLabel = (lista, id) => {
                         </div>
 
                         <div className="col-span-4">
-                          <label className="text-xs text-gray-500">
+                          <label className="mb-1 block text-sm font-medium text-gray-700">
                             Síntesis del asunto *
                           </label>
                           <textarea
@@ -2408,17 +2717,35 @@ const obtenerLabel = (lista, id) => {
                             value={formEditar.sintesis}
                             onChange={handleChange}
                             disabled
-                            className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
+                            className="w-full
+                              rounded-lg
+                              border
+                              px-3
+                              py-2
+                              transition
+                              focus:border-[#8B1538]
+                              focus:ring-2
+                              focus:ring-[#8B1538]/20
+                              outline-none bg-gray-100 cursor-not-allowed"
                           />
                         </div>
 
                         <div className="col-span-4">
-                          <label className="text-xs text-gray-500">Observaciones</label>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">Observaciones</label>
                           <textarea 
                             value={formEditar.observaciones}
                             onChange={handleChange}
                             disabled
-                            className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
+                            className="w-full
+                              rounded-lg
+                              border
+                              px-3
+                              py-2
+                              transition
+                              focus:border-[#8B1538]
+                              focus:ring-2
+                              focus:ring-[#8B1538]/20
+                              outline-none bg-gray-100 cursor-not-allowed"
                           />
                         </div>
 
@@ -2613,7 +2940,7 @@ const obtenerLabel = (lista, id) => {
                   </div>
 
                   {/* Paginación estilo pequeño */}
-                  <div className="flex justify-between items-center text-xs text-gray-500">
+                  <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
                     <div className="flex gap-2">
                       <button className="px-2 py-1 border rounded disabled:opacity-40">
                         &lt;
@@ -2754,7 +3081,16 @@ const obtenerLabel = (lista, id) => {
 
                           <button
                             onClick={handleUploadAnexo}
-                            className="px-4 py-2 bg-[#8B1538] text-white rounded"
+                            className="bg-[#8B1538]
+                              text-white
+                              font-medium
+                              px-10
+                              py-3
+                              rounded-lg
+                              hover:bg-[#6f102c]
+                              transition
+                              shadow-md
+                              hover:shadow-lg"
                           >
                             Guardar
                           </button>
@@ -2800,7 +3136,7 @@ const obtenerLabel = (lista, id) => {
                             >
                               <div>
                                 <p className="text-sm font-medium">{anexo.nombre}</p>
-                                <p className="text-xs text-gray-500">{anexo.folio}</p>
+                                <p className="mb-1 block text-sm font-medium text-gray-700">{anexo.folio}</p>
                               </div>
 
                               <button
@@ -3332,7 +3668,7 @@ const obtenerLabel = (lista, id) => {
                         </div>
 
                         {/* Paginación pequeña inferior */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
+                        <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
                           <div className="flex gap-2">
                             <button className="px-2 py-1 border rounded disabled:opacity-40">
                               &lt;
@@ -3567,7 +3903,7 @@ const obtenerLabel = (lista, id) => {
                                         {/* BODY */}
                                         <div className="p-6 space-y-4">
                                           <div className="relative">
-                                            <label className="text-xs text-gray-500">Funcionario:</label>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario:</label>
                         
                                             <div className="flex items-center border rounded px-2">
                                               <Search size={16} className="text-gray-400" />
@@ -3625,7 +3961,7 @@ const obtenerLabel = (lista, id) => {
                                 </AnimatePresence>
 
                         {/* PAGINACIÓN */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
+                        <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
                           <div className="flex gap-2">
                             <button className="px-2 py-1 border rounded disabled:opacity-40">
                               &lt;
