@@ -42,6 +42,7 @@ export function Projects() {
   const [nuevo, setNuevo] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [tab, setTab] = useState("reportes");
+  const token = localStorage.getItem("token");
 
   const agregarProyecto = () => {
     if (!nuevo) return;
@@ -162,7 +163,7 @@ const [remitenteEditando, setRemitenteEditando] = useState({
 
   const fetchFondos = async () => {
     try {
-      const response = await getFondos();
+      const response = await getFondos(token);
       if (response.ok) {
         const data = await response.json();
         setFondos(data);
@@ -332,7 +333,7 @@ const handleActivoInstruccion = async (e, id) => {
 const handleActivoFondo = async (e, id) => {
   const checked = e.target.checked;
   try {
-    const response = await updateFondo(id, { activo: checked });
+    const response = await updateFondo(id, { activo: checked }, token);
     if (response.ok) {
       setFondos(prev => prev.map(t => (t.id === id || t._id === id) ? { ...t, activo: checked } : t));
     }
@@ -382,9 +383,9 @@ const handleSaveFondo = async () => {
       }
 
       if (modoEdicion && fondoEditando.id) {
-        response = await updateFondo(fondoEditando.id, formData);
+        response = await updateFondo(fondoEditando.id, formData, token);
       } else {
-        response = await createFondo(formData);
+        response = await createFondo(formData, token);
       }
     } else {
       const data = {
@@ -397,9 +398,9 @@ const handleSaveFondo = async () => {
       };
 
       if (modoEdicion && fondoEditando.id) {
-        response = await updateFondo(fondoEditando.id, data);
+        response = await updateFondo(fondoEditando.id, data, token);
       } else {
-        response = await createFondo(data);
+        response = await createFondo(data, token);
       }
     }
 
@@ -1043,62 +1044,6 @@ const handleSaveRemitente = async (tipo) => {
                                         />
                                       </div>
 
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Dirección
-                                        </label>
-
-                                        <input
-                                          type="text"
-                                          value={fondoEditando.direccion}
-                                            onChange={(e) =>
-                                              setFondoEditando({
-                                                ...fondoEditando,
-                                                direccion: e.target.value,
-                                              })
-                                            }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese dirección"
-                                        />
-                                      </div>
-
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Correo
-                                        </label>
-
-                                        <input
-                                          type="email"
-                                          value={fondoEditando.correo}
-                                            onChange={(e) =>
-                                              setFondoEditando({
-                                                ...fondoEditando,
-                                                correo: e.target.value,
-                                              })
-                                            }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese correo"
-                                        />
-                                      </div>
-
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Teléfono
-                                        </label>
-
-                                        <input
-                                          type="text"
-                                          value={fondoEditando.telefono}
-                                          onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              telefono: e.target.value,
-                                            })
-                                          }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese teléfono"
-                                        />
-                                      </div>
                                     </div>
 
                                     {/* COLUMNA DERECHA */}

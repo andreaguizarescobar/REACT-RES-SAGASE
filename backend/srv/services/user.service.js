@@ -466,6 +466,14 @@ export const clearNotificaciones = async (userId) => {
   return "Notificaciones eliminadas";
 };
 
+export const getCopias = async (userId) => {
+  const user = await userModel.findOne({ userId }).populate({ path: 'copias', select: 'docId' });
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+  return user.copias;
+};
+
 export default {
   registerUser,
   loginUser,
@@ -487,5 +495,6 @@ export default {
   getNotificaciones,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
-  clearNotificaciones
+  clearNotificaciones,
+  getCopias
 };

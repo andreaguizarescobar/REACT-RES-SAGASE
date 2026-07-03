@@ -48,4 +48,6 @@ router.post('/marcar-leida/:notifId/:userId', verifyToken, userController.marcar
 router.post('/marcar-todas-leidas/:userId', verifyToken, userController.marcarTodasNotificacionesLeidas);
 // user/clear-notificaciones/:userId
 router.delete('/clear-notificaciones/:userId', verifyToken, userController.clearNotificaciones);
+// user/copias/:userId
+router.get('/copias/:userId', verifyToken, userController.getCopias);
 export default router;

@@ -1,5 +1,5 @@
 
-const API = 'http://localhost:3333/api/v1';
+const API = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3333';
 
 export const fetchAPI = async (endpoint, options = {}) => {
     try {

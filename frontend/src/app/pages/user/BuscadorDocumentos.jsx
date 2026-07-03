@@ -6,7 +6,7 @@ import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
-import { getUsers } from "../../services/user.service.js";
+import { getUsers, getCopias } from "../../services/user.service.js";
 import jsPDF from "jspdf";
 import logoGobierno from "../../assets/images/nayaritLogo.png";
 
@@ -17,8 +17,6 @@ import {
   handleToggleFaltaInformacion as handleToggleFaltaInformacionHelper,
   showValidationError,
 } from "../../utils/documentoFormHelpers.jsx";
-
-const BaseURL = "http://localhost:3333/";
 
 export default function BuscadorDocumentos() {
   const [criterio, setCriterio] = useState("");
@@ -35,7 +33,6 @@ export default function BuscadorDocumentos() {
   const [tabActiva, setTabActiva] = useState("datosAsunto");
   const [documentoEditar, setDocumentoEditar] = useState(null);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-  const [folioGenerado, setFolioGenerado] = useState("");
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
   const [documentoAnexos, setDocumentoAnexos] = useState([]);
   const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
@@ -72,7 +69,7 @@ export default function BuscadorDocumentos() {
         const remsRes = await getRemitentes();
         if (remsRes.ok) {
           const rems = await remsRes.json();
-          setRemitentes(rems.map((r) => ({
+          setRemitentes(rems.filter(r => r.activo).map((r) => ({
             value: r._id,
             label: `${r.name || r.nombre} - ${r.cargo || ""} - ${r.area || r.dependencia || ""}`.trim(),
             tipo: (r.tipo || "").toString().trim().toLowerCase(),
@@ -92,7 +89,7 @@ export default function BuscadorDocumentos() {
         const instruccionRes = await getInstrucciones();
         if (instruccionRes.ok) {
           const insts = await instruccionRes.json();
-          setInstrucciones(insts.map((i) => ({
+          setInstrucciones(insts.filter(i => i.activo).map((i) => ({
             value: i._id,
             label: i.descripcion || i.nombre || "Instrucción",
           })));
@@ -128,9 +125,12 @@ useEffect(() => {
           return;
         }
         const user = JSON.parse(localStorage.getItem("user"));
+        const copiasResponse = await getCopias(user.userId, token);
+        const copias = copiasResponse.ok ? await copiasResponse.json() : [];
+        console.log(copias);
         const data = await response.json();
         const documentos = data.filter((doc) => (
-          doc.registrador.area === user.area || doc.validador.area === user.area || doc.turnados.some((t) => t.dirigido.area === user.area) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")
+          doc.turnados.some((t) => t.dirigido.area === user.area) || copias.some((c) => c.docId === doc.docId) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")
         ));
         setDocumentos(documentos);
       } catch (fetchError) {
@@ -684,7 +684,6 @@ const documentosFiltrados = documentos.filter((d) =>
     }
   };
 
-  const [mostrarModalAnexo, setMostrarModalAnexo] = useState(false);
   const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
   const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
   const [archivo, setArchivo] = useState(null);
@@ -928,12 +927,6 @@ const documentosFiltrados = documentos.filter((d) =>
   const [materiales, setMateriales] = useState([]);
 
   const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
-
-  const materialesAdicionalesFiltrados = materiales.filter((m) =>
-    m.tipo.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-    m.descripcion.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase()) ||
-    m.registrador.toLowerCase().includes(busquedaMaterialAdicional.toLowerCase())
-  );
 
   const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
 
@@ -2112,7 +2105,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                     <td className="px-3 py-2">
                                       <button
                                         onClick={() => {
-                                          setArchivoVista(`${BaseURL}${anexo.ruta}`);
+                                          setArchivoVista(`${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta}`);
                                           setMostrarVisor(true);
                                         }}
                                         className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"

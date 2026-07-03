@@ -22,7 +22,6 @@ export const getFondoById = async (req, res, next) => {
 export const postFondoItem = async (req, res, next) => {
     try {
         const data = {};
-        
         // Handle both FormData and JSON body
         if (req.body.data) {
             // Legacy: JSON string in req.body.data
@@ -35,13 +34,13 @@ export const postFondoItem = async (req, res, next) => {
         // Handle file uploads
         if (req.files) {
             if (req.files.encabezado?.[0]?.filename) {
-                data.encabezado = `../uploads/fondo/${req.files.encabezado[0].filename}`;
+                data.encabezado = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.encabezado[0].filename}`;
             }
             if (req.files.pie?.[0]?.filename) {
-                data.pie = `../uploads/fondo/${req.files.pie[0].filename}`;
+                data.pie = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.pie[0].filename}`;
             }
             if (req.files.fondo?.[0]?.filename) {
-                data.fondo = `../uploads/fondo/${req.files.fondo[0].filename}`;
+                data.fondo = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.fondo[0].filename}`;
             }
         }
         
@@ -58,13 +57,13 @@ export const putFondoItem = async (req, res, next) => {
         const data = { ...req.body };
         if (req.files) {
             if (req.files.encabezado?.[0]?.filename) {
-                data.encabezado = `../uploads/fondo/${req.files.encabezado[0].filename}`;
+                data.encabezado = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.encabezado[0].filename}`;
             }
             if (req.files.pie?.[0]?.filename) {
-                data.pie = `../uploads/fondo/${req.files.pie[0].filename}`;
+                data.pie = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.pie[0].filename}`;
             }
             if (req.files.fondo?.[0]?.filename) {
-                data.fondo = `../uploads/fondo/${req.files.fondo[0].filename}`;
+                data.fondo = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.fondo[0].filename}`;
             }
         }
         const fondo = await service.updateFondo(fondoId, data);

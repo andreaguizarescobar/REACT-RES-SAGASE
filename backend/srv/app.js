@@ -18,6 +18,8 @@ import areaRoutes from './routes/area.route.js';
 import instruccionRoutes from './routes/instruccion.route.js';
 import fondoRoutes from './routes/fondo.route.js';
 import contadorRoutes from './routes/contador.route.js';
+import dashboardRoutes from './routes/dashboard.route.js';
+
 await import('./config/db.js');
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +46,7 @@ app.use(`${api}/areas`, areaRoutes);
 app.use(`${api}/instruccion`, instruccionRoutes);
 app.use(`${api}/fondo`, fondoRoutes);
 app.use(`${api}/contador`, contadorRoutes);
+app.use(`${api}/dashboard`, dashboardRoutes);
 console.log(`API URL: ${api}` + `, PORT: ${config.PORT}`);
 
 export default app;

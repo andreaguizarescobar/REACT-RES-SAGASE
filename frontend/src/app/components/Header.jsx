@@ -41,6 +41,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
   const [relacionadosDocumentoNotif, setRelacionadosDocumentoNotif] = useState([]);
   const [materialesAdicionalesNotif, setMaterialesAdicionalesNotif] = useState([]);
   const [busquedaTablaNotif, setBusquedaTablaNotif] = useState("");
+  const [mostrarVisorNotif, setMostrarVisorNotif] = useState(false);
+  const [archivoVistaNotif, setArchivoVistaNotif] = useState(null);
 
   useEffect(() => {
     const userStorage = localStorage.getItem("user");
@@ -135,7 +137,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
   const marcarComoLeida = (id) => {
     setNotifications((prev) =>
       prev.map((notif) =>
-        notif._id === id ? { ...notif, read: true } : notif
+        notif._id === id ? { ...notif, status: "Leida" } : notif
       )
     );
     const token = localStorage.getItem("token");
@@ -147,7 +149,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
       setTimeout(() => {
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notif.id ? { ...n, read: true } : n
+            n.id === notif.id ? { ...n, status: "Leida" } : n
           )
         );
       }, index * 120);
@@ -184,7 +186,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
       },
     }).then((result) => {
       if (result.isConfirmed) {
-        setNotifications((prev) => prev.filter((notif) => !notif.read));
+        setNotifications((prev) => prev.filter((notif) => notif.status === "Sin leer"));
         const token = localStorage.getItem("token");
         clearNotificaciones(usuario.userId, token);
 
@@ -332,9 +334,9 @@ export function Header({ onToggleSidebar, onGoHome }) {
             >
               <Bell size={20} className="text-[#60595D]-700" />
 
-              {notifications.filter((n) => !n.read).length > 0 && (
+              {notifications.filter((n) => n.status === "Sin leer").length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                  {notifications.filter((n) => !n.read).length}
+                  {notifications.filter((n) => n.status === "Sin leer").length}
                 </span>
               )}
             </button>
@@ -376,7 +378,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                       </div>
 
                       <div className="flex items-center gap-1">
-                        {notifications.some((n) => !n.read) && (
+                        {notifications.some((n) => n.status === "Sin leer") && (
                           <button
                             onClick={marcarTodasComoLeidas}
                             className="relative group p-2 rounded-lg hover:bg-[#79142A]/10 text-[#79142A] transition-colors"
@@ -388,7 +390,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           </button>
                         )}
 
-                        {notifications.some((n) => n.read) && (
+                        {notifications.some((n) => n.status === "Leida") && (
                           <button
                             onClick={limpiarNotificacionesLeidas}
                             className="relative group p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
@@ -432,7 +434,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                                 delay: index * 0.03,
                               }}
                               className={`px-4 py-3 border-b transition-all duration-300 group ${
-                                notif.read ? "bg-white" : "bg-[#79142A]/[0.03]"
+                                notif.status === "Leida" ? "bg-white" : "bg-[#79142A]/[0.03]"
                               }`}
                             >
                               <div className="flex justify-between gap-3">
@@ -444,7 +446,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                                   }}
                                 >
                                   <div className="flex items-center gap-2">
-                                    {!notif.read && (
+                                    {notif.status === "Sin leer" && (
                                       <motion.div
                                         layout
                                         initial={{ scale: 0 }}
@@ -465,7 +467,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                                   </p>
                                 </div>
 
-                                {!notif.read && (
+                                {notif.status === "Sin leer" && (
                                   <button
                                     onClick={() => marcarComoLeida(notif._id)}
                                     className="relative group/check opacity-0 group-hover:opacity-100 transition-opacity h-fit mt-1 p-1 rounded-md hover:bg-green-100 text-green-600"
@@ -809,9 +811,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                               </label>
                               <textarea
                                 value={
-                                  docNotifSeleccionado.asunto ||
                                   docNotifSeleccionado.sintesis ||
-                                  docNotifSeleccionado.descripcion ||
                                   "Sin información"
                                 }
                                 disabled
@@ -893,21 +893,21 @@ export function Header({ onToggleSidebar, onGoHome }) {
                                       </td>
                                       <td className="px-3 py-2">
                                         {anexo.ruta ? (
-                                          <a
-                                            href={
-                                              anexo.ruta.startsWith("http")
+                                          <button
+                                            onClick={() => {
+                                              const url = anexo.ruta.startsWith("http")
                                                 ? anexo.ruta
-                                                : `http://localhost:3333/${anexo.ruta.replace(
+                                                : `${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta.replace(
                                                     /^\.\.\//,
                                                     ""
-                                                  )}`
-                                            }
-                                            target="_blank"
-                                            rel="noreferrer"
+                                                  )}`;
+                                              setArchivoVistaNotif(url);
+                                              setMostrarVisorNotif(true);
+                                            }}
                                             className="inline-flex items-center gap-1 bg-[#8B1538] text-white px-2 py-1 rounded text-xs hover:opacity-90"
                                           >
                                             <Eye size={12} /> Ver
-                                          </a>
+                                          </button>
                                         ) : (
                                           <span className="text-gray-400 text-[11px]">
                                             Sin archivo
@@ -1295,6 +1295,63 @@ export function Header({ onToggleSidebar, onGoHome }) {
                 >
                   Cerrar
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* MODAL VISOR DE ARCHIVO */}
+      <AnimatePresence>
+        {mostrarVisorNotif && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+            >
+              <button
+                onClick={() => setMostrarVisorNotif(false)}
+                className="absolute top-2 right-2 bg-[#8B1538] hover:bg-[#74112F] text-white rounded-full p-1 transition"
+              >
+                <Minus size={18} />
+              </button>
+
+              <div className="w-full h-full flex items-center justify-center">
+                {typeof archivoVistaNotif === "string" ? (
+                  archivoVistaNotif.endsWith(".pdf") ? (
+                    <iframe
+                      src={archivoVistaNotif}
+                      className="w-full h-full rounded"
+                    />
+                  ) : (
+                    <img
+                      src={archivoVistaNotif}
+                      alt="preview"
+                      className="max-h-full rounded"
+                    />
+                  )
+                ) : archivoVistaNotif?.type?.includes("image") ? (
+                  <img
+                    src={URL.createObjectURL(archivoVistaNotif)}
+                    alt="preview"
+                    className="max-h-full rounded"
+                  />
+                ) : archivoVistaNotif?.type === "application/pdf" ? (
+                  <iframe
+                    src={URL.createObjectURL(archivoVistaNotif)}
+                    className="w-full h-full rounded"
+                  />
+                ) : (
+                  <p className="text-gray-500">
+                    No se puede previsualizar este archivo
+                  </p>
+                )}
               </div>
             </motion.div>
           </motion.div>

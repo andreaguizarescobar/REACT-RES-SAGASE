@@ -151,3 +151,12 @@ export const clearNotificaciones = (userId, token) => {
         }
     });
 }
+
+export const getCopias = (userId, token) => {
+    return fetchAPI(`/users/copias/${userId}`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}

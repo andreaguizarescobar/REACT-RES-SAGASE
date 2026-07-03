@@ -6,7 +6,7 @@ export function SistemRoles() {
   const [roles, setRoles] = useState([
     { id: 1, nombre: "Administracion_SAGA", estatus: "Activo" },
     { id: 2, nombre: "Registrador", estatus: "Activo" },
-    { id: 3, nombre: "Ejecutor", estatus: "Inactivo" },
+    { id: 3, nombre: "Ejecutor", estatus: "Activo" },
     { id: 4, nombre: "Validador", estatus: "Activo" },
   ]);
 
@@ -89,26 +89,26 @@ export function SistemRoles() {
         
         {/* Botón redondo con tooltip */}
         <div className="relative group">
-            <button
+            {/* <button
                 onClick={handleCrear}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-[#79142A] text-white hover:scale-105 transition"
             >
                 <Plus size={16} />
-            </button>
+            </button> */}
 
             {/* Tooltip */}
-            <div className="absolute left-1/2 -translate-x-1/2 
+            {/* <div className="absolute left-1/2 -translate-x-1/2 
                             bg-gray-800 text-white text-[10px] px-2 py-1 rounded 
                             opacity-0 group-hover:opacity-100 
                             transition-all duration-200 
                             group-hover:-translate-y-1 
                             pointer-events-none whitespace-nowrap">
                 Crear Usuario
-            </div>
+            </div> */}
         </div>
 
         {/* Buscador */}
-        <div className="relative w-72">
+        {/* <div className="relative w-72">
             <Search
             size={14}
             className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
@@ -120,7 +120,7 @@ export function SistemRoles() {
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full pl-7 pr-3 py-2 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-[#79142A]"
             />
-        </div>
+        </div> */}
 
         </div>
 
@@ -160,8 +160,8 @@ export function SistemRoles() {
                 </div>
               </th>
 
-              <th className="px-4 py-2 text-center">Eliminar</th>
-              <th className="px-4 py-2 text-center">Editar</th>
+              {/* <th className="px-4 py-2 text-center">Eliminar</th>
+              <th className="px-4 py-2 text-center">Editar</th> */}
             </tr>
           </thead>
 
@@ -187,7 +187,7 @@ export function SistemRoles() {
                   </span>
                 </td>
 
-                <td className="px-4 py-2 text-center">
+                {/* <td className="px-4 py-2 text-center">
                   <button
                     onClick={() => handleEliminar(rol.id)}
                     className="text-red-600 hover:scale-110"
@@ -203,11 +203,12 @@ export function SistemRoles() {
                   >
                     <Pencil size={16} />
                   </button>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>
         </table>
+
     <AnimatePresence>
         {modalOpen && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

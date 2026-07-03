@@ -29,7 +29,7 @@ export const create = async (req, res) => {
             return res.status(400).json({ error: 'Archivo no enviado' });
         }
         const user = req.user; // Obtener el usuario autenticado del token
-        const ruta = `../uploads/anexos/${req.file.filename}`;
+        const ruta = `${process.env.ARCHIVOS_PATH}/anexos/${req.file.filename}`;
         const anexoData = {
             registrador: user.id,
             mensaje: 'Documento registrado con anexo',
@@ -129,7 +129,7 @@ export const uploadAnexoDocumento = async (req, res) => {
         }
 
         const { mensaje, registrador, nombre, docId } = req.body;
-        const ruta = `../uploads/anexos/${req.file.filename}`;
+        const ruta = `${process.env.ARCHIVOS_PATH}/anexos/${req.file.filename}`;
         const anexoData = {
             registrador: registrador || null,
             mensaje: mensaje || '',
@@ -275,7 +275,7 @@ export const reporteAsuntos = async (req, res) => {
 
 export const patchRespuestaDocumento = async (req, res) => {
     try {
-        const ruta = req.file ? `../uploads/anexos/${req.file.filename}` : null;
+        const ruta = req.file ? `${process.env.ARCHIVOS_PATH}/anexos/${req.file.filename}` : null;
         const { docId, mensaje, anexos, nombre } = req.body;
         const user = req.user;
 

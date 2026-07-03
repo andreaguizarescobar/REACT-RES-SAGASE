@@ -247,6 +247,16 @@ export const clearNotificaciones = async (req, res) => {
   }
 };
 
+export const getCopias = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const copias = await userService.getCopias(userId);
+    res.json(copias);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export default {
   register,
   login,
@@ -269,5 +279,6 @@ export default {
   getNotificaciones,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,
-  clearNotificaciones
+  clearNotificaciones,
+  getCopias
 };

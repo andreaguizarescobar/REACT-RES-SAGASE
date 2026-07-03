@@ -8,7 +8,7 @@ import * as documentoController from "../controllers/documento.controller.js";
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadDir = path.join(__dirname, '../uploads/anexos');
+const uploadDir = path.join(__dirname, `${process.env.ARCHIVOS_PATH}/anexos`);
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const upload = multer({

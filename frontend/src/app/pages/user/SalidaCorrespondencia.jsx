@@ -270,7 +270,6 @@ export function SalidaCorrespondencia() {
     try {
       const datos = await getRemitentes();
       const remitentes = await datos.json();
-      console.log('Remitentes cargados en componente:', remitentes);
       setRemitentes(remitentes || []);
     } catch (error) {
       console.error('Error en cargarRemitentes:', error);
@@ -356,7 +355,7 @@ export function SalidaCorrespondencia() {
     }
 
     const filtrados = remitentes.filter((rem) =>
-      `${rem.name} - ${rem.cargo}`.toLowerCase().includes(query.toLowerCase())
+      `${rem.name} - ${rem.cargo}`.toLowerCase().includes(query.toLowerCase()) && rem.activo
     );
     setRemitentesFiltrados(filtrados);
     setMostrando((prev) => ({ ...prev, resultadosRemitente: true }));

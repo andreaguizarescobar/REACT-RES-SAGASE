@@ -156,7 +156,7 @@ export function ReporteAsuntos() {
   };
 
   const generarDocumentoReporteAsuntos = async (datos) => {
-    const doc = new jsPDF("p", "mm", "a4");
+    const doc = new jsPDF("p", "mm", "letter");
 
     // FUENTES
     doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
@@ -165,12 +165,18 @@ export function ReporteAsuntos() {
     doc.addFont(MontserratRegular, "Montserrat", "normal");
     doc.addFont(MontserratBold, "Montserrat", "bold");
 
+    // const COLORS = {
+    //   grisPrincipal: [96, 89, 93],
+    //   beige1: [197, 176, 153],
+    //   beige2: [205, 177, 156],
+    //   beige3: [218, 206, 192],
+    //   vino: [121, 20, 42],
+    //   blanco: [255, 255, 255],
+    //   negro: [0, 0, 0],
+    // };
     const COLORS = {
-      grisPrincipal: [96, 89, 93],
-      beige1: [197, 176, 153],
-      beige2: [205, 177, 156],
-      beige3: [218, 206, 192],
-      vino: [121, 20, 42],
+      grisPrincipal: [96, 89, 93],   // #60595D
+      grisSecundario: [155, 157, 154], // #9B9D9A
       blanco: [255, 255, 255],
       negro: [0, 0, 0],
     };
@@ -198,7 +204,8 @@ export function ReporteAsuntos() {
 
       doc.setLineWidth(0.2);
 
-      doc.setFillColor(...COLORS.beige3);
+      // doc.setFillColor(...COLORS.beige3);
+      doc.setFillColor(...COLORS.grisSecundario);
 
       doc.rect(
         margin,
@@ -213,11 +220,12 @@ export function ReporteAsuntos() {
         "PNG",
         margin + 2,
         12,
-        75,
+        85,
         18
       );
 
-      doc.setFillColor(...COLORS.vino);
+      // doc.setFillColor(...COLORS.vino);
+      doc.setFillColor(...COLORS.grisPrincipal);
 
       doc.roundedRect(
         pageWidth - 60,
@@ -267,7 +275,8 @@ export function ReporteAsuntos() {
 
     doc.setFont("GothamRounded", "bold");
     doc.setFontSize(16);
-    doc.setTextColor(...COLORS.vino);
+    // doc.setTextColor(...COLORS.vino);
+    doc.setTextColor(...COLORS.grisPrincipal);
 
     doc.text(
       "REPORTE DE ASUNTOS",
@@ -328,7 +337,8 @@ export function ReporteAsuntos() {
 
       columnas.forEach((titulo, index) => {
 
-        doc.setFillColor(...COLORS.vino);
+        // doc.setFillColor(...COLORS.vino);
+        doc.setFillColor(...COLORS.grisPrincipal);
 
         doc.rect(
           x,
@@ -381,7 +391,8 @@ export function ReporteAsuntos() {
         criterios.push(`Unidad: ${form.unidadAdministrativa}`);
 
       // Encabezado
-      doc.setFillColor(...COLORS.vino);
+      // doc.setFillColor(...COLORS.vino);
+      doc.setFillColor(...COLORS.grisPrincipal);
 
       doc.roundedRect(
         margin,
@@ -411,7 +422,8 @@ export function ReporteAsuntos() {
         criterios.length * 6 + 6
       );
 
-      doc.setFillColor(...COLORS.beige3);
+      // doc.setFillColor(...COLORS.beige3);
+      doc.setFillColor(...COLORS.blanco);
 
       doc.roundedRect(
         margin,
@@ -423,7 +435,8 @@ export function ReporteAsuntos() {
         "F"
       );
 
-      doc.setDrawColor(...COLORS.beige1);
+      // doc.setDrawColor(...COLORS.beige1);
+      doc.setDrawColor(...COLORS.grisSecundario);
 
       doc.roundedRect(
         margin,
@@ -506,10 +519,14 @@ export function ReporteAsuntos() {
           dibujarEncabezadoTabla();
         }
 
+        // const fondo =
+        //   fila % 2 === 0
+        //     ? COLORS.beige3
+        //     : COLORS.blanco;
         const fondo =
           fila % 2 === 0
-            ? COLORS.beige3
-            : COLORS.blanco;
+            ? COLORS.blanco
+            : COLORS.grisSecundario;
 
         let x = margin;
 
@@ -525,7 +542,8 @@ export function ReporteAsuntos() {
             "F"
           );
 
-          doc.setDrawColor(...COLORS.beige1);
+          // doc.setDrawColor(...COLORS.beige1);
+          doc.setDrawColor(...COLORS.grisSecundario);
 
           doc.rect(
             x,
@@ -557,7 +575,8 @@ export function ReporteAsuntos() {
 
     const footerY = pageHeight - 15;
 
-    doc.setDrawColor(...COLORS.vino);
+    // doc.setDrawColor(...COLORS.vino);
+    doc.setDrawColor(...COLORS.grisPrincipal);
 
     doc.line(
       margin,

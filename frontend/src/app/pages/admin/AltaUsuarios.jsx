@@ -69,8 +69,28 @@ export function AltaUsuarios() {
 
     setErrors(newErrors);
 
-    // Si hay errores → no continúa
-    if (Object.keys(newErrors).length > 0) return;
+    // Si hay errores → muestra una alerta tipo Toast
+    if (Object.keys(newErrors).length > 0) {
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "warning",
+            title: "Complete todos los campos obligatorios.",
+            text: "Revise los campos marcados en rojo.",
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            customClass: {
+                popup: "text-sm"
+            },
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            }
+        });
+
+        return;
+    }
 
     const usuarioGenerado = `AGN-${form.iniciales || "USR"}`;
 
@@ -178,41 +198,94 @@ export function AltaUsuarios() {
       <div className="bg-white p-6 rounded-b-md shadow-sm text-xs space-y-4">
         
         {/* FILA 1 */}
-        <div className="grid grid-cols-4 gap-4">
-        <div className="col-span-2">
-            <label className="block mb-1">Nombre Completo *:</label>
+        <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gray-300" />
+
+            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                Información personal
+            </h2>
+
+            <div className="h-px flex-1 bg-gray-300" />
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        <div className="lg:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Nombre completo
+              <span className="text-red-600"> *</span>
+            </label>
             <input
             name="nombre"
             value={form.nombre}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-1 ${
-                errors.nombre ? "border-red-500 bg-red-50" : ""
+            className={`w-full rounded-lg border px-3 py-2 transition
+            focus:border-[#8B1538]
+            focus:ring-2
+            focus:ring-[#8B1538]/20
+            outline-none
+            ${
+                errors.nombre
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
             }`}
             />
         </div>
 
-        <div className="col-span-1">
-            <label className="block mb-1">Iniciales *:</label>
+        <div className="lg:col-span-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Iniciales
+              <span className="text-red-600"> *</span>
+            </label>
             <input
             name="iniciales"
             value={form.iniciales}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-1 ${
-            errors.iniciales ? "border-red-500 bg-red-50" : ""
+            readOnly
+            disabled
+            className={`w-full rounded-lg border px-3 py-2
+            cursor-not-allowed
+            text-gray-600
+            ${
+                errors.iniciales
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 bg-gray-100"
             }`}
             />
         </div>
+
+          <div className="lg:col-span-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">Sexo:</label>
+            <select
+            name="sexo"
+            value={form.sexo}
+            onChange={handleChange}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
+            focus:border-[#8B1538]
+            focus:ring-2
+            focus:ring-[#8B1538]/20
+            outline-none"
+            >
+            <option value="">Seleccionar</option>
+            <option>Femenino</option>
+            <option>Masculino</option>
+            <option>Otro</option>
+            </select>
+        </div>
         </div>
 
-        {/* FILA 2 */}
-        <div className="grid grid-cols-4 gap-4">
+        {/* FILA 2
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="col-span-1">
             <label className="block mb-1">Sexo:</label>
             <select
             name="sexo"
             value={form.sexo}
             onChange={handleChange}
-            className="w-full border rounded px-2 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
+            focus:border-[#8B1538]
+            focus:ring-2
+            focus:ring-[#8B1538]/20
+            outline-none"
             >
             <option value="">Seleccionar</option>
             <option>Femenino</option>
@@ -221,15 +294,187 @@ export function AltaUsuarios() {
             </select>
         </div>
 
-        <div className="col-span-1">
-            <label className="block mb-1">Rol *:</label>
+        </div> */}
+
+        {/* FILA 4 */}
+
+        {/* INFORMACIÓN INSTITUCIONAL */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-px flex-1 bg-gray-300" />
+
+          <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+            Información institucional
+          </h2>
+
+          <div className="h-px flex-1 bg-gray-300" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="col-span-1 relative">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Área de destino
+              <span className="text-red-600"> *</span>
+            </label>
+
+            <div
+              className={`flex items-center rounded-lg border px-3 py-2.5 transition
+              focus-within:border-[#8B1538]
+              focus-within:ring-2
+              focus-within:ring-[#8B1538]/20
+              ${
+                errors.area
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+              }`}
+            >
+              <Search size={16} className="text-gray-400 mr-2 shrink-0" />
+
+              <input
+                type="text"
+                value={busquedaArea}
+                onChange={(e) => {
+                  setBusquedaArea(e.target.value);
+                  setForm({ ...form, area: e.target.value });
+
+                  if (errors.area) {
+                    setErrors({ ...errors, area: false });
+                  }
+                }}
+                onFocus={() => setMostrarOpcionesArea(true)}
+                className="w-full outline-none bg-transparent text-sm"
+                placeholder="Buscar y seleccionar área"
+              />
+            </div>
+
+            {mostrarOpcionesArea && (
+              <div
+                className="absolute z-50 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border bg-white shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {areasFiltradas.length > 0 ? (
+                  areasFiltradas.map((area) => (
+                    <div
+                      key={area._id}
+                      className="cursor-pointer px-3 py-2 text-sm hover:bg-gray-100"
+                      onClick={() => {
+                        setForm({ ...form, area: area.nombre });
+                        setBusquedaArea(area.nombre);
+                        setMostrarOpcionesArea(false);
+
+                        if (errors.area) {
+                          setErrors({ ...errors, area: false });
+                        }
+                      }}
+                    >
+                      {area.nombre}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-gray-400">
+                    Sin resultados
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* FILA 5 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Teléfono institucional
+                    <span className="text-red-600"> *</span>
+                </label>
+
+                <input
+                    name="telefono"
+                    value={form.telefono}
+                    onChange={handleChange}
+                    placeholder="Ej. 3111234567"
+                    className={`w-full rounded-lg border px-3 py-2 transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                    ${
+                        errors.telefono
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-300"
+                    }`}
+                />
+            </div>
+
+            <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Ext.
+                </label>
+
+                <input
+                    name="ext"
+                    value={form.ext}
+                    onChange={handleChange}
+                    placeholder="Ej. 123"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 transition focus:border-[#8B1538] focus:ring-2 focus:ring-[#8B1538]/20 outline-none"
+                />
+            </div>
+        </div>
+
+        {/* FILA 6 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Correo institucional
+              <span className="text-red-600"> *</span>
+            </label>
+            <input
+              name="correo"
+              value={form.correo}
+              onChange={handleChange}
+              className={`w-full rounded-lg border px-3 py-2 transition
+              focus:border-[#8B1538]
+              focus:ring-2
+              focus:ring-[#8B1538]/20
+              outline-none${
+                errors.correo ? "border-red-500 bg-red-50" : "border-gray-300"
+                }`}
+            />
+          </div>
+          
+        </div>
+        <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gray-300" />
+
+            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                Configuración del usuario
+            </h2>
+
+            <div className="h-px flex-1 bg-gray-300" />
+        </div>
+
+        
+        {/* FILA 7 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <div className="lg:col-span-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Rol
+              <span className="text-red-600"> *</span>
+            </label>
             <select
             name="rol"
             value={form.rol}
             onChange={handleChange}
-            className={`w-full border rounded px-2 py-2 ${
-                errors.rol ? "border-red-500 bg-red-50" : ""
-            }`}
+             className={`w-full rounded-lg border px-3 py-2.5 transition
+              focus:border-[#8B1538]
+              focus:ring-2
+              focus:ring-[#8B1538]/20
+              outline-none
+              ${
+                  errors.rol
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300"
+              }`}
             >
             <option value="">Seleccionar</option>
             <option value="ADMIN">ADMIN</option>
@@ -238,119 +483,47 @@ export function AltaUsuarios() {
             <option value="VALIDADOR">VALIDADOR</option>
             </select>
         </div>
-        </div>
-
-        {/* FILA 4 */}
-        <div className="grid grid-cols-4 gap-4">
-        <div className="col-span-2 relative">
-            <label className="block mb-1">Área de destino *:</label>
-            <div className={`flex items-center border rounded px-2 py-2 ${
-              errors.area ? "border-red-500 bg-red-50" : ""
-            }`}>
-              <Search size={16} className="text-gray-400 mr-1" />
+        {/* <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+         
               <input
-                type="text"
-                value={busquedaArea}
-                onChange={(e) => {
-                  setBusquedaArea(e.target.value);
-                  setForm({...form, area: e.target.value});
-                  if (errors.area) {
-                    setErrors({...errors, area: false});
-                  }
-                }}
-                onFocus={() => setMostrarOpcionesArea(true)}
-                className="w-full outline-none text-sm"
-                placeholder="Buscar y seleccionar área"
+                type="checkbox"
+                name="copia"
+                checked={form.copia}
+                onChange={handleChange}
+                className="w-4 h-4 accent-[#8B1538]"
               />
-            </div>
 
-            {mostrarOpcionesArea && (
-              <div 
-                className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-50 rounded-lg shadow-lg"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {areasFiltradas.length > 0 ? (
-                  areasFiltradas.map((area) => (
-                    <div
-                      key={area._id}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setForm({...form, area: area.nombre});
-                        setBusquedaArea(area.nombre);
-                        setMostrarOpcionesArea(false);
-                        if (errors.area) {
-                          setErrors({...errors, area: false});
-                        }
-                      }}
-                    >
-                      {area.nombre}
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-gray-400 text-sm">Sin resultados</div>
-                )}
+               <div>
+                  <p className="font-medium">
+                      Recibir copia de documentos
+                  </p>
+
+                  <p className="text-gray-500 text-xs">
+                      El usuario recibirá copia de los documentos relacionados con los asuntos en los que participe.
+                  </p>
               </div>
-            )}
-        </div>
-        </div>
+            </label>
+          </div> */}
 
-        {/* FILA 5 */}
-        <div className="grid grid-cols-6 gap-4">
-        <div className="col-span-2">
-            <label className="block mb-0">Teléfono institucional *:</label>
-            <input
-            name="telefono"
-            value={form.telefono}
-            onChange={handleChange}
-            className={`w-full border rounded px-2 py-1 ${
-            errors.telefono ? "border-red-500 bg-red-50" : ""
-            }`}
-            />
         </div>
-
-        <div className="col-span-1">
-            <label className="block mb-0">Ext:</label>
-            <input
-            name="ext"
-            value={form.ext}
-            onChange={handleChange}
-            className="w-full border rounded px-2 py-1"
-            />
-        </div>
-        </div>
-
-        {/* FILA 6 */}
-        <div className="grid grid-cols-2 gap-4 items-center">
-          <div>
-            <label className="block mb-1">Correo institucional *:</label>
-            <input
-              name="correo"
-              value={form.correo}
-              onChange={handleChange}
-              className={`w-full border rounded px-2 py-1 ${
-                errors.correo ? "border-red-500 bg-red-50" : ""
-                }`}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 mt-5">
-            <label>¿Se le podrá mandar copia de los documentos?</label>
-            <input
-              type="checkbox"
-              name="copia"
-              checked={form.copia}
-              onChange={handleChange}
-              className="accent-[#8B1538]"
-            />
-          </div>
-        </div>
-
         {/* BOTÓN */}
         <div className="flex justify-center pt-4">
           <button
             type="button"
             onClick={handleGuardar}
-            className="bg-[#79142A] text-white px-16 py-2 rounded hover:opacity-90"
+            className="
+              bg-[#8B1538]
+              text-white
+              font-medium
+              px-10
+              py-3
+              rounded-lg
+              hover:bg-[#6f102c]
+              transition
+              shadow-md
+              hover:shadow-lg
+              "
             >
             Guardar
             </button>

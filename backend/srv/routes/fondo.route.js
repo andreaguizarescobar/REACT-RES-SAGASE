@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadDir = path.join(__dirname, '../uploads/fondo');
+const uploadDir = path.join(__dirname, `${process.env.ARCHIVOS_PATH}/fondo`);
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const upload = multer({
@@ -24,7 +24,7 @@ router.get('/', verifyToken, fondoController.getFondoList);
 // fondo/getItem/:id
 router.get('/:id', verifyToken, fondoController.getFondoById);
 // fondo/create
-router.post('/', verifyToken, authorizeRole('ADMIN'), upload.fields([{ name: 'encabezado', maxCount: 1 },
+router.post('/', verifyToken, upload.fields([{ name: 'encabezado', maxCount: 1 },
 { name: 'pie', maxCount: 1 },
 { name: 'fondo', maxCount: 1 }
 ]), fondoController.postFondoItem);

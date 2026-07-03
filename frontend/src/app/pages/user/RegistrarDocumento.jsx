@@ -15,8 +15,6 @@ import {
   showValidationError,
 } from "../../utils/documentoFormHelpers.jsx";
 
-const BaseURL = "http://localhost:3333/";
-
 export function RegistrarDocumento() {
 
   const [errores, setErrores] = useState({});
@@ -90,17 +88,17 @@ export function RegistrarDocumento() {
         const tiposRes = await getTipoDocument();
         if (tiposRes.ok) {
           const tipos = await tiposRes.json();
-          setTiposDocumento(tipos.map(t => ({ value: t._id, label: t.tipo })));
+          setTiposDocumento(tipos.filter(t => t.activo).map(t => ({ value: t._id, label: t.tipo })));
         }
         const temasRes = await getTemaPrincipal();
         if (temasRes.ok) {
           const temas = await temasRes.json();
-          setTemasPrincipales(temas.map(t => ({ value: t._id, label: t.descripcion })));
+          setTemasPrincipales(temas.filter(t => t.activo).map(t => ({ value: t._id, label: t.descripcion })));
         }
         const remsRes = await getRemitentes();
         if (remsRes.ok) {
           const rems = await remsRes.json();
-          setRemitentes(rems.map((r) => {
+          setRemitentes(rems.filter(r => r.activo).map((r) => {
             const tipoNormalizado = (r.tipo || "").toString().trim().toLowerCase();
             return {
               value: r._id,
@@ -139,7 +137,7 @@ export function RegistrarDocumento() {
         const instruccionRes = await getInstrucciones();
         if (instruccionRes.ok) {
           const insts = await instruccionRes.json();
-          setInstrucciones(insts.map((i) => ({
+          setInstrucciones(insts.filter(i => i.activo).map((i) => ({
             value: i._id,
             label: i.descripcion || i.nombre || "Instrucción",
           })));
@@ -1753,7 +1751,7 @@ const obtenerLabel = (lista, id) => {
                         name: nuevoRemitente.nombreCompleto,
                         cargo: nuevoRemitente.cargo,
                         dependencia: nuevoRemitente.dependencia,
-                        tipo: "externo", // asumiendo externo
+                        tipo: "Externo", // asumiendo externo
                         area: nuevoRemitente.dependencia, // o algo
                       };
                       const response = await createRemitente(data);
@@ -2512,7 +2510,7 @@ const obtenerLabel = (lista, id) => {
                               <td className="px-3 py-2">
                                 <button
                                   onClick={() => {
-                                    setArchivoVista(`${BaseURL}${anexo.ruta}`); // o la ruta/url del archivo
+                                    setArchivoVista(`${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta}`); // o la ruta/url del archivo
                                     setMostrarVisor(true);
                                   }}
                                   className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"

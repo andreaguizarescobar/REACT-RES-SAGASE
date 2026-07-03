@@ -260,78 +260,115 @@ export function AsignacionRoles() {
       <AnimatePresence>
         {modalRol.visible && (
           <motion.div
-            className="fixed inset-0 flex items-center justify-center z-[9999]"
-            style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            style={{ backgroundColor: "rgba(0,0,0,.4)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white w-[700px] rounded shadow-lg relative"
+              className="
+                relative
+                bg-white
+                w-full
+                max-w-2xl
+                max-h-[90vh]
+                rounded-md
+                shadow-xl
+                overflow-hidden
+                flex
+                flex-col
+              "
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
             >
               {/* HEADER */}
-              <div className="bg-gray-300 px-4 py-2 text-xs font-semibold text-gray-700">
-                {modalRol.modo === "editar"
-                  ? "Cambiar rol de usuario"
-                  : "Asignar rol a usuario"}
+              <div className="bg-gray-300 flex items-center justify-between px-4 py-2 shrink-0">
+                <h2 className="text-sm font-semibold text-gray-800">
+                  {modalRol.modo === "editar"
+                    ? "Cambiar rol de usuario"
+                    : "Asignar rol a usuario"}
+                </h2>
+
+                <button
+                  onClick={() => setModalRol({ ...modalRol, visible: false })}
+                  className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white"
+                >
+                  <Minus size={14} />
+                </button>
               </div>
 
-              {/* CERRAR */}
-              <button
-                onClick={() => setModalRol({ ...modalRol, visible: false })}
-                className="absolute top-1 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white"
-              >
-                <Minus size={14} />
-              </button>
-
               {/* CONTENIDO */}
-              <div className="p-6 space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1">Nombre:</label>
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="md:col-span-2">
+                    <label className="block mb-1">Nombre</label>
                     <input
                       value={modalRol.user?.nombre}
                       readOnly
-                      className="w-full border rounded px-2 py-2 bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     />
                   </div>
 
-                  <div>
-                    <label className="block mb-1">Usuario:</label>
+                  <div className="md:col-span-1">
+                    <label className="block mb-1">Usuario</label>
                     <input
-                      value={modalRol.user?.usuario}
+                      value={modalRol.user?.username || ""}
                       readOnly
-                      className="w-full border rounded px-2 py-2 bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     />
                   </div>
                 </div>
 
                 {/* ROL */}
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="md:col-span-2">
                   <label className="block mb-1">Rol:</label>
                   <select
                     value={formRol.rol}
                     onChange={(e) =>
                       setFormRol({ ...formRol, rol: e.target.value })
                     }
-                    className="w-full border rounded px-2 py-2"
+                    className="
+                      w-full
+                      rounded-lg
+                      border
+                      border-gray-300
+                      px-3
+                      py-2.5
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none
+                    "
                   >
                     <option value="">Seleccionar rol</option>
                     {roles.map((r) => (
                       <option key={r}>{r}</option>
                     ))}
                   </select>
+                  </div>
                 </div>
 
                 {/* BOTÓN */}
                 <div className="flex justify-center pt-2">
                   <button
                     onClick={handleSaveRole}
-                    className="bg-[#79142A] text-white px-12 py-2 rounded hover:opacity-90"
-                  >
+                    className="
+                        bg-[#8B1538]
+                        text-white
+                        font-medium
+                        px-10
+                        py-3
+                        rounded-lg
+                        hover:bg-[#6f102c]
+                        transition
+                        shadow-md
+                        hover:shadow-lg
+                      "
+                    >
                     Guardar
                   </button>
                 </div>

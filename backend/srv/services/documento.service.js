@@ -223,15 +223,20 @@ const patchBitacoraDocumento = async (docId, bitacoraData) => {
 
 const patchCopiaDocumento = async (docId, copiaData) => {
     const funcionario = await userModel.findById(copiaData.funcionario);
-
-    funcionario.copias.push(docId);
+    console.log("Funcionario encontrado para agregar copia:", docId);
+    const documento = await documentoModel.findOne({ docId });
+    console.log("Documento encontrado para agregar copia:", documento);
+    funcionario.copias.push(documento._id);
+    console.log("Guardando funcionario con copia agregada:", funcionario);
     funcionario.notificaciones.push({ 
         tarea: 'Copia de documento',
         descripcion: `Agregada copia del documento ${docId}`,
         fecha: new Date(),
         status: 'Sin leer',
-        documento: docId,
+        documento: documento._id,
      });
+     console.log("Guardando funcionario con copia agregada:", funcionario);
+     await funcionario.save();
 
     return await documentoModel.findOneAndUpdate(
         { docId },
@@ -329,7 +334,6 @@ const patchRemoverAnexoDocumento = async (docId, anexoId, user) => {
             // Construir la ruta completa desde el directorio del servicio
             let rutaCompleta = rutaArchivo;
             if (!path.isAbsolute(rutaArchivo)) {
-                // La ruta guardada es relativa como '../uploads/anexos/filename'
                 rutaCompleta = path.join(__dirname, rutaArchivo);
             }
 
