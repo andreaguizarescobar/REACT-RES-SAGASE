@@ -107,6 +107,21 @@ export function SolicitudAltaUsuarios() {
       return;
     }
 
+     // Confirmación
+    const result = await Swal.fire({
+      title: "¿Aprobar solicitud?",
+      text: `Se aprobará la solicitud y se asignará el rol "${selectedRol}".`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, aprobar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#8B1538",
+      cancelButtonColor: "#6B7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+    
     try {
       const token = localStorage.getItem("token");
       const response = await approveSolicitud(selectedRequest._id, { rol: selectedRol }, token);
@@ -128,6 +143,7 @@ export function SolicitudAltaUsuarios() {
         icon: "success",
         showConfirmButton: false,
         timer: 3000,
+        timerProgressBar: true,
       });
     } catch (error) {
       console.error("Error aprobando solicitud:", error);
@@ -139,6 +155,7 @@ export function SolicitudAltaUsuarios() {
     }
   };
 
+  
   return (
     <div
       className="flex-1 p-6 bg-gray-100 overflow-y-auto"

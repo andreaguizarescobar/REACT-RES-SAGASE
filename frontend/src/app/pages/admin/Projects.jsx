@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   PieChart,
   Route,     
@@ -30,6 +30,125 @@ import { getTipoDocument, createTipoDocument, updateTipoDocument, deleteTipoDocu
 import { getFondos, createFondo, updateFondo, deleteFondo } from "../../services/fondo.service";
 
 export function Projects() {
+  const [archivoReporte, setArchivoReporte] = useState(null);
+  const [archivoImagen, setArchivoImagen] = useState(null);
+
+  const inputReporteRef = useRef(null);
+  const inputImagenRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (tab === "reportes") {
+      const extensionesPermitidas = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+
+      if (!extensionesPermitidas.includes(file.type)) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Archivo no permitido",
+          text: "Solo se permiten archivos PDF, DOC y DOCX.",
+          timer: 2500,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        });
+
+        e.target.value = "";
+        return;
+      }
+
+      setArchivoReporte(file);
+    } else {
+      const extensionesPermitidas = [
+        "image/jpeg",
+        "image/png",
+      ];
+
+      if (!extensionesPermitidas.includes(file.type)) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Archivo no permitido",
+          text: "Solo se permiten imágenes JPG y PNG.",
+          timer: 2500,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+
+        e.target.value = "";
+        return;
+      }
+
+      setArchivoImagen(file);
+    }
+
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `${file.name} seleccionado`,
+      showConfirmButton: false,
+      timer: 2000,
+    });
+  };
+
+  const handleUpload = async () => {
+    const archivo =
+      tab === "reportes"
+        ? archivoReporte
+        : archivoImagen;
+
+    if (!archivo) {
+      Swal.fire({
+        icon: "warning",
+        title: "Ningún archivo seleccionado",
+        text:
+          tab === "reportes"
+            ? "Seleccione un reporte."
+            : "Seleccione una imagen.",
+        confirmButtonColor: "#8B1538",
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: "¿Subir archivo?",
+      text: archivo.name,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Subir",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#8B1538",
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Aquí irá tu servicio de subida
+
+    Swal.fire({
+      icon: "success",
+      title: "Archivo cargado",
+      text: "El archivo se subió correctamente.",
+      timer: 2500,
+      showConfirmButton: false,
+      position: "top-end",
+      timerProgressBar: true,
+      toast: true,
+    });
+
+    setArchivoReporte(null);
+    setArchivoImagen(null);
+    setOpenModal(false);
+  };
+
   const [proyectos, setProyectos] = useState([
     {
       id: 1,
@@ -662,9 +781,26 @@ const handleSaveRemitente = async (tipo) => {
           </div>
         ))}
       </div>
+
+      <AnimatePresence>
       {openModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-[420px]">
+         <motion.div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+        <motion.div
+          className="bg-white rounded-lg shadow-lg w-[420px]"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{
+            duration: 0.25,
+            ease: "easeOut",
+          }}
+        >
 
             {/* HEADER */}
             <div className="px-4 pt-4">
@@ -699,26 +835,63 @@ const handleSaveRemitente = async (tipo) => {
             </div>
 
             {/* CONTENIDO */}
-            <div className="p-4">
+            <div className="p-4 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={tab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* REPORTES */}
+                  {tab === "reportes" && (
+                    <div
+                      onClick={() => inputReporteRef.current.click()}
+                      className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition"
+                    >
+                      <FileUp size={28} className="text-[#8B1538] mb-2" />
 
-              {/* REPORTES */}
-              {tab === "reportes" && (
-                <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition">
-                  <FileUp size={28} className="text-[#8B1538] mb-2" />
-                  <p className="text-sm text-gray-600">Cargar Reporte</p>
-                  <input type="file" className="hidden" />
-                </div>
-              )}
+                      <p className="text-sm text-gray-600">
+                        {archivoReporte
+                          ? archivoReporte.name
+                          : "Haz clic para cargar un reporte"}
+                      </p>
 
-              {/* IMÁGENES */}
-              {tab === "imagenes" && (
-                <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition">
-                  <FileUp size={28} className="text-[#8B1538] mb-2" />
-                  <p className="text-sm text-gray-600">Cargar Imagen</p>
-                  <input type="file" accept="image/*" className="hidden" />
-                </div>
-              )}
+                      <input
+                        ref={inputReporteRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  )}
 
+                  {/* IMÁGENES */}
+                  {tab === "imagenes" && (
+                    <div
+                      onClick={() => inputImagenRef.current.click()}
+                      className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition"
+                    >
+                      <FileUp size={28} className="text-[#8B1538] mb-2" />
+
+                      <p className="text-sm text-gray-600">
+                        {archivoImagen
+                          ? archivoImagen.name
+                          : "Haz clic para cargar una imagen"}
+                      </p>
+
+                      <input
+                        ref={inputImagenRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* FOOTER */}
@@ -729,14 +902,18 @@ const handleSaveRemitente = async (tipo) => {
               >
                 Cancelar
               </button>
-              <button className="px-3 py-1 text-sm bg-[#8B1538] text-white rounded">
+              <button
+                onClick={handleUpload}
+                className="px-3 py-1 text-sm bg-[#8B1538] text-white rounded hover:bg-[#70102d] transition"
+              >
                 Subir
               </button>
             </div>
 
-          </div>
-        </div>
+        </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {openConfigModal && (

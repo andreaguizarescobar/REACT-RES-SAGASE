@@ -2,6 +2,7 @@ import { Minus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUsers, updateUser } from "../../services/user.service.js";
+import Swal from "sweetalert2";
 
 export function AsignacionRoles() {
   const [criterio, setCriterio] = useState("");
@@ -120,9 +121,33 @@ export function AsignacionRoles() {
 
   const handleSaveRole = async () => {
     if (!formRol.rol) {
-      alert("Selecciona un rol antes de guardar.");
+      Swal.fire({
+        toast: true,
+        icon: "warning",
+        position: "top-end",
+        title: "Rol no seleccionado",
+        text: "Seleccione un rol antes de guardar.",
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+      });
       return;
     }
+
+    // Confirmación antes de guardar
+    const result = await Swal.fire({
+      title: "¿Guardar cambios?",
+      text: `Se asignará el rol "${formRol.rol}" al usuario.`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, guardar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#8B1538",
+      cancelButtonColor: "#6B7280",
+      reverseButtons: true,
+    });
+    
+    if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -134,16 +159,41 @@ export function AsignacionRoles() {
 
       if (!response.ok) {
         console.error("Error guardando rol:", response.statusText);
-        alert("No se pudo guardar el rol. Revisa la consola.");
+
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "No se pudo guardar el rol.",
+          confirmButtonColor: "#8B1538",
+        });
+
         return;
       }
 
       await fetchUsers();
       setModalRol({ visible: false, user: null, modo: "asignar" });
       setMenu({ ...menu, visible: false, user: null });
+
+       Swal.fire({
+        icon: "success",
+        title: "Rol asignado",
+        text: "El rol se guardó correctamente.",
+        timer: 2500,
+        showConfirmButton: false,
+        position: "top-end",
+        toast: true,
+        timerProgressBar: true,
+      });
+      
     } catch (saveError) {
       console.error("Error guardando rol:", saveError);
-      alert("Ocurrió un error al guardar el rol.");
+      
+       Swal.fire({
+        icon: "error",
+        title: "Ocurrió un error",
+        text: "No fue posible guardar el rol.",
+        confirmButtonColor: "#8B1538",
+      });
     }
   };
 
@@ -260,7 +310,7 @@ export function AsignacionRoles() {
       <AnimatePresence>
         {modalRol.visible && (
           <motion.div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
             style={{ backgroundColor: "rgba(0,0,0,.4)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
