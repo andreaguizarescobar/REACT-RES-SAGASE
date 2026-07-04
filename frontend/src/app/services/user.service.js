@@ -19,9 +19,12 @@ export const updateUser = (id, data, token) => {
     });
 }
 
-export const deleteUser = (id) => {
+export const deleteUser = (id, token) => {
     return fetchAPI(`/users/delete/${id}`, {
         method: 'DELETE',
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
     });
 }
 

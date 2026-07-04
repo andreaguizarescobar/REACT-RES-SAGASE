@@ -22,6 +22,7 @@ import { SistemRoles } from "../pages/admin/SistemRoles";
 import { AltaUsuarios } from "../pages/admin/AltaUsuarios";
 import { AsignacionRoles } from "../pages/admin/AsignacionRoles";
 import { SolicitudAltaUsuarios } from "../pages/admin/SolicitudAltaUsuarios";
+import { GestionAreas } from "../pages/admin/GestionAreas";
 
 // Animaciones para transiciones entre vistas
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +30,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // Servicio API que obtiene las métricas del dashboard desde backend
 import { getDashboard } from "../services/dashboard.service";
 
-export function MainContentAdmin({ currentView }) {
+export function MainContentAdmin({ currentView, selectedAreaId }) {
 
   /**
    * Estado global del dashboard
@@ -152,6 +153,9 @@ export function MainContentAdmin({ currentView }) {
 
       case "solicitudes-usuarios-admin":
         return <SolicitudAltaUsuarios />;
+
+      case "gestion-areas-admin":
+        return <GestionAreas selectedAreaId={selectedAreaId} />;
 
       // Vista por defecto: dashboard principal
       default:

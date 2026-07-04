@@ -1,7 +1,8 @@
 import { Minus, Loader2, Search } from "lucide-react";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { getUsers } from "../../services/user.service.js";
+import { AnimatePresence, motion } from "framer-motion";
+import { getUsers, updateUser, deleteUser } from "../../services/user.service.js";
+import { getAreas } from "../../services/catalogos.service.js";
 import Swal from "sweetalert2";
 
 export function Users() {
@@ -47,6 +48,8 @@ export function Users() {
       rol: menu.user.roles?.[0]?.rol || "",
       copia: menu.user.copia || false,
     });
+    setBusquedaArea(menu.user.area || "");
+    setMostrarOpcionesArea(false);
 
     setModalEditar({
       visible: true,
@@ -65,32 +68,48 @@ export function Users() {
     cerrarMenu();
   };
 
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await getUsers(token);
+
+      if (!response.ok) {
+        setError("No se pudieron cargar los usuarios.");
+        console.error("Error cargando usuarios:", response.status, response.statusText);
+        return;
+      }
+
+      const data = await response.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (fetchError) {
+      setError("Error de red al cargar los usuarios.");
+      console.error("Error cargando usuarios:", fetchError);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
+    fetchUsers();
+  }, []);
 
+  useEffect(() => {
+    const cargarAreas = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await getUsers(token);
-
-        if (!response.ok) {
-          setError("No se pudieron cargar los usuarios.");
-          console.error("Error cargando usuarios:", response.status, response.statusText);
-          return;
+        const response = await getAreas();
+        if (response.ok) {
+          const data = await response.json();
+          setAreas(Array.isArray(data) ? data : []);
         }
-
-        const data = await response.json();
-        setUsers(Array.isArray(data) ? data : []);
-      } catch (fetchError) {
-        setError("Error de red al cargar los usuarios.");
-        console.error("Error cargando usuarios:", fetchError);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error("Error cargando áreas:", error);
       }
     };
 
-    fetchUsers();
+    cargarAreas();
   }, []);
 
   // 🔍 FILTRO EN TIEMPO REAL
@@ -126,6 +145,10 @@ export function Users() {
     user: null,
   });
 
+  const [areas, setAreas] = useState([]);
+  const [busquedaArea, setBusquedaArea] = useState("");
+  const [mostrarOpcionesArea, setMostrarOpcionesArea] = useState(false);
+
   const [modalEliminar, setModalEliminar] = useState({
     visible: false,
     user: null,
@@ -142,6 +165,12 @@ export function Users() {
     rol: "",
     copia: false,
   });
+
+  const areasFiltradas = areas.filter((area) =>
+    (area.nombre || "")
+      .toLowerCase()
+      .includes(busquedaArea.toLowerCase())
+  );
 
   const handleGuardarCambios = async () => {
     const result = await Swal.fire({
@@ -160,7 +189,27 @@ export function Users() {
     if (!result.isConfirmed) return;
 
     try {
-      // Aquí irá tu petición al backend para actualizar el usuario
+      const token = localStorage.getItem("token");
+      const response = await updateUser(
+        modalEditar.user?.userId,
+        {
+          nombre: formEditar.nombre,
+          iniciales: formEditar.iniciales,
+          sexo: formEditar.sexo,
+          area: formEditar.area,
+          telefono: formEditar.telefono,
+          ext: formEditar.ext,
+          email: formEditar.email,
+          roles: formEditar.rol ? [{ rol: formEditar.rol }] : [],
+        },
+        token
+      );
+
+      if (!response.ok) {
+        throw new Error("No se pudo actualizar el usuario");
+      }
+
+      await fetchUsers();
 
       Swal.fire({
         icon: "success",
@@ -177,12 +226,63 @@ export function Users() {
         visible: false,
         user: null,
       });
-
     } catch (error) {
+      console.error("Error al actualizar el usuario:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
         text: "No fue posible guardar los cambios.",
+        confirmButtonColor: "#8B1538",
+      });
+    }
+  };
+
+  const handleEliminarConfirmado = async () => {
+    const result = await Swal.fire({
+      title: "¿Eliminar usuario?",
+      text: `Se eliminará a ${modalEliminar.user?.nombre || "este usuario"}.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await deleteUser(modalEliminar.user?.userId, token);
+
+      if (!response.ok) {
+        throw new Error("No se pudo eliminar el usuario");
+      }
+
+      await fetchUsers();
+
+      Swal.fire({
+        icon: "success",
+        title: "Usuario eliminado",
+        text: "El usuario se eliminó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+        position: "top-end",
+        toast: true,
+        timerProgressBar: true,
+      });
+
+      setModalEliminar({
+        visible: false,
+        user: null,
+      });
+    } catch (error) {
+      console.error("Error al eliminar el usuario:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No fue posible eliminar el usuario.",
         confirmButtonColor: "#8B1538",
       });
     }
@@ -476,38 +576,65 @@ export function Users() {
                       Área de destino
                     </label>
 
-                    <div
-                      className="
-            flex items-center
-            rounded-lg
-            border
-            border-gray-300
-            px-3
-            py-2.5
-            transition
-            focus-within:border-[#8B1538]
-            focus-within:ring-2
-            focus-within:ring-[#8B1538]/20"
-                    >
+                    <div className="relative">
+                      <div
+                        className="
+              flex items-center
+              rounded-lg
+              border
+              border-gray-300
+              px-3
+              py-2.5
+              transition
+              focus-within:border-[#8B1538]
+              focus-within:ring-2
+              focus-within:ring-[#8B1538]/20"
+                      >
+                        <Search
+                          size={16}
+                          className="text-gray-400 mr-2 shrink-0"
+                        />
 
-                      <Search
-                        size={16}
-                        className="text-gray-400 mr-2 shrink-0"
-                      />
+                        <input
+                          type="text"
+                          value={busquedaArea}
+                          onFocus={() => setMostrarOpcionesArea(true)}
+                          onChange={(e) => {
+                            setBusquedaArea(e.target.value);
+                            setMostrarOpcionesArea(true);
+                            if (!e.target.value.trim()) {
+                              setFormEditar({ ...formEditar, area: "" });
+                            }
+                          }}
+                          className="w-full outline-none bg-transparent text-sm"
+                          placeholder="Buscar y seleccionar área"
+                        />
+                      </div>
 
-                      <input
-                        type="text"
-                        value={formEditar.area}
-                        onChange={(e) =>
-                          setFormEditar({
-                            ...formEditar,
-                            area: e.target.value,
-                          })
-                        }
-                        className="w-full outline-none bg-transparent text-sm"
-                        placeholder="Buscar y seleccionar área"
-                      />
-
+                      {mostrarOpcionesArea && (
+                        <div className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                          {areasFiltradas.length > 0 ? (
+                            areasFiltradas.map((area) => (
+                              <button
+                                key={area._id || area.nombre}
+                                type="button"
+                                onClick={() => {
+                                  setFormEditar({ ...formEditar, area: area.nombre });
+                                  setBusquedaArea(area.nombre);
+                                  setMostrarOpcionesArea(false);
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                              >
+                                {area.nombre}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">
+                              No se encontraron áreas
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -769,6 +896,7 @@ export function Users() {
                   </button>
 
                   <button
+                    onClick={handleEliminarConfirmado}
                     className="bg-red-600 text-white rounded-lg px-6 py-2 hover:bg-red-700"
                   >
 

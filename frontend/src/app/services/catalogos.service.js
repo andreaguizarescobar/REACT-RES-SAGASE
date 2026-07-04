@@ -12,6 +12,20 @@ export const getAreas = () => {
     });
 }
 
+export const createArea = (data) => {
+    return fetchAPI('/areas/create', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+export const updateArea = (id, data) => {
+    return fetchAPI(`/areas/update/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
+
 export const getInstrucciones = () => {
     return fetchAPI('/instruccion/getAll', {
         method: 'GET',

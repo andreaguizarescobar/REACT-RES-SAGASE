@@ -1,9 +1,10 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 import { Minus, Search, Loader2, Bold } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import jsPDF from "jspdf";
 import { getFondos } from "../../services/fondo.service";
 import { getRemitentes } from "../../services/remitente.service";
+import { fetchAPI } from "../../services/api";
 
 const loadImageAsBase64 = async (imagePath) => {
   if (!imagePath) return null;
@@ -213,10 +214,29 @@ const addPageNumbers = (doc) => {
   for (let i = 1; i <= total; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`${i}/${total}`, pw - 25, ph - 5); }
 };
 
+const normalizarAreaParaNumero = (area) => {
+  const texto = String(area || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  if (!texto) return "OFICIO";
+
+  const partes = texto.split(/\s+/).filter(Boolean);
+  if (!partes.length) return "OFICIO";
+
+  const prefijo = partes.length === 1 ? partes[0] : partes.slice(0, 3).join("");
+  return prefijo.slice(0, 8) || "OFICIO";
+};
+
 export function GeneracionOficios() {
   const [tipo, setTipo] = useState("");
   const [fecha, setFecha] = useState("");
   const [numeroOficio, setNumeroOficio] = useState("");
+  const [numeroOficioPreview, setNumeroOficioPreview] = useState("");
   const [remitente, setRemitente] = useState(null);
   const [busquedaRemitente, setBusquedaRemitente] = useState("");
   const [mostrarOpcionesRemitente, setMostrarOpcionesRemitente] = useState(false);
@@ -236,6 +256,52 @@ export function GeneracionOficios() {
   const textareaRef = useRef(null);
 
   const tipos = [{ value: "oficio", label: "Oficio" }, { value: "circular", label: "Circular" }];
+
+  const generarNumeroOficio = useCallback(async (previewOnly = false) => {
+    const token = localStorage.getItem("token");
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const prefijoFallback = normalizarAreaParaNumero(userData?.area || "OFICIO");
+
+    if (!token) {
+      const fallback = `${prefijoFallback}/001/${new Date().getFullYear()}`;
+      if (previewOnly) {
+        setNumeroOficioPreview(fallback);
+      } else {
+        setNumeroOficio(fallback);
+      }
+      return fallback;
+    }
+
+    try {
+      const response = await fetchAPI("/contador/generar-numero-oficio", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ preview: previewOnly }),
+      });
+
+      if (!response.ok) throw new Error("No se pudo generar el número");
+      const data = await response.json();
+      const numero = data.numero || "";
+      if (previewOnly) {
+        setNumeroOficioPreview(numero);
+      } else {
+        setNumeroOficio(numero);
+      }
+      return numero;
+    } catch (error) {
+      console.error("Error al generar número de oficio:", error);
+      const fallback = `${prefijoFallback}/001/${new Date().getFullYear()}`;
+      if (previewOnly) {
+        setNumeroOficioPreview(fallback);
+      } else {
+        setNumeroOficio(fallback);
+      }
+      return fallback;
+    }
+  }, []);
 
   const getRemitenteLabel = (rem) => {
     if (!rem) return "";
@@ -273,17 +339,22 @@ export function GeneracionOficios() {
   }, []);
 
   useEffect(() => {
-    if (tipo) {
-      setFecha(new Date().toISOString());
-      setNumeroOficio("DG/DTIC/" + Math.floor(Math.random() * 1000) + "/2026");
+    if (!tipo) {
+      setNumeroOficio("");
+      setNumeroOficioPreview("");
+      return;
     }
-  }, [tipo]);
+
+    setFecha(new Date().toISOString());
+    generarNumeroOficio(true);
+  }, [tipo, generarNumeroOficio]);
 
   // Generar PDF y mostrar modal
   const handleGuardar = async () => {
     setGenerandoPDF(true);
     setMostrarOficio(true);
     try {
+      const numeroParaDocumento = await generarNumeroOficio(false);
       const fondo = fondos.find((f) => f._id === fondoId || f.id === fondoId);
       const [encImg, pieImg, fonImg] = await Promise.all([
         loadImageAsBase64(fondo?.encabezado),
@@ -293,7 +364,7 @@ export function GeneracionOficios() {
       const areaR = remitente?.area || remitente?.dependencia || "";
       const areaD = destinatario?.area || destinatario?.dependencia || "";
       const data = {
-        numero: numeroOficio, asunto: asunto || "SIN ASUNTO", fecha: formatDateToSpanish(fecha),
+        numero: numeroParaDocumento, asunto: asunto || "SIN ASUNTO", fecha: formatDateToSpanish(fecha),
         nombre: (destinatario ? destinatario.name : "DESTINATARIO").toUpperCase(),
         area: areaD,
         contenido: contenido || "Contenido del oficio...",
@@ -367,7 +438,7 @@ export function GeneracionOficios() {
               </div>
               <div className="col-span-2">
                 <label className="block mb-1">Num. Oficio:</label>
-                <input type="text" value={numeroOficio} disabled className="w-full border border-gray-300 bg-gray-100 rounded px-2 py-1 h-8" />
+                <input type="text" value={numeroOficioPreview || numeroOficio} disabled className="w-full border border-gray-300 bg-gray-100 rounded px-2 py-1 h-8" />
               </div>
               <div className="col-span-2">
                 <label className="block mb-1">Fondo / Plantilla:</label>
@@ -442,9 +513,9 @@ export function GeneracionOficios() {
           )}
           <AnimatePresence>
             {mostrarOficio && pdfBlobUrl && (
-              <motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+              <Motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <motion.div initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                <Motion.div initial={{ scale: 0.95, y: 20, opacity: 0 }}
                   animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 20, opacity: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                   className="w-full max-w-5xl bg-white rounded shadow-xl overflow-hidden flex flex-col max-h-[95vh]">
@@ -463,8 +534,8 @@ export function GeneracionOficios() {
                   <div className="flex-1 bg-gray-700 flex justify-center p-2 min-h-[80vh]">
                     <iframe src={pdfBlobUrl} className="w-full h-[85vh] rounded" title="Vista previa del oficio" />
                   </div>
-                </motion.div>
-              </motion.div>
+                </Motion.div>
+              </Motion.div>
             )}
           </AnimatePresence>
         </div>

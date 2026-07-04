@@ -21,9 +21,9 @@ export const createArea = async (req, res) => {
 
 export const updateArea = async (req, res) => {
     try {
-        const { clave } = req.params;
+        const { id } = req.params;
         const areaData = req.body;
-        const updatedArea = await areaService.updateArea(clave, areaData);
+        const updatedArea = await areaService.updateArea(id, areaData);
         if (updatedArea) {
             res.status(200).json(updatedArea);
         } else {

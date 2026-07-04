@@ -6,6 +6,7 @@ import { MainContentAdmin } from "../../components/MainContentAdmin";
 export function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState("home");
+  const [selectedAreaId, setSelectedAreaId] = useState(null);
 
   const handleGoHome = () => {
     setCurrentView("home");
@@ -19,8 +20,12 @@ export function AdminDashboard() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <SidebarAdmin isOpen={sidebarOpen} onSelectView={setCurrentView} />
-        <MainContentAdmin currentView={currentView} />
+        <SidebarAdmin
+          isOpen={sidebarOpen}
+          onSelectView={setCurrentView}
+          onSelectArea={setSelectedAreaId}
+        />
+        <MainContentAdmin currentView={currentView} selectedAreaId={selectedAreaId} />
       </div>
     </div>
   );

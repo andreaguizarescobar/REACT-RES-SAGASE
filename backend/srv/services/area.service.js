@@ -9,8 +9,12 @@ const createArea = async (areaData) => {
     return await newArea.save();
 };
 
-const updateArea = async (clave, areaData) => {
-    return await areaModel.findOneAndUpdate({ clave }, areaData, { new: true });
+const updateArea = async (id, areaData) => {
+    return await areaModel.findOneAndUpdate(
+        { $or: [{ _id: id }, { clave: id }] },
+        areaData,
+        { new: true }
+    );
 };
 
 const deleteArea = async (clave) => {
