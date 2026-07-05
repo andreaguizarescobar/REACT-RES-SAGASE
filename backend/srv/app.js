@@ -19,6 +19,7 @@ import instruccionRoutes from './routes/instruccion.route.js';
 import fondoRoutes from './routes/fondo.route.js';
 import contadorRoutes from './routes/contador.route.js';
 import dashboardRoutes from './routes/dashboard.route.js';
+import oficioRoutes from './routes/oficio.route.js';
 
 await import('./config/db.js');
 const app = express();
@@ -47,6 +48,7 @@ app.use(`${api}/instruccion`, instruccionRoutes);
 app.use(`${api}/fondo`, fondoRoutes);
 app.use(`${api}/contador`, contadorRoutes);
 app.use(`${api}/dashboard`, dashboardRoutes);
+app.use(`${api}/oficios`, oficioRoutes);
 console.log(`API URL: ${api}` + `, PORT: ${config.PORT}`);
 
 export default app;

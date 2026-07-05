@@ -4,6 +4,7 @@
   "description": "",
   "main": "srv/server.js",
   "scripts": {
+    "start": "node srv/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon srv/server.js"
   },

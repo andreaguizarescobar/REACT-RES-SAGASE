@@ -149,12 +149,6 @@ const tareasPorRol = {
       icon: Send,
     },
     {
-      label: "Modifica Salida de Correspondencia",
-      color: "text-[#79142A]",
-      view: "modificaS-correspondencia",
-      icon: Edit,
-    },
-    {
       label: "Consulta Salida de Correspondencia",
       color: "text-[#60595D]",
       view: "consultaS-correspondencia",
@@ -165,18 +159,6 @@ const tareasPorRol = {
       color: "text-[#79142A]",
       view: "reporteS-correspondencia",
       icon: BarChart3,
-    },
-    {
-      label: "Tablero de control Salida de Correspondencia",
-      color: "text-[#60595D]",
-      view: "tableroS-correspondencia",
-      icon: LayoutDashboard,
-    },
-    {
-      label: "Registra instrucciones, solicitudes y notificaciones internas",
-      color: "text-[#79142A]",
-      view: "registra-notinternas",
-      icon: Bell,
     },
     {
       label: "Tablero de control",

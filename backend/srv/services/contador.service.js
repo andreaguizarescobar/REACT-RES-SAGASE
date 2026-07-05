@@ -53,6 +53,8 @@ const obtenerPrefijoArea = async (areaValor) => {
   return cadena[0] || normalizarAreaParaNumero(areaValor);
 };
 
+const formatearNumeroSalida = (valor, anio) => `SC/${String(valor).padStart(4, "0")}/${anio}`;
+
 export const obtenerSiguienteNumero = async (nombre) => {
   const contador = await Contador.findOneAndUpdate(
     { nombre },
@@ -64,6 +66,35 @@ export const obtenerSiguienteNumero = async (nombre) => {
   );
 
   return contador.valor;
+};
+
+export const generarNumeroSalidaCorrespondencia = async (req, res) => {
+  try {
+    const anio = Number(req.body?.anio || new Date().getFullYear());
+    const preview = req.body?.preview === true;
+    const nombreContador = `salida:correspondencia:${anio}`;
+
+    let contadorValor = 1;
+    if (!preview) {
+      const contadorActual = await Contador.findOne({ nombre: nombreContador }).lean();
+      const valorBase = contadorActual?.valor || 0;
+      const siguienteValor = valorBase + 1;
+      const contador = await Contador.findOneAndUpdate(
+        { nombre: nombreContador },
+        { $set: { valor: siguienteValor } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+      contadorValor = contador.valor;
+    } else {
+      const contadorActual = await Contador.findOne({ nombre: nombreContador }).lean();
+      contadorValor = (contadorActual?.valor || 0) + 1;
+    }
+
+    const numero = formatearNumeroSalida(contadorValor, anio);
+    res.status(200).json({ numero, anio, contador: contadorValor, preview });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 export const generarNumeroOficio = async (req, res) => {
@@ -135,6 +166,7 @@ export const deleteContador = async (req, res) => {
 
 export default {
   obtenerSiguienteNumero,
+  generarNumeroSalidaCorrespondencia,
   generarNumeroOficio,
   getAll,
   create,

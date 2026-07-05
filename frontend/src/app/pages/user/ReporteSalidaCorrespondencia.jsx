@@ -118,47 +118,6 @@ export function ReporteSalidaCorrespondencia() {
     }
   };
 
-  const exportarExcel = () => {
-    const encabezados = [
-      "Folio",
-      "Fecha",
-      "Folio SAGA",
-      "Destinatario",
-      "Asunto",
-      "Soporte",
-      "Importancia",
-      "Estatus",
-    ];
-
-    const filas = datosCorrespondencia.map((item) => {
-      const fecha = item.fecha ? item.fecha.split("T")[0] : "";
-      const folioSAGA = item.doc?.docId || "Sin datos";
-      const destinatario = item.destinatario?.name || "Sin datos";
-      return [
-        item.folio || "",
-        fecha,
-        folioSAGA,
-        destinatario,
-        item.asunto || "",
-        item.soporte || "",
-        item.importancia || "",
-        item.status || "",
-      ]
-        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-        .join(",");
-    });
-
-    const csvContenido = encabezados.join(",") + "\n" + filas.join("\n");
-    const blob = new Blob([csvContenido], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "reporte_salida_correspondencia.csv";
-    link.click();
-  };
-
 const generarDocumentoReporte = async (datos) => {
 
   const doc = new jsPDF("p", "mm", "letter");
@@ -298,9 +257,9 @@ const generarDocumentoReporte = async (datos) => {
   //==========================================================
 
   const columnas = [
-    "FOLIO",
+    "FOLIO SALIDA",
     "FECHA",
-    "FOLIO SAGA",
+    "NO. DOCUMENTO",
     "DESTINATARIO",
     "ASUNTO",
     "SOPORTE",

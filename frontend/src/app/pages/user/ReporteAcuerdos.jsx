@@ -18,54 +18,7 @@ export function ReporteAcuerdos() {
     fechaFin: ""
   });
 
-  const [mostrarReporte, setMostrarReporte] = useState(false);
-
   const [datosAcuerdos, setDatosAcuerdos] = useState([]);
-
-  const exportarExcel = () => {
-    const encabezados = [
-      "Folio",
-      "Tipo documento",
-      "N° documento",
-      "Estatus",
-      "Procedencia remitente",
-      "Asunto",
-      "Instrucción",
-      "Fecha de acuse"
-    ];
-
-
-    const filas = datosAcuerdos.map((item) =>
-      [
-        item.folio,
-        item.tipoDocumento,
-        item.docId,
-        item.status,
-        item.remitente,
-        item.asunto,
-        item.turnados.instruccion,
-        item.turnados.fechaTurnado
-      ].join(",")
-    );
-
-    const csvContenido =
-      encabezados.join(",") + "\n" + filas.join("\n");
-
-    const blob = new Blob([csvContenido], {
-      type: "text/csv;charset=utf-8;"
-    });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "reporte_acuerdos.csv";
-    link.click();
-  };
-
-  const exportarPDF = () => {
-    window.print();
-  };
 
  const handleSubmit = async () => {
     // Validar fecha inicial

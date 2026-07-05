@@ -1,7 +1,8 @@
 import { Minus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
+import { fetchAPI } from "../../services/api";
 import { 
   searchDocumentos, 
   createCorrespondenciaSalida,
@@ -12,7 +13,7 @@ import { getAreas } from "../../services/catalogos.service";
 
 export function SalidaCorrespondencia() {
   const [form, setForm] = useState({
-    anio: "",
+    anio: String(new Date().getFullYear()),
     folioSalida: "",
     fechaRegistro: "",
     nivelImportancia: "",
@@ -51,11 +52,33 @@ export function SalidaCorrespondencia() {
     }));
   };
 
-  const generarFolioSalida = () => {
-    const year = new Date().getFullYear();
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `SC-${year}-${random}`;
-  };
+const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
+    const anio = anioSeleccionado || form.anio || new Date().getFullYear();
+    if (!anio) return;
+
+    try {
+      const response = await fetchAPI("/contador/generar-numero-salida", {
+        method: "POST",
+        headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+         },
+        body: JSON.stringify({ anio, preview: true }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "No se pudo generar el folio");
+      }
+
+      const data = await response.json();
+      setForm((prev) => ({
+        ...prev,
+        folioSalida: data.numero || "",
+      }));
+    } catch (error) {
+      console.error("Error al generar el folio de salida:", error);
+    }
+  }, [form.anio]);
 
   const obtenerFechaActualLocalDatetime = () => {
     const now = new Date();
@@ -322,10 +345,17 @@ export function SalidaCorrespondencia() {
     cargarAreas();
     setForm((prev) => ({
       ...prev,
-      folioSalida: generarFolioSalida(),
       fechaRegistro: obtenerFechaActualLocalDatetime(),
     }));
   }, []);
+
+  useEffect(() => {
+    if (form.anio) {
+      cargarFolioSalida(form.anio);
+    } else {
+      setForm((prev) => ({ ...prev, folioSalida: "" }));
+    }
+  }, [form.anio, cargarFolioSalida]);
 
   const cargarRemitentes = async () => {
     try {
@@ -346,7 +376,6 @@ export function SalidaCorrespondencia() {
     try {
       const datos = await getAreas();
       const areas = await datos.json();
-      console.log('Áreas cargadas en componente:', areas);
       setAreas(areas || []);
     } catch (error) {
       console.error('Error en cargarAreas:', error);
@@ -548,7 +577,7 @@ export function SalidaCorrespondencia() {
           // Preparar datos para enviar
           const datosGuardar = {
             fecha: new Date(form.fechaRegistro),
-            folio: form.folio,
+            folio: form.folioSalida,
             importancia: form.nivelImportancia,
             entregaMax: form.fechaLimite ? new Date(form.fechaLimite) : null,
             justificacion: form.justificacion,
@@ -559,6 +588,7 @@ export function SalidaCorrespondencia() {
             doc: form.documentoId || null,
             remitente: form.remitenteId,
             destinatario: form.destinatarioId,
+            anio: form.anio,
           };
 
           const respuesta = await createCorrespondenciaSalida(datosGuardar);
@@ -578,9 +608,11 @@ export function SalidaCorrespondencia() {
           });
 
           // Limpiar formulario y búsquedas
+          const anioActual = form.anio;
+
           setForm({
             anio: "",
-            folioSalida: generarFolioSalida(),
+            folioSalida: "",
             fechaRegistro: obtenerFechaActualLocalDatetime(),
             nivelImportancia: "",
             fechaLimite: "",
@@ -602,6 +634,10 @@ export function SalidaCorrespondencia() {
             destinatarioId: "",
             otroDestinatario: false,
           });
+
+          if (anioActual) {
+            await cargarFolioSalida(anioActual);
+          }
           setBusquedaDocumento("");
           setBusquedaRemitente("");
           setBusquedaDestinatario("");

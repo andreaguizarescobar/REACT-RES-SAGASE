@@ -1,20 +1,25 @@
-const mongoose = require('mongoose');
+import mongoose, { model } from 'mongoose';
+
 const { Schema } = mongoose;
 
 const OficioSchema = new Schema({
-
   folio: { type: String, required: true, unique: true },
   tipo: String,
   fecha: { type: Date, default: Date.now },
+  fechaTexto: String,
 
-  area: String,
   asunto: String,
+  contenido: String,
   dirigido: String,
   generado: String,
-  relacionados: [{type: Schema.Types.ObjectId, ref: 'Oficio'},
-    {type: Schema.Types.ObjectId, ref: 'Documento'},
-  ],
-  status: String,
+  ccp: String,
+
+  plantillaId: { type: Schema.Types.ObjectId, ref: 'Fondo' },
+  remitenteId: { type: Schema.Types.ObjectId, ref: 'Remitentes' },
+  destinatarioId: { type: Schema.Types.ObjectId, ref: 'Remitentes' },
+  creadoPor: { type: Schema.Types.ObjectId, ref: 'users' },
+
+  status: { type: String, default: 'generado' },
 }, { timestamps: true });
 
-module.exports = mongoose.model('Oficio', OficioSchema);
+export default model('Oficio', OficioSchema);

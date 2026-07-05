@@ -426,6 +426,35 @@ export function GeneracionOficios() {
         pie: pieImg,
       });
 
+      const token = localStorage.getItem("token");
+      const responseOficio = await fetchAPI("/oficios", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          folio: numeroParaDocumento,
+          tipo,
+          fecha,
+          fechaTexto: formatDateToSpanish(fecha),
+          asunto: asunto || "SIN ASUNTO",
+          contenido: contenido || "Contenido del oficio...",
+          dirigido: destinatario ? destinatario.name : "DESTINATARIO",
+          generado: remitente ? remitente.name : "REMITENTE",
+          ccp: "C.c.p. Archivo.",
+          plantillaId: fondo?._id || fondo?.id || null,
+          remitenteId: remitente?._id || null,
+          destinatarioId: destinatario?._id || null,
+          status: "Generado",
+        }),
+      });
+
+      if (!responseOficio.ok) {
+        const errorText = await responseOficio.text();
+        throw new Error(errorText || "No se pudo guardar el oficio en la base de datos");
+      }
+
       setPdfBlobUrl(resultado.url);
       setNombrePDF(resultado.nombre);
 
