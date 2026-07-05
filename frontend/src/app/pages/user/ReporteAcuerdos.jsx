@@ -552,7 +552,7 @@ export function ReporteAcuerdos() {
     <div className="flex-1 w-full p-6 bg-gray-100 overflow-y-auto">
 
       {/* Header */}
-      <div className="bg-gray-300 rounded-t-md flex items-center justify-between px-4 py-3">
+      <div className="bg-gray-300 rounded-t-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3">
         <h1 className="text-sm font-semibold text-gray-800">
           Reporte de Acuerdos
         </h1>
@@ -563,49 +563,107 @@ export function ReporteAcuerdos() {
       </div>
 
       {/* Contenedor */}
-      <div className="w-full bg-white p-10 rounded-b-md shadow-sm">
+      <div className="bg-white p-6 rounded-b-md shadow-sm text-xs space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-3xl mx-auto">
-          
-          <div>
-            <label className="block text-sm mb-2">
-              Fecha inicial de turnado:
-            </label>
+        <div>
+          {/* Título de sección */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-px flex-1 bg-gray-300" />
 
-            <input
-              type="date"
-              value={form.fechaInicio}
-              onChange={(e) =>
-                setForm({ ...form, fechaInicio: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2"
-            />
+            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+              PARÁMETROS DEL REPORTE
+            </h2>
+
+            <div className="h-px flex-1 bg-gray-300" />
           </div>
 
-          <div>
-            <label className="block text-sm mb-2">
-              Fecha final de turnado:
-            </label>
+          <h3 className="text-sm text-center text-gray-600 mb-6">
+            Seleccione la fecha inicial y fecha final para generar el reporte de acuerdos
+          </h3>
 
-            <input
-              type="date"
-              value={form.fechaFin}
-              onChange={(e) =>
-                setForm({ ...form, fechaFin: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2"
-            />
+            {/* Fechas centradas */}
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Fecha inicial
+                </label>
+
+                <input
+                  type="date"
+                  value={form.fechaInicio}
+                  onChange={(e) =>
+                    setForm({ ...form, fechaInicio: e.target.value })
+                  }
+                  className="
+                    w-full
+                    rounded-lg
+                    border
+                    border-gray-300
+                    px-3
+                    py-2.5
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                  "
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Fecha final
+                </label>
+
+                <input
+                  type="date"
+                  value={form.fechaFin}
+                  onChange={(e) =>
+                    setForm({ ...form, fechaFin: e.target.value })
+                  }
+                  className="
+                    w-full
+                    rounded-lg
+                    border
+                    border-gray-300
+                    px-3
+                    py-2.5
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                  "
+                />
+              </div>
+
+            </div>
           </div>
 
         </div>
 
-        <div className="flex justify-center mt-10">
+        {/* Botón */}
+        <div className="flex justify-center pt-6">
           <button
-            title="Descargar reporte de acuerdos"
+            title="Generar reporte de acuerdos"
             onClick={handleSubmit}
-            className="bg-[#8B1538] text-white px-16 py-2 rounded hover:opacity-90 transition"
+            className="
+              bg-[#8B1538]
+              text-white
+              font-semibold
+              px-12
+              py-3.5
+              rounded-xl
+              shadow-md
+              hover:shadow-xl
+              hover:scale-105
+              transition-all
+              duration-200
+            "
           >
-            Guardar
+            Generar
           </button>
         </div>
 

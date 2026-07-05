@@ -67,9 +67,12 @@ export function SalidaCorrespondencia() {
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors ${
-        checked ? "bg-[#8B1538]" : "bg-gray-300"
-      }`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition
+        ${
+        checked
+        ? "bg-[#79142A]"
+        : "bg-gray-300"
+        }`}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -146,95 +149,153 @@ export function SalidaCorrespondencia() {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 shadow-lg max-w-md w-full mx-4">
-          <h2 className="text-xl font-semibold mb-4">Nuevo Remitente</h2>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Nombre*</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:border-[#8B1538]"
-                placeholder="Nombre del remitente"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo*</label>
-              <select
-                name="tipo"
-                value={formData.tipo}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:border-[#8B1538]"
+      <AnimatePresence>
+          {isOpen && (
+              <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
               >
-                <option value="">Selecciona tipo</option>
-                <option value="interno">Interno</option>
-                <option value="externo">Externo</option>
-                <option value="ciudadano">Ciudadano</option>
-              </select>
-            </div>
+                  <motion.div
+                      initial={{ scale: 0.95, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.95, y: 20 }}
+                      transition={{ duration: 0.2 }}
+                      className="w-full max-w-xl overflow-hidden rounded-xl bg-white shadow-2xl"
+                  >
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Cargo*</label>
-              <input
-                type="text"
-                name="cargo"
-                value={formData.cargo}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:border-[#8B1538]"
-                placeholder="Cargo"
-              />
-            </div>
+                      {/* Header */}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Área</label>
-              <input
-                type="text"
-                name="area"
-                value={formData.area}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:border-[#8B1538]"
-                placeholder="Área"
-              />
-            </div>
+                      <div className="bg-gray-300 px-5 py-3 flex items-center justify-between">
+                          <h2 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                              Nuevo {tipo === "destinatario"
+                                  ? "destinatario"
+                                  : "remitente"}
+                          </h2>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Dependencia</label>
-              <input
-                type="text"
-                name="dependencia"
-                value={formData.dependencia}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:border-[#8B1538]"
-                placeholder="Dependencia"
-              />
-            </div>
+                          <button
+                              type="button"
+                              onClick={onClose}
+                              className="w-8 h-8 rounded-full bg-[#79142A] text-white flex items-center justify-center"
+                          >
+                              <Minus size={16} />
+                          </button>
+                      </div>
 
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-2 bg-[#8B1538] text-white rounded hover:opacity-90 disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+                      {/* Body */}
+
+                      <form
+                          onSubmit={handleSubmit}
+                          className="p-6 space-y-5"
+                      >
+
+                          <div className="grid md:grid-cols-2 gap-5">
+
+                              <div className="md:col-span-2">
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      Nombre <span className="text-red-500">*</span>
+                                  </label>
+
+                                  <input
+                                      type="text"
+                                      name="name"
+                                      value={formData.name}
+                                      onChange={handleInputChange}
+                                      className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                                  />
+                              </div>
+
+                              <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      Tipo <span className="text-red-500">*</span>
+                                  </label>
+
+                                  <select
+                                      name="tipo"
+                                      value={formData.tipo}
+                                      onChange={handleInputChange}
+                                      className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                                  >
+                                      <option value="">Selecciona tipo</option>
+                                      <option value="interno">Interno</option>
+                                      <option value="externo">Externo</option>
+                                      <option value="ciudadano">Ciudadano</option>
+                                  </select>
+                              </div>
+
+                              <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      Cargo <span className="text-red-500">*</span>
+                                  </label>
+
+                                  <input
+                                      type="text"
+                                      name="cargo"
+                                      value={formData.cargo}
+                                      onChange={handleInputChange}
+                                      className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                                  />
+                              </div>
+
+                              <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      Área
+                                  </label>
+
+                                  <input
+                                      type="text"
+                                      name="area"
+                                      value={formData.area}
+                                      onChange={handleInputChange}
+                                      className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                                  />
+                              </div>
+
+                              <div>
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                                      Dependencia
+                                  </label>
+
+                                  <input
+                                      type="text"
+                                      name="dependencia"
+                                      value={formData.dependencia}
+                                      onChange={handleInputChange}
+                                      className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                                  />
+                              </div>
+
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t">
+
+                              <button
+                                  type="button"
+                                  onClick={onClose}
+                                  disabled={loading}
+                                  className="h-10 rounded-lg border border-gray-300 px-6 text-sm font-medium hover:bg-gray-100 transition"
+                              >
+                                  Cancelar
+                              </button>
+
+                              <button
+                                  type="submit"
+                                  disabled={loading}
+                                  className="h-10 rounded-lg bg-[#79142A] px-6 text-sm font-medium text-white hover:bg-[#681126] transition disabled:opacity-60"
+                              >
+                                  {loading ? "Guardando..." : "Guardar"}
+                              </button>
+
+                          </div>
+
+                      </form>
+
+                  </motion.div>
+              </motion.div>
+          )}
+      </AnimatePresence>
+  );
   }
 
   const [errores, setErrores] = useState({});
@@ -572,18 +633,23 @@ export function SalidaCorrespondencia() {
       </div>
 
       {/* Contenedor principal */}
-      <div className="bg-white p-6 rounded-b-md shadow-sm space-y-8 text-xs">
+      <div className="bg-white rounded-b-md border border-gray-200 border-t-0 p-6 space-y-8">
         
         {/* FILA 1 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
-            <label>Año*</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+                Año <span className="text-red-500">*</span>
+            </label>
             <select
               name="anio"
               value={form.anio}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-2 ${
-                errores.anio ? "border-red-500 bg-red-50" : ""
+              className={`w-full h-10 rounded-lg border px-3 text-sm transition
+              ${
+              errores.anio
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
               }`}
             >
               <option value="">Selecciona año</option>
@@ -596,27 +662,38 @@ export function SalidaCorrespondencia() {
         {/* FILA 2 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label>Folio de salida*</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Folio de sálida 
+          </label>
             <input
               name="folioSalida"
               value={form.folioSalida}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-1 ${
-                errores.folioSalida ? "border-red-500 bg-red-50" : ""
+              className={`w-full h-10 rounded-lg border px-3 text-sm transition bg-gray-100 text-gray-700
+              ${
+              errores.folioSalida
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
               }`}
+              disabled
             />
           </div>
 
           <div>
-            <label>Fecha y hora de registro*</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+                Fecha de registro 
+            </label>
             <input
               type="datetime-local"
               name="fechaRegistro"
               value={form.fechaRegistro}
               readOnly
-              className={`w-full border rounded px-2 py-1 bg-gray-100 text-gray-700 ${
-                errores.fechaRegistro ? "border-red-500 bg-red-50" : ""
-}`}
+              className={`w-full h-10 rounded-lg border px-3 text-sm transition bg-gray-100 text-gray-700
+              ${
+              errores.fechaRegistro
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+              }`}
             />
           </div>
         </div>
@@ -624,13 +701,18 @@ export function SalidaCorrespondencia() {
         {/* NIVEL IMPORTANCIA */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label>Nivel de importancia*</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+                Nivel de importancia <span className="text-red-500">*</span>
+            </label>
             <select
               name="nivelImportancia"
               value={form.nivelImportancia}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-2 ${
-                errores.nivelImportancia ? "border-red-500 bg-red-50" : ""
+              className={`w-full h-10 rounded-lg border px-3 text-sm transition
+              ${
+              errores.nivelImportancia
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
               }`}
             >
               <option value="">Selecciona opción</option>
@@ -641,13 +723,18 @@ export function SalidaCorrespondencia() {
           </div>
 
           <div>
-            <label>Soporte*</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+                Soporte <span className="text-red-500">*</span>
+            </label>
             <select
               name="soporte"
               value={form.soporte}
               onChange={handleChange}
-              className={`w-full border rounded px-2 py-2 ${
-                errores.soporte ? "border-red-500 bg-red-50" : ""
+             className={`w-full h-10 rounded-lg border px-3 text-sm transition
+              ${
+              errores.soporte
+              ? "border-red-500 bg-red-50"
+              : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
               }`}
             >
               <option value="">Selecciona opción</option>
@@ -674,10 +761,10 @@ export function SalidaCorrespondencia() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-red-50 p-4 rounded">
             <div>
-              <label>
+              <label className="mb-1 block text-sm font-medium text-gray-700"> 
                 {form.nivelImportancia === "urgente"
-                  ? "Fecha máxima de entrega*"
-                  : "Fecha de término*"}
+                  ? "Fecha máxima de entrega *"
+                  : "Fecha de término *"}
               </label>
               <input
                 type="date"
@@ -689,7 +776,9 @@ export function SalidaCorrespondencia() {
             </div>
 
             <div className="col-span-1 md:col-span-3">
-              <label>Justificación*</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Justificación <span className="text-red-500">*</span>
+            </label>
               <textarea
                 name="justificacion"
                 value={form.justificacion}
@@ -705,20 +794,31 @@ export function SalidaCorrespondencia() {
 
         {/* DATOS IDENTIFICADORES */}
         <div>
-          <h2 className="font-semibold text-gray-700 mb-4">
-            Datos identificadores
-          </h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-gray-300" />
+
+            <h2 className="text-sm font-semibold text-[#8B1538] whitespace-nowrap uppercase tracking-wide">
+                Datos identificadores
+            </h2>
+
+            <div className="h-px flex-1 bg-gray-300" />
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label>Área tramitadora*</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Área tramitadora <span className="text-red-500">*</span>
+            </label>
               <select
                 name="areaTramitadora"
                 value={form.areaTramitadora}
                 onChange={handleChange}
-                className={`w-full border rounded px-2 py-2 ${
-                  errores.areaTramitadora ? "border-red-500 bg-red-50" : ""
-                }`}
+                className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                  ${
+                  errores.areaTramitadora
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
+                  }`}
               >
                 <option value="">Selecciona opción</option>
                 {areas.map((area) => (
@@ -730,19 +830,26 @@ export function SalidaCorrespondencia() {
             </div>
 
             <div>
-              <label>Asunto*</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Asunto <span className="text-red-500">*</span>
+            </label>
               <input
                 name="asunto"
                 value={form.asunto}
                 readOnly
-                className={`w-full border rounded px-2 py-1 bg-gray-100 text-gray-700 ${
-                  errores.asunto ? "border-red-500 bg-red-50" : ""
+                className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                ${
+                errores.asunto
+                ? "border-red-500 bg-red-50"
+                : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                 }`}
               />
             </div>
 
             <div>
-              <label>Folio SAGASE</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Folio SAGASE
+                </label>
               <input
                 name="folio"
                 value={form.folio}
@@ -752,7 +859,9 @@ export function SalidaCorrespondencia() {
             </div>
 
             <div>
-              <label>No. Documento</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                  No. documento <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
                 <input
                   type="text"
@@ -783,13 +892,21 @@ export function SalidaCorrespondencia() {
 
         {/* DATOS REMITENTE */}
         <div>
-          <h2 className="font-semibold text-gray-700 mb-4">
-            Datos del remitente
-          </h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-gray-300" />
+
+            <h2 className="text-sm font-semibold text-[#8B1538] whitespace-nowrap uppercase tracking-wide">
+                Datos del remitente
+            </h2>
+
+            <div className="h-px flex-1 bg-gray-300" />
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="relative">
-              <label>Nombre y cargo*</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Nombre y cargo del remitente <span className="text-red-500">*</span>
+              </label>
               {!form.otroRemitente ? (
                 <>
                   <input
@@ -797,8 +914,11 @@ export function SalidaCorrespondencia() {
                     value={busquedaRemitente}
                     onChange={(e) => handleBuscarRemitentes(e.target.value)}
                     placeholder={form.nombreCargo ? form.nombreCargo : "Buscar remitente"}
-                    className={`w-full border rounded px-2 py-1 ${
-                      errores.nombreCargo ? "border-red-500 bg-red-50" : ""
+                    className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                    ${
+                    errores.nombreCargo
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                     }`}
                   />
                   {mostrando.resultadosRemitente && remitentesFiltrados.length > 0 && (
@@ -823,8 +943,11 @@ export function SalidaCorrespondencia() {
                   value={form.nombreCargo}
                   onChange={handleChange}
                   placeholder="Nombre y cargo del remitente"
-                  className={`w-full border rounded px-2 py-1 ${
-                    errores.nombreCargo ? "border-red-500 bg-red-50" : ""
+                  className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                  ${
+                  errores.nombreCargo
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                   }`}
                 />
               )}
@@ -847,13 +970,21 @@ export function SalidaCorrespondencia() {
 
         {/* DATOS DESTINATARIO */}
         <div>
-          <h2 className="font-semibold text-gray-700 mb-4">
-            Datos del destinatario
-          </h2>
+          <div className="flex items-center gap-3 mb-4">
+              <div className="h-px flex-1 bg-gray-300" />
+
+              <h2 className="text-sm font-semibold text-[#8B1538] whitespace-nowrap uppercase tracking-wide">
+                  Datos del destinatario
+              </h2>
+
+              <div className="h-px flex-1 bg-gray-300" />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="relative">
-              <label>Nombre y cargo*</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Nombre y cargo del destinatario <span className="text-red-500">*</span>
+              </label>
               {!form.otroDestinatario ? (
                 <>
                   <input
@@ -861,8 +992,11 @@ export function SalidaCorrespondencia() {
                     value={busquedaDestinatario}
                     onChange={(e) => handleBuscarDestinatarios(e.target.value)}
                     placeholder={form.destinatario ? form.destinatario : "Buscar destinatario"}
-                    className={`w-full border rounded px-2 py-1 ${
-                      errores.destinatario ? "border-red-500 bg-red-50" : ""
+                    className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                    ${
+                    errores.destinatario
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                     }`}
                   />
                   {mostrando.resultadosDestinatario && destinatariosFiltrados.length > 0 && (
@@ -887,8 +1021,11 @@ export function SalidaCorrespondencia() {
                   value={form.destinatario}
                   onChange={handleChange}
                   placeholder="Nombre y cargo del destinatario"
-                  className={`w-full border rounded px-2 py-1 ${
-                    errores.destinatario ? "border-red-500 bg-red-50" : ""
+                  className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                  ${
+                  errores.destinatario
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                   }`}
                 />
               )}
@@ -913,7 +1050,19 @@ export function SalidaCorrespondencia() {
         <div className="flex justify-end pt-4">
           <button
             onClick={handleGuardar}
-            className="bg-[#8B1538] text-white px-10 py-2 rounded text-xs hover:opacity-90"
+            className="
+              px-8
+              h-10
+              rounded-lg
+              bg-[#79142A]
+              text-white
+              text-sm
+              font-medium
+              transition
+              hover:bg-[#681126]
+              hover:shadow-lg
+              active:scale-95
+              "
           >
             Guardar
           </button>
@@ -924,7 +1073,16 @@ export function SalidaCorrespondencia() {
       <ModalNuevoRemitente
         isOpen={showModalRemitente}
         tipo={tipoModalRemitente}
-        onClose={() => setShowModalRemitente(false)}
+        onClose={() => {
+          setShowModalRemitente(false);
+
+          setForm((prev) => ({
+            ...prev,
+            ...(tipoModalRemitente === "remitente"
+              ? { otroRemitente: false }
+              : { otroDestinatario: false }),
+          }));
+        }}
         onRemitentCreated={handleRemitenteCreado}
       />
     </div>

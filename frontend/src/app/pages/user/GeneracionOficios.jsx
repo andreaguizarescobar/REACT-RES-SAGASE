@@ -1,10 +1,16 @@
-import { AnimatePresence, motion as Motion } from "framer-motion";
-import { Minus, Search, Loader2, Bold } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Minus, Search, Loader2, Bold, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import jsPDF from "jspdf";
 import { getFondos } from "../../services/fondo.service";
 import { getRemitentes } from "../../services/remitente.service";
 import { fetchAPI } from "../../services/api";
+import Swal from "sweetalert2";
+
+import GothamRoundedBold from "../../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
 
 const loadImageAsBase64 = async (imagePath) => {
   if (!imagePath) return null;
@@ -68,7 +74,7 @@ const renderLine = (doc, line, charMap, lineStart, x, y, justify, lineWidth) => 
       let j = i;
       while (j < lineStart + line.length && j < charMap.length && charMap[j] === bold) j++;
       const segment = line.substring(i - lineStart, j - lineStart);
-      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFont("GothamRounded", bold ? "bold" : "normal");
       doc.text(segment, xx, y);
       xx += doc.getTextWidth(segment);
       i = j;
@@ -78,7 +84,7 @@ const renderLine = (doc, line, charMap, lineStart, x, y, justify, lineWidth) => 
   // Justified: split line into words
   const words = line.split(' ');
   if (words.length <= 1) {
-    doc.setFont("helvetica", "normal");
+    doc.setFont("GothamRounded", "normal");
     doc.text(line, x, y);
     return;
   }
@@ -96,7 +102,7 @@ const renderLine = (doc, line, charMap, lineStart, x, y, justify, lineWidth) => 
       let j = i;
       while (j < wordEnd && j < charMap.length && charMap[j] === bold) j++;
       const segment = line.substring(i - lineStart, j - lineStart);
-      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFont("Montserrat", bold ? "bold" : "normal");
       width += doc.getTextWidth(segment);
       i = j;
     }
@@ -117,7 +123,7 @@ const renderLine = (doc, line, charMap, lineStart, x, y, justify, lineWidth) => 
       let j = i;
       while (j < wordEnd && j < charMap.length && charMap[j] === bold) j++;
       const segment = line.substring(i - lineStart, j - lineStart);
-      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFont("Montserrat", bold ? "bold" : "normal");
       doc.text(segment, xx, y);
       xx += doc.getTextWidth(segment);
       i = j;
@@ -136,10 +142,10 @@ const drawFooter = (doc, pie, pw, ph) => { if (!pie) return; try { doc.addImage(
 const drawOfficeData = (doc, data) => {
   const pw = doc.internal.pageSize.getWidth();
   let y = 38;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+  doc.setFont("Montserrat", "normal"); doc.setFontSize(11);
   doc.text(`Oficio No. ${data.numero}`, pw - 25, y, { align: "right" });
   y += 7;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.setFont("GothamRounded", "bold"); doc.setFontSize(11);
   const asuntoFull = `Asunto: ${data.asunto}`;
   const maxW = 130;
   let asuntoLine = asuntoFull;
@@ -149,15 +155,15 @@ const drawOfficeData = (doc, data) => {
   }
   doc.text(asuntoLine, pw - 25, y, { align: "right" });
   y += 7;
-  doc.setFont("helvetica", "normal");
+  doc.setFont("GothamRounded", "bold");
   doc.text(data.fecha, pw - 25, y, { align: "right" });
 };
 
 const drawDestinatario = (doc, data) => {
   let y = 62;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text(data.nombre, 25, y);
-  y += 7; doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.text(data.area, 25, y);
-  y += 7; doc.setFont("helvetica", "bold"); doc.text("P R E S E N T E.", 25, y);
+  doc.setFont("GothamRounded", "bold"); doc.setFontSize(12); doc.text(data.nombre, 25, y);
+  y += 7; doc.setFont("Montserrat", "normal"); doc.setFontSize(11); doc.text(data.area, 25, y);
+  y += 7; doc.setFont("GothamRounded", "bold"); doc.text("P R E S E N T E.", 25, y);
 };
 
 const newPage = (doc, imagenes) => {
@@ -170,6 +176,7 @@ const newPage = (doc, imagenes) => {
 const drawBody = (doc, data, imagenes) => {
   let y = 105;
   const ph = doc.internal.pageSize.getHeight();
+  doc.setFont("Montserrat", "normal");
   doc.setFontSize(11);
   const paragraphs = data.contenido.split(/\n/);
   paragraphs.forEach((paragraph) => {
@@ -183,7 +190,17 @@ const drawBody = (doc, data, imagenes) => {
     lines.forEach((line, idx) => {
       if (y > ph - 30) y = newPage(doc, imagenes);
       const isLast = idx === lines.length - 1;
-      renderLine(doc, line, charMap, lineStart, 25, y, !isLast, 160);
+      renderLine(
+        doc,
+        line,
+        charMap,
+        lineStart,
+        25,
+        y,
+        !isLast,
+        160
+      );
+   
       lineStart += line.length;
       y += 5.5;
     });
@@ -194,24 +211,24 @@ const drawBody = (doc, data, imagenes) => {
 const drawFirma = (doc, data, y, imagenes) => {
   const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
   if (y > ph - 80) y = newPage(doc, imagenes);
-  y += 10; doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  y += 10; doc.setFont("GothamRounded", "bold"); doc.setFontSize(12);
   doc.text("A T E N T A M E N T E", pw / 2, y, { align: "center" });
   y += 15;
   if (data.firma) { try { doc.addImage(data.firma, "PNG", pw / 2 - 20, y - 10, 40, 18); } catch (e) { console.warn(e); } }
-  y += 18; doc.setFontSize(11);
+  y += 18; doc.setFont("GothamRounded", "bold"); doc.setFontSize(11);
   doc.text(data.nombreFirma, pw / 2, y, { align: "center" });
-  y += 6; doc.setFont("helvetica", "normal"); doc.text(data.areaFirma, pw / 2, y, { align: "center" });
+  y += 6; doc.setFont("Montserrat", "normal"); doc.text(data.areaFirma, pw / 2, y, { align: "center" });
   return y;
 };
 
 const drawCCP = (doc, texto) => {
   const ph = doc.internal.pageSize.getHeight();
-  doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.text(texto || "C.c.p. Archivo.", 25, ph - 28);
+  doc.setFontSize(9); doc.setFont("Montserrat", "normal"); doc.text(texto || "C.c.p. Archivo.", 25, ph - 28);
 };
 
 const addPageNumbers = (doc) => {
   const total = doc.getNumberOfPages(), pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-  for (let i = 1; i <= total; i++) { doc.setPage(i); doc.setFontSize(9); doc.text(`${i}/${total}`, pw - 25, ph - 5); }
+  for (let i = 1; i <= total; i++) { doc.setPage(i); doc.setFont("Montserrat", "normal"); doc.setFontSize(9); doc.text(`${i}/${total}`, pw - 25, ph - 5); }
 };
 
 const normalizarAreaParaNumero = (area) => {
@@ -254,6 +271,7 @@ export function GeneracionOficios() {
   const refRemitente = useRef(null);
   const refDestinatario = useRef(null);
   const textareaRef = useRef(null);
+  const [nombrePDF, setNombrePDF] = useState("");
 
   const tipos = [{ value: "oficio", label: "Oficio" }, { value: "circular", label: "Circular" }];
 
@@ -351,6 +369,36 @@ export function GeneracionOficios() {
 
   // Generar PDF y mostrar modal
   const handleGuardar = async () => {
+
+    const camposFaltantes = [];
+
+    if (!tipo) camposFaltantes.push("Tipo de oficio");
+    if (!fondoId) camposFaltantes.push("Plantilla");
+    if (!remitente) camposFaltantes.push("Remitente");
+    if (!destinatario) camposFaltantes.push("Destinatario");
+    if (!asunto?.trim()) camposFaltantes.push("Asunto");
+    if (!contenido?.trim()) camposFaltantes.push("Contenido");
+
+    if (camposFaltantes.length) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: `Faltan ${camposFaltantes.length} campos obligatorios`,
+        html: `
+          <ul style="text-align:left;margin-top:8px">
+            ${camposFaltantes.map(c => `<li>${c}</li>`).join("")}
+          </ul>
+        `,
+        showConfirmButton: false,
+        timer: 5000,
+        timerProgressBar: true,
+        target: document.body,
+      });
+
+      return;
+    }
+
     setGenerandoPDF(true);
     setMostrarOficio(true);
     try {
@@ -372,10 +420,15 @@ export function GeneracionOficios() {
         areaFirma: areaR,
         firma: null, ccp: "C.c.p. Archivo.",
       };
-      const doc = await generarOficioPDF(data, { fondo: fonImg, encabezado: encImg, pie: pieImg });
-      const blob = doc.output("blob");
-      const url = URL.createObjectURL(blob);
-      setPdfBlobUrl(url);
+      const resultado = await generarOficioPDF(data, {
+        fondo: fonImg,
+        encabezado: encImg,
+        pie: pieImg,
+      });
+
+      setPdfBlobUrl(resultado.url);
+      setNombrePDF(resultado.nombre);
+
     } catch (error) {
       console.error("Error al generar PDF:", error);
     } finally {
@@ -383,20 +436,70 @@ export function GeneracionOficios() {
     }
   };
 
+  const campoInvalido = (valor) => {
+    if (valor === null || valor === undefined) return true;
+    if (typeof valor === "string") return !valor.trim();
+    return false;
+  };
+
   // Genera el PDF usando las funciones externas
   const generarOficioPDF = async (data, imagenes) => {
     const doc = new jsPDF("p", "mm", "a4");
-    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+
+    // =========================
+    // =========================
+    // FUENTES PERSONALIZADAS
+    // =========================
+
+    // Gotham
+    doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+    doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+    // Montserrat
+    doc.addFont(MontserratRegular, "Montserrat", "normal");
+    doc.addFont(MontserratBold, "Montserrat", "bold");
+
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+
     imagenes && drawBackground(doc, imagenes.fondo, pw, ph);
     imagenes && drawHeader(doc, imagenes.encabezado);
     imagenes && drawFooter(doc, imagenes.pie, pw, ph);
+
     drawOfficeData(doc, data);
     drawDestinatario(doc, data);
+
     let y = drawBody(doc, data, imagenes);
+
     drawFirma(doc, data, y, imagenes);
     drawCCP(doc, data.ccp);
     addPageNumbers(doc);
-    return doc;
+
+    // NOMBRE DEL ARCHIVO
+    // =========================
+
+    const numeroLimpio = (data.numero || "SIN_NUMERO")
+      .replace(/[\\/:*?"<>|]/g, "-");
+
+    const asuntoLimpio = (data.asunto || "SIN_ASUNTO")
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/\s+/g, "_")
+      .substring(0, 40); // evita nombres demasiado largos
+
+    const nombrePDF = `Oficio_${numeroLimpio}_${asuntoLimpio}.pdf`;
+
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    // Descargar automáticamente
+    doc.save(nombrePDF);
+
+    return {
+      doc,
+      url: pdfUrl,
+      nombre: nombrePDF,
+    };
   };
 
   const remitentesFiltrados = remitentes.filter((r) => getRemitenteLabel(r).toLowerCase().includes(busquedaRemitente.toLowerCase()));
@@ -415,127 +518,388 @@ export function GeneracionOficios() {
   };
 
   return (
-    <div className="flex-1 w-full p-6 bg-gray-100 overflow-y-auto">
+    <div className="flex-1 w-full p-3 sm:p-4 md:p-6 bg-gray-100 overflow-y-auto">
       <div className="bg-gray-300 rounded-t-md flex items-center justify-between px-4 py-2">
         <h1 className="text-sm font-semibold text-gray-800">Generacion de Oficios</h1>
         <button className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white"><Minus size={14} /></button>
       </div>
-      <div className="w-full bg-white p-4 sm:p-6 md:p-10 rounded-b-md shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6 text-xs">
-          <div className="col-span-2">
-            <label className="block mb-1">Tipo de oficio:</label>
+      <div className="bg-white p-6 rounded-b-md shadow-sm text-xs space-y-">
+
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-300" />
+
+          <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+            Datos del Oficio
+          </h2>
+
+          <div className="h-px flex-1 bg-gray-300" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 text-xs">
+
+          <div className="col-span-1 md:col-span-1">
+            <label className="block mb-2 text-sm font-medium text-gray-700">Seleccione tipo de oficio</label>
+            
+          <div className="relative">
             <select value={tipo} onChange={(e) => setTipo(e.target.value)}
-              className="w-full border border-gray-300 rounded px-2 py-1 h-8 focus:outline-none focus:ring-2 focus:ring-[#8B1538]">
+              className="
+                w-full
+                rounded-xl
+                border
+                border-gray-300
+                px-4
+                py-1.5
+                pr-10
+                text-sm
+                text-gray-700
+                appearance-none
+                outline-none
+                transition
+                focus:border-[#8B1538]
+                focus:ring-2
+                focus:ring-[#8B1538]/20
+              ">
               <option value="">Selecciona opcion</option>
               {tipos.map((item) => (<option key={item.value} value={item.value}>{item.label}</option>))}
             </select>
+            
+            <ChevronDown
+              size={18}
+              className="
+                absolute
+                right-3
+                top-1/2
+                -translate-y-1/2
+                text-gray-500
+                pointer-events-none
+              "
+            />
+            </div>
           </div>
-          {tipo && (
-            <>
-              <div className="col-span-2">
-                <label className="block mb-1">Fecha:</label>
-                <input type="text" value={formatDateToSpanish(fecha)} disabled className="w-full border border-gray-300 bg-gray-100 rounded px-2 py-1 h-8" />
-              </div>
-              <div className="col-span-2">
-                <label className="block mb-1">Num. Oficio:</label>
-                <input type="text" value={numeroOficioPreview || numeroOficio} disabled className="w-full border border-gray-300 bg-gray-100 rounded px-2 py-1 h-8" />
-              </div>
-              <div className="col-span-2">
-                <label className="block mb-1">Fondo / Plantilla:</label>
-                <select value={fondoId} onChange={(e) => setFondoId(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1 h-8 focus:outline-none focus:ring-2 focus:ring-[#8B1538]">
-                  <option value="">Sin plantilla</option>
-                  {fondos.map((f) => (<option key={f._id || f.id} value={f._id || f.id}>{f.nombre}{f.abreviatura ? " (" + f.abreviatura + ")" : ""}</option>))}
-                </select>
-              </div>
-              <div className="col-span-2" ref={refRemitente}>
-                <label className="block mb-1">Remitente (Quien firma):</label>
-                <div className="relative">
-                  <div className="flex items-center border border-gray-300 rounded px-2">
-                    <Search size={14} className="text-gray-400" />
-                    <input type="text" value={busquedaRemitente}
-                      onChange={(e) => { setBusquedaRemitente(e.target.value); setMostrarOpcionesRemitente(true); }}
-                      onFocus={() => setMostrarOpcionesRemitente(true)}
-                      placeholder="Buscar remitente..." className="w-full border-0 rounded px-2 py-1 h-8 focus:outline-none focus:ring-0" />
+
+          <AnimatePresence mode="wait">
+            {tipo && (
+               <motion.div
+                className="col-span-full"
+                initial={{
+                  opacity: 0,
+                  y: 15,
+                  height: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  height: "auto",
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -10,
+                  height: 0,
+                }}
+                transition={{
+                  duration: 0.35,
+                  ease: "easeOut",
+                }}
+                style={{ overflow: "hidden" }}
+              >
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div className="col-span-12 lg:col-span-3">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="text" value={formatDateToSpanish(fecha)} disabled className="w-full border border-gray-300 bg-gray-100 w-full
+                      rounded-lg
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      px-2
+                      py-1
+                      text-gray-600" />
                   </div>
-                  {mostrarOpcionesRemitente && (
-                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-md">
-                      {remitentesFiltrados.length > 0 ? remitentesFiltrados.map((r) => (
-                        <div key={r._id} onClick={() => { setRemitente(r); setBusquedaRemitente(getRemitenteLabel(r)); setMostrarOpcionesRemitente(false); }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer">{getRemitenteLabel(r)}</div>
-                      )) : <div className="px-2 py-1 text-gray-400">Sin resultados</div>}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="col-span-2" ref={refDestinatario}>
-                <label className="block mb-1">Destinatario (Para quien va dirigido):</label>
-                <div className="relative">
-                  <div className="flex items-center border border-gray-300 rounded px-2">
-                    <Search size={14} className="text-gray-400" />
-                    <input type="text" value={busquedaDestinatario}
-                      onChange={(e) => { setBusquedaDestinatario(e.target.value); setMostrarOpcionesDestinatario(true); }}
-                      onFocus={() => setMostrarOpcionesDestinatario(true)}
-                      placeholder="Buscar destinatario..." className="w-full border-0 rounded px-2 py-1 h-8 focus:outline-none focus:ring-0" />
+
+                  <div className="col-span-12 lg:col-span-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Num. Oficio</label>
+                    <input type="text" value={numeroOficioPreview || numeroOficio} disabled className="w-full border border-gray-300 bg-gray-100 w-full
+                      rounded-lg
+                      border
+                      border-gray-200
+                      bg-gray-50
+                      px-2
+                      py-1
+                      text-gray-600" />
                   </div>
-                  {mostrarOpcionesDestinatario && (
-                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-md">
-                      {destinatariosFiltrados.length > 0 ? destinatariosFiltrados.map((r) => (
-                        <div key={r._id} onClick={() => { setDestinatario(r); setBusquedaDestinatario(getRemitenteLabel(r)); setMostrarOpcionesDestinatario(false); }}
-                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer">{getRemitenteLabel(r)}</div>
-                      )) : <div className="px-2 py-1 text-gray-400">Sin resultados</div>}
+
+                  <div className="col-span-12 lg:col-span-7">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Fondo / Plantilla</label>
+                    
+                    <div className="relative">
+                    <select value={fondoId} onChange={(e) => setFondoId(e.target.value)}
+                      className={`
+                        w-full
+                        rounded-xl
+                        border
+                        px-2
+                        py-1.5
+                        text-sm
+                        text-gray-700
+                        transition
+                        outline-none
+                        focus:border-[#8B1538]
+                        focus:ring-2
+                        focus:ring-[#8B1538]/20
+                        appearance-none
+                        ${campoInvalido(fondoId)
+                            ? "border border-red-300"
+                            : "border border-gray-300"}
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                        `}
+                      >
+                      <option value="">Sin plantilla</option>
+                      {fondos.map((f) => (<option key={f._id || f.id} value={f._id || f.id}>{f.nombre}{f.abreviatura ? " (" + f.abreviatura + ")" : ""}</option>))}
+                    </select>
+
+                    <ChevronDown
+                        size={18}
+                        className="
+                          absolute
+                          right-3
+                          top-1/2
+                          -translate-y-1/2
+                          text-gray-500
+                          pointer-events-none
+                        "
+                      />
                     </div>
-                  )}
+                  </div>
+
+                  <div className="col-span-12 lg:col-span-4" ref={refRemitente}>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Remitente (Quien firma)</label>
+                    <div className="relative">
+                      <div className={`
+                        flex items-center
+                        rounded-lg
+                        border
+                        border-gray-300
+                        px-2
+                        py-1
+                        bg-white
+                        focus-within:border-[#8B1538]
+                        focus-within:ring-2
+                        focus-within:ring-[#8B1538]/20
+                        transition
+                        ${campoInvalido(busquedaRemitente)
+                            ? "border border-red-300"
+                            : "border border-gray-300"}
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                        `}>
+                        <Search size={14} className="text-gray-400" />
+                        <input type="text" value={busquedaRemitente}
+                        onChange={(e) => {
+                            setBusquedaRemitente(e.target.value);
+                            setRemitente(null); // limpiar selección
+                            setMostrarOpcionesRemitente(true);
+                          }}
+                          onFocus={() => setMostrarOpcionesRemitente(true)}
+                          placeholder="Buscar remitente..." className="w-full border-0 rounded px-2 py-1 h-8 focus:outline-none focus:ring-0" />
+                      </div>
+                      {mostrarOpcionesRemitente && (
+                        <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-md">
+                          {remitentesFiltrados.length > 0 ? remitentesFiltrados.map((r) => (
+                            <div key={r._id} onClick={() => { setRemitente(r); setBusquedaRemitente(getRemitenteLabel(r)); setMostrarOpcionesRemitente(false); }}
+                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer">{getRemitenteLabel(r)}</div>
+                          )) : <div className="px-2 py-1 text-gray-400">Sin resultados</div>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 lg:col-span-8" ref={refDestinatario}>
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Destinatario (Para quien va dirigido)</label>
+                    <div className="relative">
+                      <div className={`
+                        flex items-center
+                        rounded-lg
+                        border
+                        border-gray-300
+                        px-2
+                        py-1
+                        bg-white
+                        focus-within:border-[#8B1538]
+                        focus-within:ring-2
+                        focus-within:ring-[#8B1538]/20
+                        transition
+                        ${campoInvalido(busquedaDestinatario)
+                            ? "border border-red-300"
+                            : "border border-gray-300"}
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                        `}>
+                        <Search size={14} className="text-gray-400" />
+                        <input type="text" value={busquedaDestinatario}
+                          onChange={(e) => {
+                            setBusquedaDestinatario(e.target.value);
+                            setDestinatario(null); // limpiar selección
+                            setMostrarOpcionesDestinatario(true);
+                          }}
+                          onFocus={() => setMostrarOpcionesDestinatario(true)}
+                          placeholder="Buscar destinatario..." className="w-full border-0 rounded px-2 py-1 h-8 focus:outline-none focus:ring-0" />
+                      </div>
+                      {mostrarOpcionesDestinatario && (
+                        <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10 shadow-md">
+                          {destinatariosFiltrados.length > 0 ? destinatariosFiltrados.map((r) => (
+                            <div key={r._id} onClick={() => { setDestinatario(r); setBusquedaDestinatario(getRemitenteLabel(r)); setMostrarOpcionesDestinatario(false); }}
+                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer">{getRemitenteLabel(r)}</div>
+                          )) : <div className="px-2 py-1 text-gray-400">Sin resultados</div>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 flex flex-col gap-6">
+                      <div className="
+                          rounded-xl
+                          border
+                          border-gray-200
+                          bg-gray-50
+                          p-4
+                      ">
+                        <label className="block mb-2 text-sm font-medium text-gray-700">Asunto</label>
+                        <input type="text" value={asunto} onChange={(e) => setAsunto(e.target.value)}
+                          className={`w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#8B1538] ${campoInvalido(asunto)
+                              ? "border border-red-300"
+                              : "border border-gray-300"}
+                            focus:ring-2 focus:ring-[#8B1538]
+                          `}
+                          placeholder="Asunto del oficio" />
+            
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-px flex-1 bg-gray-300" />
+
+                      <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                        Contenido del Oficio
+                      </h2>
+
+                      <div className="h-px flex-1 bg-gray-300" />
+                    </div>
+
+                    <label className="block mb-2 text-sm font-medium text-gray-700">Informacion</label>
+                    <div className="flex items-center gap-1 mb-1">
+                      <button   onClick={insertBold}
+                          title="Negritas"
+                          className="
+                          flex items-center
+                          gap-2
+                          px-3
+                          py-2
+                          rounded-lg
+                          border
+                          border-gray-300
+                          hover:bg-gray-100
+                          transition
+                        "><Bold size={14} /></button>
+                      <span className="text-xs text-gray-400">Selecciona texto y haz clic en <strong>B</strong> para negritas. Usa **texto** en el texto.</span>
+                    </div>
+                    <textarea ref={textareaRef} value={contenido} onChange={(e) => setContenido(e.target.value)} rows={8}
+                      className={`
+                        w-full
+                        min-h-[20px]
+                        rounded-xl
+                        border
+                        border-gray-300
+                        px-4
+                        py-3
+                        resize-none
+                        transition
+                        focus:border-[#8B1538]
+                        focus:ring-2
+                        focus:ring-[#8B1538]/20
+                        outline-none
+                        ${campoInvalido(contenido)
+                            ? "border border-red-300"
+                            : "border border-gray-300"}
+                          focus:border-[#8B1538]
+                          focus:ring-2
+                          focus:ring-[#8B1538]/20
+                        `}
+                      placeholder="Escribe aqui el contenido. Usa **texto** entre asteriscos para ponerlo en negritas." />
+                  </div>
+
+                  </div>
+
+                  <div className="col-span-full flex justify-center sm:justify-end">
+                    <button onClick={handleGuardar} disabled={generandoPDF}
+                      className="
+                        bg-[#8B1538]
+                        text-white
+                        font-semibold
+                        px-12
+                        py-3.5
+                        rounded-xl
+                        shadow-md
+                        hover:shadow-xl
+                        hover:scale-105
+                        transition-all
+                        duration-200
+                        disabled:opacity-50
+                        disabled:hover:scale-100
+                        flex items-center gap-2
+                        ">
+                      {generandoPDF ? <><Loader2 size={14} className="animate-spin" />Generando...</> : "Guardar"}
+                    </button>
+                  </div>
+
                 </div>
-              </div>
-              <div className="col-span-4">
-                <label className="block mb-1">Asunto:</label>
-                <input type="text" value={asunto} onChange={(e) => setAsunto(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#8B1538]" placeholder="Asunto del oficio" />
-              </div>
-              <div className="col-span-4">
-                <label className="block mb-1">Informacion:</label>
-                <div className="flex items-center gap-1 mb-1">
-                  <button onClick={insertBold} title="Negritas" className="p-1 border border-gray-300 rounded hover:bg-gray-100"><Bold size={14} /></button>
-                  <span className="text-xs text-gray-400">Selecciona texto y haz clic en <strong>B</strong> para negritas. Usa **texto** en el texto.</span>
-                </div>
-                <textarea ref={textareaRef} value={contenido} onChange={(e) => setContenido(e.target.value)} rows={8}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
-                  placeholder="Escribe aqui el contenido. Usa **texto** entre asteriscos para ponerlo en negritas." />
-              </div>
-              <div className="col-span-full flex justify-center sm:justify-end">
-                <button onClick={handleGuardar} disabled={generandoPDF}
-                  className="bg-[#8B1538] text-white px-10 py-2 rounded hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2">
-                  {generandoPDF ? <><Loader2 size={14} className="animate-spin" />Generando...</> : "Guardar"}
-                </button>
-              </div>
-            </>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {mostrarOficio && pdfBlobUrl && (
-              <Motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Motion.div initial={{ scale: 0.95, y: 20, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.95, y: 20, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="w-full max-w-5xl bg-white rounded shadow-xl overflow-hidden flex flex-col max-h-[95vh]">
-                  <div className="bg-gray-800 text-white flex items-center justify-between px-4 py-2 text-sm">
-                    <div className="flex items-center gap-3">
-                      <a href={pdfBlobUrl} download={"Oficio_" + numeroOficio.replace(/[/\\]/g, "_") + ".pdf"}
-                        className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs flex items-center gap-1 transition">
-                        <Loader2 size={12} /> Descargar PDF
-                      </a>
-                      <button onClick={() => window.print()} className="bg-gray-500 hover:bg-gray-600 px-3 py-1.5 rounded text-xs transition">Imprimir</button>
-                    </div>
-                    <div className="text-xs text-gray-300">Oficio No. {numeroOficio}</div>
-                    <button onClick={() => { setMostrarOficio(false); URL.revokeObjectURL(pdfBlobUrl); }}
-                      className="bg-[#8B1538] w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#a61c45] transition text-sm">✕</button>
+              <motion.div
+                className="fixed inset-0 flex items-center justify-center z-[9999]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: .2 }}
+                style={{ backgroundColor: "rgba(0,0,0,.4)" }}
+              >
+                <motion.div
+                  className="bg-white rounded shadow-lg w-[92%] h-[92%] relative"
+                  initial={{ opacity: 0, scale: .95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: .95, y: 20 }}
+                  transition={{ duration: .2 }}
+                >
+                  <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
+                    <span
+                      className="text-white text-base font-medium truncate"
+                      title={nombrePDF}
+                    >
+                      {nombrePDF.replace(".pdf", "")}
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        setMostrarOficio(false);
+                        URL.revokeObjectURL(pdfBlobUrl);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"
+                    >
+                      <Minus size={16} />
+                    </button>
                   </div>
                   <div className="flex-1 bg-gray-700 flex justify-center p-2 min-h-[80vh]">
                     <iframe src={pdfBlobUrl} className="w-full h-[85vh] rounded" title="Vista previa del oficio" />
                   </div>
-                </Motion.div>
-              </Motion.div>
+                </motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>

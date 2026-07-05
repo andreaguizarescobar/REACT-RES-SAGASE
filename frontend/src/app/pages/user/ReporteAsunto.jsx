@@ -13,27 +13,67 @@ import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
 import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
 import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
 
-  const Toggle = ({ label, checked, onChange, className = '' }) => (
-    <div className={`flex items-center justify-between gap-4 w-full ${className}`}>
-      <span className="flex-1 text-xs sm:text-sm">
-        {label}
-      </span>
+const Toggle = ({ label, checked, onChange }) => (
+    <div
+      className={`
+        rounded-xl
+        border
+        p-4
+        transition-all
+        duration-200
+        ${
+          checked
+            ? "border-[#8B1538] bg-[#8B1538]/5 shadow-sm"
+            : "border-gray-200 bg-white hover:border-gray-300"
+        }
+      `}
+    >
 
-      <button
-        type="button"
-        onClick={onChange}
-        className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors ${
-          checked ? 'bg-[#8B1538]' : 'bg-gray-300'
-        }`}
-      >
-        <span
-          className={`absolute top-[2px] left-[2px] h-4 w-4 bg-white rounded-full transition-transform ${
-            checked ? 'translate-x-5' : ''
-          }`}
-        />
-      </button>
+        <div className="flex items-center gap-3">
+
+            <span className="flex-1 text-sm font-medium text-gray-700">
+                {label}
+            </span>
+
+            <button
+                type="button"
+                onClick={onChange}
+                className={`
+                relative
+                w-11
+                h-6
+                rounded-full
+                transition
+                ${
+                    checked
+                        ? "bg-[#8B1538]"
+                        : "bg-gray-300"
+                }
+                `}
+            >
+                <span
+                    className={`
+                    absolute
+                    top-0.5
+                    left-0.5
+                    h-5
+                    w-5
+                    rounded-full
+                    bg-white
+                    transition-transform
+                    ${
+                        checked
+                            ? "translate-x-5"
+                            : ""
+                    }
+                    `}
+                />
+            </button>
+
+        </div>
+
     </div>
-  );
+);
 
 export function ReporteAsuntos() {
 
@@ -70,6 +110,37 @@ export function ReporteAsuntos() {
   };
 
   const handleSubmit = async () => {
+     // VALIDAR FECHAS
+      if (!form.fechaInicio || !form.fechaFin) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "warning",
+          title: "Seleccione la fecha inicial y la fecha final.",
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true,
+          width: "380px",
+        });
+
+        return;
+      }
+
+      if (new Date(form.fechaInicio) > new Date(form.fechaFin)) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "warning",
+          title: "La fecha inicial no puede ser mayor que la fecha final.",
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true,
+          width: "420px",
+        });
+
+        return;
+      }
+
     try {
       const response = await reporteAsuntos(
         form,
@@ -637,12 +708,22 @@ export function ReporteAsuntos() {
       </div>
 
       {/* Contenedor */}
-      <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-b-md shadow-sm space-y-10 text-xs">
+      <div className="bg-white p-6 rounded-b-md shadow-sm text-xs space-y-6">
 
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">
-            Origen del turno
-          </h2>
+          <div className="flex items-center gap-3 mb-3">
+              <div className="h-px flex-1 bg-gray-300" />
+
+              <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                  Parámetros del reporte
+              </h2>
+
+              <div className="h-px flex-1 bg-gray-300" />
+          </div>
+
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            Seleccione la fecha inicial y fecha final para generar el reporte de asuntos
+          </h3>
 
           <div className="space-y-8">
 
@@ -656,7 +737,7 @@ export function ReporteAsuntos() {
                 </p>
 
                 <div>
-                  <label className="block mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Unidad Administrativa:
                   </label>
 
@@ -668,7 +749,20 @@ export function ReporteAsuntos() {
                         unidadAdministrativa: e.target.value
                       })
                     }
-                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white"
+                    className="
+                    w-full
+                    rounded-lg
+                    border
+                    border-gray-300
+                    px-3
+                    py-2.5
+                    bg-white
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                    "
                   >
                     <option value="">Seleccione una unidad</option>
                     <option value="direccion_general">Dirección General</option>
@@ -681,35 +775,90 @@ export function ReporteAsuntos() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-2xl">
-              <input
-                type="date"
-                value={form.fechaInicio}
-                onChange={(e) =>
-                  setForm({ ...form, fechaInicio: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded px-2 py-1"
-              />
+            <div className="flex justify-center ">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+                <div>
 
-              <input
-                type="date"
-                value={form.fechaFin}
-                onChange={(e) =>
-                  setForm({ ...form, fechaFin: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded px-2 py-1"
-              />
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Fecha inicial
+                  </label>
+                  
+                  <input
+                    type="date"
+                    value={form.fechaInicio}
+                    onChange={(e) =>
+                      setForm({ ...form, fechaInicio: e.target.value })
+                    }
+                    className="
+                    w-full
+                    rounded-lg
+                    border
+                    border-gray-300
+                    px-3
+                    py-2.5
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                    "
+                  />
+                </div>
+
+                <div> 
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Fecha final
+                  </label>
+
+                  <input
+                    type="date"
+                    value={form.fechaFin}
+                    onChange={(e) =>
+                      setForm({ ...form, fechaFin: e.target.value })
+                    }
+                    className="
+                    w-full
+                    rounded-lg
+                    border
+                    border-gray-300
+                    px-3
+                    py-2.5
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none
+                    "
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                  <div className="h-px flex-1 bg-gray-300" />
+
+                  <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                      ESTADOS DEL REPORTE
+                  </h2>
+
+                  <div className="h-px flex-1 bg-gray-300" />
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-5xl w-full">
               <Toggle label="Autorizados y turnados" checked={form.autorizadoYTurnado} onChange={() => handleToggle('autorizadoYTurnado')} />
               <Toggle label="Recibidos en ejecución" checked={form.Recibido} onChange={() => handleToggle('Recibido')} />
-                <Toggle label="Con respuesta registrada" checked={form.Concluido} onChange={() => handleToggle('Concluido')} />
+              <Toggle label="Con respuesta registrada" checked={form.Concluido} onChange={() => handleToggle('Concluido')} />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-5xl w-full">
               <Toggle label="Con atención validada" checked={form.Validado} onChange={() => handleToggle('Validado')} />
               <Toggle label="Cerrados" checked={form.cerrados} onChange={() => handleToggle('cerrados')} />
+              </div>
             </div>
 
           </div>
@@ -718,7 +867,19 @@ export function ReporteAsuntos() {
         <div className="flex flex-col sm:flex-row justify-center pt-6">
           <button
             onClick={handleSubmit}
-            className="w-full sm:w-auto bg-[#8B1538] text-white px-12 py-2 rounded hover:opacity-90 transition"
+            className="
+              bg-[#8B1538]
+              text-white
+              font-semibold
+              px-12
+              py-3.5
+              rounded-xl
+              shadow-md
+              hover:shadow-xl
+              hover:scale-105
+              transition-all
+              duration-200
+            "
           >
             Generar
           </button>
@@ -726,25 +887,28 @@ export function ReporteAsuntos() {
           <AnimatePresence>
             {mostrarVisorReporte && archivoReporte && (
               <motion.div
-                className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                  className="fixed inset-0 flex items-center justify-center z-[9999]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: .2 }}
+                  style={{ backgroundColor: "rgba(0,0,0,.4)" }}
               >
                 <motion.div
-                  className="bg-white w-[90%] h-[90%] rounded-lg overflow-hidden"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-white rounded shadow-lg w-[92%] h-[92%] relative"
+                    initial={{ opacity: 0, scale: .95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: .95, y: 20 }}
+                    transition={{ duration: .2 }}
                 >
                   <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
-                    <span>{archivoReporte.nombre}</span>
+                    <span >{archivoReporte.nombre}</span>
 
                     <button
                       onClick={() => setMostrarVisorReporte(false)}
-                      className="px-3 py-1 bg-white text-[#8B1538] rounded"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"
                     >
-                      Cerrar
+                      <Minus size={16} />
                     </button>
                   </div>
 

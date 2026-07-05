@@ -298,8 +298,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
 
   return (
     <header className="bg-white border-b border-[#60595D]-200 flex flex-col">
-      <div className="h-16 flex items-center justify-between px-6">
-        <div className="flex items-center gap-3">
+      <div className="min-h-16 flex flex-wrap items-center justify-between gap-2 px-3 sm:px-6 py-2">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onToggleSidebar}
             className="p-2 hover:bg-[#60595D]-100 rounded transition-colors"
@@ -312,17 +312,17 @@ export function Header({ onToggleSidebar, onGoHome }) {
             <img
               src={nayaritLogo}
               alt="Nayarit Secretaría de Educación"
-              className="h-12 mb-2"
+              className="h-8 sm:h-12 mb-1"
             />
           </button>
 
-          <h1 className="text-lg text-[#60595D]-800">
+          <h1 className="text-sm sm:text-lg text-[#60595D]-800 truncate">
             {isAdmin ? "Administración" : "Escritorio Virtual"}
           </h1>
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-sm text-[#60595D]-600 capitalize">
+          <span className="hidden md:block text-sm text-[#60595D]-600 capitalize">
             {currentDate}
           </span>
 
@@ -364,8 +364,21 @@ export function Header({ onToggleSidebar, onGoHome }) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute right-2 -mt-2 w-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-20 overflow-hidden"
-                  >
+                    className="
+                    fixed sm:absolute
+                    top-16 sm:top-auto
+                    right-2 left-2 sm:left-auto
+                    sm:w-80
+                    w-auto
+                    bg-white
+                    border
+                    border-gray-200
+                    rounded-2xl
+                    shadow-2xl
+                    z-20
+                    overflow-hidden
+                    "
+                    >
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
                       <div className="flex flex-col">
@@ -504,7 +517,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-2 text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded transition-colors"
+              className="flex items-center gap-2 text-xs sm:text-sm hover:bg-gray-100 px-2 sm:px-3 py-2 rounded transition-colors"
             >
               <User size={18} />
               <span>{usuario ? `${usuario.nombre || usuario.username}` : "Usuario"}</span>
@@ -543,7 +556,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
       </div>
 
       {/* FRANJA DECORATIVA */}
-      <div className="w-full h-[90px] overflow-hidden">
+      <div className="w-full h-[50px] sm:h-[90px] overflow-hidden">
         <img
           src="src/app/assets/images/personajenayarit2.jpg"
           alt="Decoración Nayarit"
@@ -571,7 +584,15 @@ export function Header({ onToggleSidebar, onGoHome }) {
 
             {/* MODAL */}
             <motion.div
-              className="relative bg-white w-full max-w-6xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl flex flex-col pt-6"
+              className="
+              relative
+              bg-white
+              w-full
+              max-w-6xl
+              h-[95vh]
+              sm:h-[85vh]
+              rounded-xl sm:rounded-2xl
+              "
               initial={{ scale: 0.9, y: 50, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 30, opacity: 0 }}
@@ -579,12 +600,12 @@ export function Header({ onToggleSidebar, onGoHome }) {
               onClick={(e) => e.stopPropagation()}
             >
               {/* HEADER */}
-              <div className="flex justify-between items-start px-6 pb-4 border-b shrink-0">
+              <div className="flex flex-col sm:flex-row justify-between gap-3 px-4 sm:px-6 pb-4 border-b">
                 <div className="flex flex-col">
                   <span className="text-xs uppercase tracking-wide text-gray-500 font-medium">
                     Documento desde notificación
                   </span>
-                  <h2 className="text-2xl font-bold text-[#8B1538] leading-tight">
+                  <h2 className="text-lg sm:text-2xl font-bold break-all">
                     Folio: {docNotifSeleccionado.folio || docNotifSeleccionado.docId || "Sin folio"}
                   </h2>
                 </div>
@@ -598,7 +619,16 @@ export function Header({ onToggleSidebar, onGoHome }) {
               </div>
 
               {/* TABS */}
-              <div className="flex border-b mb-1 text-sm overflow-x-auto">
+              <div className="
+                flex
+                border-b
+                mb-1
+                text-xs
+                sm:text-sm
+                overflow-x-auto
+                whitespace-nowrap
+                scrollbar-thin
+                ">
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
                   { id: "anexo", label: "Anexos" },
@@ -638,7 +668,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                       <div className="space-y-6">
                         <div>
                           <div className="flex items-center gap-4 mb-4">
-                            <div className="w-80">
+                           <div className="w-full sm:w-80">
                               <h2 className="text-sm font-semibold text-gray-600 mb-2">
                                 Ejercicio
                               </h2>
@@ -657,7 +687,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                             <h2 className="text-sm font-semibold text-gray-600 mb-2">
                               Datos específicos
                             </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                               <div>
                                 <label className="block text-gray-500 mb-1">
                                   Tipo de documento
@@ -706,7 +736,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           <h2 className="text-sm font-semibold text-gray-600 mb-2">
                             Datos generales
                           </h2>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                             <div>
                               <label className="block text-gray-500 mb-1">
                                 No. de documento
@@ -760,7 +790,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           <h2 className="text-sm font-semibold text-gray-600 mb-2">
                             Remitente
                           </h2>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                             <div>
                               <label className="block text-gray-500 mb-1">
                                 Tipo de remitente
@@ -804,7 +834,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           <h2 className="text-sm font-semibold text-gray-600 mb-2">
                             Información complementaria
                           </h2>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                             <div className="md:col-span-3">
                               <label className="block text-gray-500 mb-1">
                                 Síntesis del asunto
@@ -851,7 +881,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           />
                         </div>
 
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-lg border">
                           <table className="min-w-[700px] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
@@ -944,7 +974,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           />
                         </div>
 
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-lg border">
                           <table className="min-w-[600px] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
@@ -996,7 +1026,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                     {/* MATERIAL ADICIONAL */}
                     {tabActivaNotif === "materialAdicional" && (
                       <div className="space-y-4">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-lg border">
                           <table className="w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
@@ -1067,8 +1097,8 @@ export function Header({ onToggleSidebar, onGoHome }) {
                           />
                         </div>
 
-                        <div className="overflow-x-auto">
-                          <table className="min-w-[1000px] w-full text-xs border border-gray-200">
+                        <div className="overflow-x-auto rounded-lg border">
+                          <table className="min-w-[800px] lg:min-w-[1000px]] w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
                                 <th className="px-3 py-2 text-left">
@@ -1183,7 +1213,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                     {/* COPIAS */}
                     {tabActivaNotif === "copias" && (
                       <div className="space-y-4">
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto rounded-lg border">
                           <table className="w-full text-xs border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
                               <tr>
@@ -1288,11 +1318,19 @@ export function Header({ onToggleSidebar, onGoHome }) {
               </div>
 
               {/* FOOTER */}
-              <div className="border-t px-6 py-4 flex justify-end bg-gray-50 shrink-0">
+              <div className="border-t px-4 sm:px-6 py-4 flex justify-center sm:justify-end bg-gray-50 shrink-0">
                 <button
                   onClick={() => setMostrarModalNotifDoc(false)}
-                  className="bg-[#8B1538] hover:bg-[#74112F] text-white px-5 py-2.5 rounded-lg transition-all duration-200 shadow-sm text-sm"
-                >
+                  className="
+                  w-full sm:w-auto
+                  bg-[#8B1538]
+                  hover:bg-[#74112F]
+                  text-white
+                  px-5
+                  py-2.5
+                  rounded-lg
+                  "
+                  >
                   Cerrar
                 </button>
               </div>
@@ -1310,7 +1348,17 @@ export function Header({ onToggleSidebar, onGoHome }) {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+              className="
+            bg-white
+              w-[95%]
+              sm:w-[90%]
+              lg:w-[80%]
+              h-[90%]
+              rounded-lg
+              shadow-lg
+              p-2 sm:p-4
+              relative
+              "
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.8 }}

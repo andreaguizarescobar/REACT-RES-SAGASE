@@ -382,15 +382,29 @@ export function ModificaSalidaCorrespondencia() {
       <div className="bg-white p-6 rounded-b-md shadow-sm space-y-6 text-xs">
         {/* Buscador */}
         <div>
-          <label className="block mb-2 font-medium">
-            Criterio de búsqueda:
+          <label className="block text-sm font-medium text-gray-700">
+            Criterio de búsqueda
           </label>
 
           <textarea
             value={criterio}
             onChange={(e) => setCriterio(e.target.value)}
-            className="w-full border rounded px-2 py-2 resize-none"
-            rows={2}
+            placeholder="Ingrese folio, destinatario ..."
+            className="
+                w-full
+                rounded-lg
+                border
+                border-gray-300
+                px-3
+                py-2
+                text-sm
+                focus:border-[#8B1538]
+                focus:ring-2
+                focus:ring-[#8B1538]/20
+                outline-none
+                resize-none
+            "
+            rows={1}
           />
         </div>
 
