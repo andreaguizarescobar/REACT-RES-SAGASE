@@ -7,10 +7,16 @@ import {
 } from "recharts";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, Pencil, X, Minus } from "lucide-react";
-
+import { Minus, FileText, FileSpreadsheet } from "lucide-react";
 import { getDocuments } from "../../services/document.service";
 import { getAreas } from "../../services/catalogos.service";
+
+import jsPDF from "jspdf";
+import logoGobierno from "../../assets/images/nayaritLogo.png";
+import GothamRoundedBold from "../../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
 
 const fichasGestion = [
   { name: "Sin instrucciones", value: 0, color: "#9CA3AF" },
@@ -130,6 +136,9 @@ export function TableroControl() {
   const [estatusSeleccionado, setEstatusSeleccionado] = useState(null);
 
   const [documentoEditar, setDocumentoEditar] =useState(null);
+  const [mostrarVisorPDF, setMostrarVisorPDF] = useState(false);
+  const [archivoPDF, setArchivoPDF] = useState(null);
+
   const [documentos, setDocumentos] = useState([]);
   const [fichas, setFichasGestion] = useState(fichasGestion);
   const [Enviadas, setInstruccionesEnviadas] = useState(instruccionesEnviadas);
@@ -280,68 +289,306 @@ export function TableroControl() {
 
   const [tabActiva, setTabActiva] = useState("datosAsunto");
 
- const [menuContextual, setMenuContextual] = useState(null);
+//  const [menuContextual, setMenuContextual] = useState(null);
 
-  useEffect(() => {
-    const cerrarMenu = () => setMenuContextual(null);
-    window.addEventListener("click", cerrarMenu);
-    return () =>
-      window.removeEventListener("click", cerrarMenu);
-  }, []);
+//   useEffect(() => {
+//     const cerrarMenu = () => setMenuContextual(null);
+//     window.addEventListener("click", cerrarMenu);
+//     return () =>
+//       window.removeEventListener("click", cerrarMenu);
+//   }, []);
 
-  const handlePrint = () => {
-    window.print();
+
+  const generarNombreArchivo = () => {
+    const hoy = new Date();
+    const fecha =
+      String(hoy.getDate()).padStart(2, "0") +
+      "-" +
+      String(hoy.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      hoy.getFullYear();
+
+    const estatusArchivo = (estatusSeleccionado || "Documentos").replace(
+      /[^a-zA-Z0-9À-ÿ ]/g,
+      ""
+    ).trim().replace(/\s+/g, "_");
+
+    return `Documentos_${estatusArchivo}_${fecha}`;
   };
 
-  const descargarBitacora = () => {
-    window.print();
-  };
-  
-
-  const imprimirDoc = () => {
-    window.print();
-  };
-
-
-  const exportarExcelModal = () => {
+  const exportarExcel = () => {
     const datos = documentosFiltrados;
-  
+
     if (!datos.length) return;
-  
+
+    const nombreAutomatico = generarNombreArchivo();
+
     const encabezados = [
       "Folio",
       "No. Documento",
-      "Fecha",
-      "Síntesis",
-      "Remitente Interno",
-      "Remitente Externo",
+      "Fecha del documento",
+      "Síntesis del asunto",
+      "Remitente",
       "Estatus",
-      "Motivo"
     ];
-  
-    const filas = datos.map((doc) => [
-      doc.folio,
-      doc.numeroDocumento,
-      doc.fecha,
-      doc.sintesis,
-      doc.remitenteInterno,
-      doc.remitenteExterno,
-      doc.estatus,
-      doc.motivo
-    ]);
-  
-    let contenidoCSV =
-      encabezados.join(",") + "\n" +
-      filas.map((fila) => fila.join(",")).join("\n");
-  
-    const blob = new Blob(["\uFEFF" + contenidoCSV], {
-      type: "text/csv;charset=utf-8;"
+
+    const escaparCelda = (valor) =>
+      `"${String(valor ?? "").replace(/"/g, '""')}"`;
+
+    const filas = datos.map((doc) => {
+      const fechaDoc = doc.fechaDoc
+        ? new Date(doc.fechaDoc).toLocaleDateString("es-MX", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+        : "";
+
+      return [
+        doc.folio,
+        doc.docId,
+        fechaDoc,
+        doc.asunto,
+        doc.remitente?.name || "N/A",
+        doc.status,
+      ]
+        .map(escaparCelda)
+        .join(",");
     });
-  
+
+    const contenidoCSV = encabezados.join(",") + "\n" + filas.join("\n");
+
+    const blob = new Blob(["\uFEFF" + contenidoCSV], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Documentos_${estatusSeleccionado}.csv`;
+    link.download = `${nombreAutomatico}.csv`;
     link.click();
+  };
+
+  const exportarPDF = async () => {
+    const datos = documentosFiltrados;
+
+    if (!datos.length) return;
+
+    const nombreAutomatico = generarNombreArchivo();
+
+    const pdf = await generarReporteDocumentos(datos, nombreAutomatico);
+
+    setArchivoPDF(pdf);
+    setMostrarVisorPDF(true);
+  };
+
+  const generarReporteDocumentos = async (datos, nombreArchivo) => {
+    const doc = new jsPDF("p", "mm", "letter");
+
+    // =========================
+    // FUENTES
+    // =========================
+    doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+    doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+    doc.addFont(MontserratRegular, "Montserrat", "normal");
+    doc.addFont(MontserratBold, "Montserrat", "bold");
+
+    // =========================
+    // COLORES
+    // =========================
+    const COLORS = {
+      grisPrincipal: [96, 89, 93],
+      grisSecundario: [155, 157, 154],
+      blanco: [255, 255, 255],
+      negro: [0, 0, 0],
+    };
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const margin = 10;
+    const contentWidth = pageWidth - margin * 2;
+
+    const hoy = new Date();
+    const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(
+      hoy.getMonth() + 1
+    ).padStart(2, "0")}/${hoy.getFullYear()}`;
+
+    let y = 40;
+
+    // =========================
+    // HEADER (ESTILO SAGASE)
+    // =========================
+    const dibujarEncabezadoPagina = () => {
+      doc.setLineWidth(0.2);
+
+      doc.setFillColor(...COLORS.grisSecundario);
+      doc.rect(margin, 12, contentWidth, 18, "F");
+
+      doc.addImage(logoGobierno, "PNG", margin + 2, 12, 85, 18);
+
+      doc.setFillColor(...COLORS.grisPrincipal);
+      doc.roundedRect(pageWidth - 60, 17, 25, 8, 2, 2, "F");
+
+      doc.setFont("Montserrat", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.blanco);
+      doc.text("FECHA", pageWidth - 47, 22, { align: "center" });
+
+      doc.setTextColor(...COLORS.grisPrincipal);
+      doc.text(fechaHoy, pageWidth - 22, 22, { align: "center" });
+    };
+
+    dibujarEncabezadoPagina();
+
+    // =========================
+    // TITULO
+    // =========================
+    doc.setFont("GothamRounded", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text("REPORTE DE DOCUMENTOS", pageWidth / 2, y, { align: "center" });
+
+    y += 6;
+
+    doc.setFont("Montserrat", "normal");
+    doc.setFontSize(10);
+    doc.text(`Estatus: ${estatusSeleccionado}`, pageWidth / 2, y, {
+      align: "center",
+    });
+
+    y += 8;
+
+    // =========================
+    // TABLA
+    // =========================
+    const columnas = [
+      "FOLIO",
+      "NO. DOCUMENTO",
+      "FECHA",
+      "SÍNTESIS",
+      "REMITENTE",
+      "ESTATUS",
+    ];
+
+    const anchos = [22, 26, 22, 55, 38, 27];
+
+    const dibujarEncabezadoTabla = () => {
+      let x = margin;
+
+      columnas.forEach((titulo, i) => {
+        doc.setFillColor(...COLORS.grisPrincipal);
+        doc.rect(x, y, anchos[i], 10, "F");
+
+        doc.setFont("Montserrat", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.blanco);
+
+        doc.text(titulo, x + anchos[i] / 2, y + 6, { align: "center" });
+
+        x += anchos[i];
+      });
+
+      y += 10;
+    };
+
+    dibujarEncabezadoTabla();
+
+    let fila = 0;
+
+    // =========================
+    // DATA
+    // =========================
+    datos.forEach((docItem) => {
+      const fechaDoc = docItem.fechaDoc
+        ? new Date(docItem.fechaDoc).toLocaleDateString("es-MX", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          })
+        : "-";
+
+      const valores = [
+        docItem.folio || "-",
+        docItem.docId || "-",
+        fechaDoc,
+        docItem.asunto || "-",
+        docItem.remitente?.name || "N/A",
+        docItem.status || "-",
+      ];
+
+      const lineas = valores.map((v, i) =>
+        doc.splitTextToSize(String(v), anchos[i] - 3)
+      );
+
+      const maxLines = Math.max(...lineas.map((l) => l.length));
+      const rowHeight = Math.max(10, maxLines * 4 + 4);
+
+      if (y + rowHeight > pageHeight - 20) {
+        doc.addPage();
+        dibujarEncabezadoPagina();
+        y = 40;
+        dibujarEncabezadoTabla();
+      }
+
+      let x = margin;
+
+      lineas.forEach((l, i) => {
+        const fondo = fila % 2 === 0 ? [255, 255, 255] : [245, 245, 245];
+
+        doc.setFillColor(...fondo);
+        doc.rect(x, y, anchos[i], rowHeight, "F");
+
+        doc.setDrawColor(...COLORS.grisSecundario);
+        doc.rect(x, y, anchos[i], rowHeight);
+
+        doc.setFont("Montserrat", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.negro);
+
+        doc.text(l, x + 2, y + 5);
+
+        x += anchos[i];
+      });
+
+      y += rowHeight;
+      fila++;
+    });
+
+    // =========================
+    // FOOTER
+    // =========================
+    const footerY = pageHeight - 15;
+
+    doc.setDrawColor(...COLORS.grisPrincipal);
+    doc.line(margin, footerY, pageWidth - margin, footerY);
+
+    doc.setFont("Montserrat", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text(
+      "Sistema Automatizado de Gestión de Correspondencia",
+      pageWidth / 2,
+      footerY + 5,
+      { align: "center" }
+    );
+
+    // =========================
+    // DESCARGA
+    // =========================
+    const nombrePDF = `${nombreArchivo}.pdf`;
+
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    doc.save(nombrePDF);
+
+    return {
+      url: pdfUrl,
+      nombre: nombrePDF,
+    };
   };
 
   const [busquedaVerTurnos, setBusquedaVerTurnos] = useState("");
@@ -379,6 +626,611 @@ export function TableroControl() {
       .toLowerCase()
       .includes(busquedaVerTurnos.toLowerCase())
   );
+
+  const descargarBitacora = async () => {
+  const doc = new jsPDF("p", "mm", "letter");
+
+  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+  doc.addFont(MontserratRegular, "Montserrat", "normal");
+  doc.addFont(MontserratBold, "Montserrat", "bold");
+
+  const COLORS = {
+    grisPrincipal: [96, 89, 93],
+    grisSecundario: [155, 157, 154],
+    blanco: [255, 255, 255],
+    negro: [0, 0, 0],
+  };
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+
+  const hoy = new Date();
+
+  const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(
+    hoy.getMonth() + 1
+  ).padStart(2, "0")}/${hoy.getFullYear()}`;
+
+  let y = 40;
+
+  // HEADER
+  const dibujarHeader = () => {
+    doc.setFillColor(...COLORS.grisSecundario);
+    doc.rect(margin, 12, contentWidth, 18, "F");
+
+    doc.addImage(
+      logoGobierno,
+      "PNG",
+      margin + 2,
+      12,
+      85,
+      18
+    );
+
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.roundedRect(
+      pageWidth - 60,
+      17,
+      25,
+      8,
+      2,
+      2,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      "FECHA",
+      pageWidth - 47,
+      22,
+      { align: "center" }
+    );
+
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text(
+      fechaHoy,
+      pageWidth - 22,
+      22,
+      { align: "center" }
+    );
+  };
+
+  dibujarHeader();
+
+  // TITULO
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...COLORS.grisPrincipal);
+
+  doc.text(
+    "REPORTE DE BITÁCORA",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 10;
+
+  // TABLA
+  const columnas = [
+    "USUARIO",
+    "DESCRIPCIÓN",
+    "FECHA",
+    "HORA",
+  ];
+
+  const anchos = [40, 90, 30, 25];
+
+  let x = margin;
+
+  columnas.forEach((titulo, i) => {
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      10,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      titulo,
+      x + anchos[i] / 2,
+      y + 6,
+      {
+        align: "center",
+      }
+    );
+
+    x += anchos[i];
+  });
+
+  y += 10;
+
+  // MOVIMIENTOS
+  bitacora.forEach((mov, index) => {
+    const valores = [
+      mov.user?.nombre || "-",
+      mov.descripcion || "-",
+      mov.fecha || "-",
+      mov.hora || "-",
+    ];
+
+    const lineas = valores.map((v, i) =>
+      doc.splitTextToSize(
+        String(v),
+        anchos[i] - 4
+      )
+    );
+
+    const maxLineas = Math.max(
+      ...lineas.map((l) => l.length)
+    );
+
+    const altoFila = Math.max(
+      10,
+      maxLineas * 4 + 4
+    );
+
+    if (y + altoFila > pageHeight - 20) {
+      doc.addPage();
+
+      dibujarHeader();
+
+      y = 40;
+
+      let xx = margin;
+
+      columnas.forEach((titulo, i) => {
+        doc.setFillColor(
+          ...COLORS.grisPrincipal
+        );
+
+        doc.rect(
+          xx,
+          y,
+          anchos[i],
+          10,
+          "F"
+        );
+
+        doc.setTextColor(
+          ...COLORS.blanco
+        );
+
+        doc.text(
+          titulo,
+          xx + anchos[i] / 2,
+          y + 6,
+          {
+            align: "center",
+          }
+        );
+
+        xx += anchos[i];
+      });
+
+      y += 10;
+    }
+
+    let xx = margin;
+
+    lineas.forEach((texto, i) => {
+      const fondo =
+        index % 2 === 0
+          ? [255, 255, 255]
+          : [245, 245, 245];
+
+      doc.setFillColor(...fondo);
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila,
+        "F"
+      );
+
+      doc.setDrawColor(
+        ...COLORS.grisSecundario
+      );
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila
+      );
+
+      doc.setFont(
+        "Montserrat",
+        "normal"
+      );
+
+      doc.setFontSize(9);
+
+      doc.setTextColor(
+        ...COLORS.negro
+      );
+
+      doc.text(
+        texto,
+        xx + 2,
+        y + 5
+      );
+
+      xx += anchos[i];
+    });
+
+    y += altoFila;
+  });
+
+  // FOOTER
+  const footerY = pageHeight - 15;
+
+  doc.setDrawColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.line(
+    margin,
+    footerY,
+    pageWidth - margin,
+    footerY
+  );
+
+  doc.setFont(
+    "Montserrat",
+    "normal"
+  );
+
+  doc.setFontSize(8);
+
+  doc.setTextColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.text(
+    "Sistema Automatizado de Gestión de Correspondencia",
+    pageWidth / 2,
+    footerY + 5,
+    {
+      align: "center",
+    }
+  );
+
+  doc.save(
+    `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`
+  );
+  };
+
+  const generarBitacoraPDF = async () => {
+    const doc = new jsPDF("p", "mm", "letter");
+
+  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+  doc.addFont(MontserratRegular, "Montserrat", "normal");
+  doc.addFont(MontserratBold, "Montserrat", "bold");
+
+  const COLORS = {
+    grisPrincipal: [96, 89, 93],
+    grisSecundario: [155, 157, 154],
+    blanco: [255, 255, 255],
+    negro: [0, 0, 0],
+  };
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+
+  const hoy = new Date();
+
+  const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(
+    hoy.getMonth() + 1
+  ).padStart(2, "0")}/${hoy.getFullYear()}`;
+
+  let y = 40;
+
+  // HEADER
+  const dibujarHeader = () => {
+    doc.setFillColor(...COLORS.grisSecundario);
+    doc.rect(margin, 12, contentWidth, 18, "F");
+
+    doc.addImage(
+      logoGobierno,
+      "PNG",
+      margin + 2,
+      12,
+      85,
+      18
+    );
+
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.roundedRect(
+      pageWidth - 60,
+      17,
+      25,
+      8,
+      2,
+      2,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      "FECHA",
+      pageWidth - 47,
+      22,
+      { align: "center" }
+    );
+
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text(
+      fechaHoy,
+      pageWidth - 22,
+      22,
+      { align: "center" }
+    );
+  };
+
+  dibujarHeader();
+
+  // TITULO
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...COLORS.grisPrincipal);
+
+  doc.text(
+    "REPORTE DE BITÁCORA",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 10;
+
+  // TABLA
+  const columnas = [
+    "USUARIO",
+    "DESCRIPCIÓN",
+    "FECHA",
+    "HORA",
+  ];
+
+  const anchos = [40, 90, 30, 25];
+
+  let x = margin;
+
+  columnas.forEach((titulo, i) => {
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      10,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      titulo,
+      x + anchos[i] / 2,
+      y + 6,
+      {
+        align: "center",
+      }
+    );
+
+    x += anchos[i];
+  });
+
+  y += 10;
+
+  // MOVIMIENTOS
+  bitacora.forEach((mov, index) => {
+    const valores = [
+      mov.user?.nombre || "-",
+      mov.descripcion || "-",
+      mov.fecha || "-",
+      mov.hora || "-",
+    ];
+
+    const lineas = valores.map((v, i) =>
+      doc.splitTextToSize(
+        String(v),
+        anchos[i] - 4
+      )
+    );
+
+    const maxLineas = Math.max(
+      ...lineas.map((l) => l.length)
+    );
+
+    const altoFila = Math.max(
+      10,
+      maxLineas * 4 + 4
+    );
+
+    if (y + altoFila > pageHeight - 20) {
+      doc.addPage();
+
+      dibujarHeader();
+
+      y = 40;
+
+      let xx = margin;
+
+      columnas.forEach((titulo, i) => {
+        doc.setFillColor(
+          ...COLORS.grisPrincipal
+        );
+
+        doc.rect(
+          xx,
+          y,
+          anchos[i],
+          10,
+          "F"
+        );
+
+        doc.setTextColor(
+          ...COLORS.blanco
+        );
+
+        doc.text(
+          titulo,
+          xx + anchos[i] / 2,
+          y + 6,
+          {
+            align: "center",
+          }
+        );
+
+        xx += anchos[i];
+      });
+
+      y += 10;
+    }
+
+    let xx = margin;
+
+    lineas.forEach((texto, i) => {
+      const fondo =
+        index % 2 === 0
+          ? [255, 255, 255]
+          : [245, 245, 245];
+
+      doc.setFillColor(...fondo);
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila,
+        "F"
+      );
+
+      doc.setDrawColor(
+        ...COLORS.grisSecundario
+      );
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila
+      );
+
+      doc.setFont(
+        "Montserrat",
+        "normal"
+      );
+
+      doc.setFontSize(9);
+
+      doc.setTextColor(
+        ...COLORS.negro
+      );
+
+      doc.text(
+        texto,
+        xx + 2,
+        y + 5
+      );
+
+      xx += anchos[i];
+    });
+
+    y += altoFila;
+  });
+
+  // FOOTER
+  const footerY = pageHeight - 15;
+
+  doc.setDrawColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.line(
+    margin,
+    footerY,
+    pageWidth - margin,
+    footerY
+  );
+
+  doc.setFont(
+    "Montserrat",
+    "normal"
+  );
+
+  doc.setFontSize(8);
+
+  doc.setTextColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.text(
+    "Sistema Automatizado de Gestión de Correspondencia",
+    pageWidth / 2,
+    footerY + 5,
+    {
+      align: "center",
+    }
+  );
+
+  doc.save(
+    `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`
+  );
+
+
+    const blob = doc.output("blob");
+
+    return {
+      blob,
+      url: URL.createObjectURL(blob),
+      nombre: `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`,
+    };
+  };
+
+  const [pdfBitacora, setPdfBitacora] = useState(null);
+
+  useEffect(() => {
+
+    const cargarPreview = async () => {
+      const pdf = await generarBitacoraPDF();
+      setPdfBitacora(pdf.url);
+    };
+
+    if (tabActiva === "bitacora") {
+      cargarPreview();
+    }
+  }, [tabActiva, bitacora]);
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
@@ -459,149 +1311,205 @@ export function TableroControl() {
 
           {/* Ventana */}
           <motion.div
-            className="relative bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[80vh] overflow-y-auto p-6 print:shadow-none print:max-h-none print:w-full"
+            className="relative bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[85vh] flex flex-col overflow-hidden print:shadow-none print:max-h-none print:w-full"
             initial={{ scale: 0.9, y: 40, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 40, opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
-              {" "}
-              <h3 className="text-xl font-semibold text-[#8B1538]">
-                Documentos en estatus: {estatusSeleccionado}
-              </h3>
-              <button
-                onClick={() => setEstatusSeleccionado(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
-              >
-                <Minus size={14} />
-              </button>
-
-            </div>
-
-            <div className="flex justify-start gap-3 mb-4 no-print">
-              <button
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm shadow"
-                  onClick={imprimirDoc}
-                >
-                Exportar PDF
-              </button>
-
-              <button
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm shadow"
-                  onClick={exportarExcelModal}              
-                >
-                Exportar Excel
-              </button>
-            </div>
-
-            <div ref={tablaModalRef} className="zona-tabla-modal overflow-x-auto print-area">
-              {/* Título visible solo en impresión */}
-              <div className="hidden print:block mb-6 text-center">
-                <h1 className="text-2xl font-bold text-[#8B1538] mb-2">
-                  SAGASE-INTERFACES - Figma Make
-                </h1>
-                <h2 className="text-lg font-semibold text-gray-700">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b bg-gray-50 shrink-0">
+              <div>
+                <h3 className="text-xl font-semibold text-[#8B1538]">
                   Documentos en estatus: {estatusSeleccionado}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Fecha de impresión: {new Date().toLocaleString('es-MX', { 
-                    year: 'numeric', 
-                    month: '2-digit', 
-                    day: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {documentosFiltrados.length}{" "}
+                  {documentosFiltrados.length === 1
+                    ? "documento encontrado"
+                    : "documentos encontrados"}
                 </p>
               </div>
+              <button
+                onClick={() => setEstatusSeleccionado(null)}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90 shrink-0"
+              >
+                <Minus size={18} />
+              </button>
+            </div>
 
-              <table className="w-full text-sm border border-gray-200 tabla-documentos">
-                <thead className="bg-[#8B1538] text-white">
-                  <tr>
-                    <th className="px-3 py-2 text-left">
-                      Folio
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      No. de Documento
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Fecha del documento
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Síntesis del asunto
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Remitente
-                    </th>
-                    <th className="px-3 py-2 text-left">
-                      Estatus
-                    </th>
-                  </tr>
-                </thead>
+            {/* Botones de exportación */}
+            <AnimatePresence>
+              {documentosFiltrados.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex justify-start gap-3 px-6 pt-4 no-print shrink-0"
+                >
+                  <button
+                    onClick={exportarPDF}
+                    className="
+                        flex
+                        items-center
+                        gap-2
+                        px-5
+                        h-11
+                        rounded-xl
+                        bg-[#8B1538]
+                        text-white
+                        font-medium
+                        shadow-md
+                        hover:shadow-lg
+                        hover:scale-105
+                        transition-all
+                        duration-200
+                    "
+                  >
+                    <FileText size={18} />
+                    Exportar PDF
+                  </button>
 
-                <tbody>
-                  {documentosFiltrados.length > 0 ? (
-                    documentosFiltrados.map((doc, index) => (
-                      <tr
-                        key={index}
-                        className="border-t hover:bg-gray-50 cursor-context-menu"
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setMenuContextual({
-                            x: Math.min(
-                              e.pageX,
-                              window.innerWidth - 180,
-                            ),
-                            y: Math.min(
-                              e.pageY,
-                              window.innerHeight - 100,
-                            ),
-                            documento: doc,
-                          });
-                        }}
-                      >
-                        <td className="px-3 py-2">
-                          {doc.folio}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.docId}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.fechaDoc
-                            ? new Date(doc.fechaDoc).toLocaleDateString(
-                                "es-MX",
-                                {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit'
-                                }
-                              )
-                            : ''}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.asunto}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.remitente.name || "N/A"}
-                        </td>
-                        <td className="px-3 py-2">
-                          {doc.status}
+                  <button
+                    onClick={exportarExcel}
+                    className="
+                        flex
+                        items-center
+                        gap-2
+                        px-5
+                        h-11
+                        rounded-xl
+                        bg-emerald-600
+                        text-white
+                        font-medium
+                        shadow-md
+                        hover:bg-emerald-700
+                        hover:shadow-lg
+                        hover:scale-105
+                        transition-all
+                        duration-200
+                    "
+                  >
+                    <FileSpreadsheet size={18} />
+                    Exportar Excel
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div
+                ref={tablaModalRef}
+                className="zona-tabla-modal overflow-x-auto print-area rounded-xl border border-gray-200"
+              >
+                {/* Título visible solo en impresión */}
+                <div className="hidden print:block mb-6 text-center">
+                  <h1 className="text-2xl font-bold text-[#8B1538] mb-2">
+                    SAGASE-INTERFACES - Figma Make
+                  </h1>
+                  <h2 className="text-lg font-semibold text-gray-700">
+                    Documentos en estatus: {estatusSeleccionado}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Fecha de impresión: {new Date().toLocaleString('es-MX', { 
+                      year: 'numeric', 
+                      month: '2-digit', 
+                      day: '2-digit', 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </p>
+                </div>
+
+                <table className="min-w-full text-xs tabla-documentos">
+                  <thead className="bg-[#79142A] text-white">
+                    <tr>
+                      <th className="px-3 py-2 text-left">
+                        Folio
+                      </th>
+                      <th className="px-3 py-2 text-left">
+                        No. de Documento
+                      </th>
+                      <th className="px-3 py-2 text-left">
+                        Fecha del documento
+                      </th>
+                      <th className="px-3 py-2 text-left">
+                        Síntesis del asunto
+                      </th>
+                      <th className="px-3 py-2 text-left">
+                        Remitente
+                      </th>
+                      <th className="px-3 py-2 text-left">
+                        Estatus
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {documentosPaginados.length > 0 ? (
+                      documentosPaginados.map((doc, index) => (
+                        <tr
+                          key={index}
+                          className="border-t hover:bg-gray-100 cursor-context-menu"
+                          // onContextMenu={(e) => {
+                          //   e.preventDefault();
+                          //   setMenuContextual({
+                          //     x: Math.min(
+                          //       e.pageX,
+                          //       window.innerWidth - 180,
+                          //     ),
+                          //     y: Math.min(
+                          //       e.pageY,
+                          //       window.innerHeight - 100,
+                          //     ),
+                          //     documento: doc,
+                          //   });
+                          // }}
+                        >
+                          <td className="px-3 py-2">
+                            {doc.folio}
+                          </td>
+                          <td className="px-3 py-2">
+                            {doc.docId}
+                          </td>
+                          <td className="px-3 py-2">
+                            {doc.fechaDoc
+                              ? new Date(doc.fechaDoc).toLocaleDateString(
+                                  "es-MX",
+                                  {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit'
+                                  }
+                                )
+                              : ''}
+                          </td>
+                          <td className="px-3 py-2">
+                            {doc.asunto}
+                          </td>
+                          <td className="px-3 py-2">
+                            {doc.remitente?.name || "N/A"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {doc.status}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="text-center py-4 text-gray-500"
+                        >
+                          No hay documentos en este estatus
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="text-center py-4 text-gray-500"
-                      >
-                        No hay documentos en este estatus
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              {menuContextual && (
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {/* {menuContextual && (
                 <div
                   className="fixed bg-white shadow-lg rounded-lg border text-sm z-50"
                   style={{
@@ -623,7 +1531,7 @@ export function TableroControl() {
                   
 
                 </div>
-              )}
+              )} */}
               {/* PAGINACIÓN */}
               {totalPaginas > 1 && (
                 <div className="flex justify-start items-center gap-2 mt-4 text-sm">
@@ -667,848 +1575,45 @@ export function TableroControl() {
               )}
             </div>
 
-            
-          <AnimatePresence>
-            {documentoSeleccionado && (
-              <motion.div
-                className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-y-auto"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {/* Fondo oscuro */}
-                <motion.div
-                    className="absolute inset-0 bg-black/40"
-                    onClick={() => setDocumentoSeleccionado(null)}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-
-                {/* Contenido del modal */}
-                <motion.div
-                  className="relative bg-white w-full max-w-6xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl flex flex-col pt-6"
-                  initial={{ scale: 0.95, y: 50, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.95, y: 50, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                >
-
-                  {/* Header */}
-                  <div className="flex justify-between items-center px-6 pb-4 border-b shrink-0">
-                    <h2 className="text-xl font-bold text-[#8B1538]">
-                      Documento {documentoSeleccionado.folio}
-                    </h2>
-
-                    <button
-                      onClick={() =>
-                        setDocumentoSeleccionado(null)
-                      }
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
-                    >
-                        <Minus size={14} />
-                    </button>
-                  </div>
-
-                  {/* Tabs */}
-                  <div className="flex border-b mb-1 text-sm overflow-x-auto">
-                    {[
-                      {
-                        id: "datosAsunto",
-                        label: "Datos del registro",
-                      },
-                      {
-                        id: "anexo",
-                        label: "Anexos",
-                      },
-                      {
-                        id: "materialAdicional",
-                        label: "Material adicional",
-                      },
-                      {
-                        id: "verTurnos",
-                        label: "Ver todos los turnos",
-                      },
-                      {
-                        id: "copias",
-                        label: "Copias de conocimiento",
-                      },
-                      { id: "bitacora", label: "Bitácora" },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setTabActiva(tab.id)}
-                        className={`px-4 py-2 whitespace-nowrap ${
-                          tabActiva === tab.id
-                            ? "border-b-2 border-[#8B1538] text-[#8B1538] font-semibold"
-                            : "text-gray-600"
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* CONTENIDO */}
-                  <div className="flex-1 overflow-y-auto p-4">
-                    {tabActiva === "datosAsunto" && (
-                      <div className="space-y-6">
-                        {/* DATOS GENERALES */}
-                        <div>
-
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-80">
-                            <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
-                            <select name="ejercicio"className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
-                              <option value="">Seleccionar</option>
-                              <option value="2024">2024</option>
-                              <option value="2025">2025</option>
-                              <option value="2026">2026</option>
-                            </select>
-                          </div>
-                        </div>
-
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-                            Datos generales
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                No. de documento*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.folio
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Fecha de documento*
-                              </label>
-                              <input
-                                type="date"
-                                value={
-                                  documentoSeleccionado.fechaDocumento ||
-                                  documentoSeleccionado.fecha
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Fecha de recibido*
-                              </label>
-                              <input
-                                type="date"
-                                value={
-                                  documentoSeleccionado.fechaAcuse ||
-                                  documentoSeleccionado.fecha
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Fecha registro*
-                              </label>
-                              <input
-                                type="date"
-                                value={
-                                  documentoSeleccionado.fechaInformado ||
-                                  documentoSeleccionado.fecha
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* REMITENTE */}
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-                            Remitente
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Tipo de remitente*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.tipoRemitente ||
-                                  "Interno"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Remitente interno*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.remitenteInterno
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                          </div>
-                        </div>
-
-                        {/* DATOS ESPECÍFICOS */}
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-                            Datos específicos
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Tipo de documento*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.tipoDocumento ||
-                                  "Oficio"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Alta de tipo de documento
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.altaTipoDocumento
-                                    ? "Sí"
-                                    : "No"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Anexos
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.anexo ||
-                                  "No"
-                                
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Asunto*
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.asunto ||
-                                  "Administrativo"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Tema secundario
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.temaSecundario ||
-                                  ""
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-gray-500 mb-1">
-                                Material adicional
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.materialAdicional ? "Sí" : "No"
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                    
-                            <div className="md:col-span-3">
-                              <label className="block text-gray-500 mb-1">
-                                Síntesis del asunto*
-                              </label>
-                              <textarea
-                                value={
-                                  documentoSeleccionado.sintesis
-                                }
-                                disabled
-                                rows={3}
-                                className="w-full border border-gray-300 rounded px-2 py-2 bg-gray-50 text-gray-700 resize-none"
-                              />
-                            </div>
-
-                            <div className="md:col-span-3">
-                              <label className="block text-gray-500 mb-1">
-                                Observaciones
-                              </label>
-                              <input
-                                value={
-                                  documentoSeleccionado.observaciones ||
-                                  ""
-                                }
-                                disabled
-                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
-                              />
-                            </div>
-
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                   
-                    {tabActiva === "anexo" && (
-                      <div className="space-y-4">
-                        {/* Tabla de anexos */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">
-                                  Documento anexo
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Registrador del anexo
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Nombre del documento
-                                </th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {/* Simulación de anexos */}
-                              {[
-                                {
-                                  registrador:
-                                    "Víctor Manuel Enríquez Paniagua",
-                                  nombre:
-                                    "GUARDIA NACIONAL.pdf",
-                                },
-                                {
-                                  registrador:
-                                    "María Verónica Leal Camarena",
-                                  nombre:
-                                    "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
-                                },
-                                {
-                                  registrador:
-                                    "Víctor Manuel Enríquez Paniagua",
-                                  nombre:
-                                    "Ficha de Gestión Instrucción Distribuir los materiales.pdf",
-                                },
-                              ].map((anexo, index) => (
-                                <tr
-                                  key={index}
-                                  className="border-t hover:bg-gray-50"
-                                >
-                                  <td className="px-4 py-2">
-                                    <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs">
-                                      Ver Archivo
-                                    </button>
-                                  </td>
-
-                                  <td className="px-4 py-2 text-gray-700">
-                                    {anexo.registrador}
-                                  </td>
-
-                                  <td className="px-4 py-2 text-gray-700">
-                                    {anexo.nombre}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Paginación estilo pequeño */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <div className="flex gap-2">
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &lt;
-                            </button>
-                            <button className="px-2 py-1 border rounded bg-gray-100">
-                              1
-                            </button>
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &gt;
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {tabActiva === "materialAdicional" && (
-                      <div className="space-y-4">
-                        
-                        {/* Tabla */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">
-                                  Tipo de material
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Descripción
-                                </th>
-                                <th className="px-4 py-2 text-left">
-                                  Registrador
-                                </th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {/* Solo un material por registro */}
-                              <tr className="border-t hover:bg-gray-50">
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.materialAdicionalTipo || "CD"}
-                                </td>
-
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.materialAdicionalDescripcion || "Contiene información digital del asunto"}
-                                </td>
-
-                                <td className="px-4 py-2 text-gray-700">
-                                  {documentoSeleccionado?.registradorMaterial || "Víctor Manuel Enríquez Paniagua"}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Mensaje cuando no hay material */}
-                        {!documentoSeleccionado?.materialAdicional && (
-                          <div className="text-center text-gray-500 text-sm py-4">
-                            Este documento no cuenta con material adicional.
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {tabActiva === "verTurnos" && (
-                      <div className="space-y-4">
-                        <div className="overflow-x-auto">
-                          <div className="mb-3">
-                            <input
-                              type="text"
-                              placeholder="Buscar en turnos..."
-                              value={busquedaVerTurnos}
-                              onChange={(e) => setBusquedaVerTurnos(e.target.value)}
-                              className="w-full md:w-1/3 border border-gray-300 rounded px-3 py-2 text-sm"
-                            />
-                          </div>
-                          <table className="min-w-[1200px] w-full text-xs border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-3 py-2 text-left">
-                                  Instrucción
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Funcionario que turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Área de destino
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Prioridad
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Fecha compromiso
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Área que turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Quién lo turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Estatus
-                                </th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {turnosVerFiltrados.length > 0 ? (
-                                turnosVerFiltrados.map((turno, index) => (
-                                  <tr
-                                    key={index}
-                                    className="border-t hover:bg-gray-50"
-                                  >
-                                    <td className="px-3 py-2">{turno.instruccion}</td>
-                                    <td className="px-3 py-2">{turno.funcionario}</td>
-                                    <td className="px-3 py-2">{turno.areaDestino}</td>
-                                    <td className="px-3 py-2">{turno.prioridad}</td>
-                                    <td className="px-3 py-2">{turno.fecha}</td>
-                                    <td className="px-3 py-2">{turno.areaTurna}</td>
-                                    <td className="px-3 py-2">{turno.quienTurna}</td>
-                                    <td className="px-3 py-2 font-medium">
-                                      {turno.estatus}
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td
-                                    colSpan={8}
-                                    className="text-center py-4 text-gray-400"
-                                  >
-                                    Sin datos en la tabla.
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Paginación pequeña inferior */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <div className="flex gap-2">
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &lt;
-                            </button>
-                            <button className="px-2 py-1 border rounded bg-gray-100">
-                              1
-                            </button>
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &gt;
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {tabActiva === "copias" && (
-                      <div className="space-y-4">
-                        {/* TABLA */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">
-                                  Funcionario
-                                </th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {[
-                                "Víctor Manuel Enríquez Paniagua",
-                                "María Verónica Leal Camarena",
-                                "Guillermo Bonilla Tenorio",
-                                "Dirección de Administración",
-                                "Unidad de Correspondencia",
-                                "Órgano Interno de Control",
-                              ].map((funcionario, index) => (
-                                <tr
-                                  key={index}
-                                  className="border-t hover:bg-gray-50"
-                                >
-                                  <td className="px-4 py-2 text-gray-700">
-                                    {funcionario}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* PAGINACIÓN */}
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <div className="flex gap-2">
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &lt;
-                            </button>
-
-                            <button className="px-2 py-1 border rounded bg-[#8B1538] text-white">
-                              1
-                            </button>
-
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &gt;
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {tabActiva === "bitacora" && (
-                      <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
-                        <div className="w-full max-w-4xl">
-                    
-                          {/* Barra visor */}
-                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
-                    
-                            <div className="flex items-center gap-3">
-                              <button onClick={descargarBitacora}
-                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
-                                 ⬇ Descargar
-                              </button>
-                              <button
-                                onClick={handlePrint}
-                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
-                              >
-                                 🖨 Imprimir Bitácora
-                              </button>
-                            </div>
-                    
-                            <div className="flex items-center gap-3 text-sm">
-                              <button className="px-2">◀</button>
-                              <span>Página 1 de 2</span>
-                              <button className="px-2">▶</button>
-                            </div>
-                    
-                            <div className="flex items-center gap-2">
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
-                            </div>
-                          </div>
-                    
-                          {/* Hoja */}
-                          <div ref={bitacoraRef} className="zona-impresion">
-                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
-                      
-                              <div className="text-center py-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                  Bitácora
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Folio: {documentoSeleccionado?.folio}
-                                </p>
-                              </div>
-                      
-                              <div className="p-6 space-y-4">
-                      
-                                {bitacora.length ? (
-                                  bitacora.map((movimiento, index) => {
-                                    const esPrincipal =
-                                      movimiento.tipo === "registro" ||
-                                      movimiento.tipo === "turnado" ||
-                                      movimiento.tipo === "autorizado";
-                      
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
-                                        ${esPrincipal
-                                          ? "bg-[#79142A] text-white"
-                                          : "bg-[#CDB19C] text-gray-800"
-                                        }`}
-                                      >
-                                        <div>
-                                          <p className="font-semibold">
-                                            {movimiento.usuario}
-                                          </p>
-                      
-                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
-                                            {movimiento.descripcion}
-                                          </p>
-                                        </div>
-                      
-                                        <div className="text-right text-xs whitespace-nowrap">
-                                          <p>{movimiento.fecha}</p>
-                                          <p>{movimiento.hora}</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="text-center text-gray-500 text-sm">
-                                    No hay movimientos registrados.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
- 
-                          </div>
-                    
-                        </div>
-                      </div>
-                    )}
-     
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-           </AnimatePresence>
-
-          <AnimatePresence>
-            {documentoEditar && (
-              <motion.div
-                className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {/* Fondo oscuro */}
-                <motion.div
-                  className="absolute inset-0 bg-black/40"
-                  onClick={() => setDocumentoEditar(null)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                />
-            
-                {/* Modal de edición */}
-                <motion.div
-                  className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
-                  initial={{ scale: 0.9, y: 40, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.9, y: 40, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                >
-
-                  {/* Header */}
-                  <div className="flex justify-between items-center border-b pb-4 mb-6">
-                    <h2 className="text-xl font-bold text-[#8B1538]">
-                      Modificación de registro
-                    </h2>
-            
-                    <button
-                      onClick={() => setDocumentoEditar(null)}
-                      className="w-6 h-6 flex items-center justify-center rounded-full bg-[#8B1538] text-white hover:opacity-90"
-                    >
-                        <Minus size={14} />
-                    </button>
-                  </div>
-            
-                  {/* FORMULARIO EDITABLE */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            
-                    <div>
-                      <label className="block text-gray-500 mb-1">
-                        Folio
-                      </label>
-                      <input
-                        value={documentoEditar.folio}
-                        disabled
-                        className="w-full border border-gray-300 rounded px-2 py-2 bg-gray-50"
-                      />
-                    </div>
-            
-                    <div>
-                      <label className="block text-gray-500 mb-1">
-                        No. Documento
-                      </label>
-                      <input
-                        value={documentoEditar.numeroDocumento}
-                        onChange={(e) =>
-                          setDocumentoEditar({
-                            ...documentoEditar,
-                            numeroDocumento: e.target.value,
-                          })
-                        }
-                        className="w-full border border-gray-300 rounded px-2 py-2"
-                      />
-                    </div>
-            
-                    <div className="md:col-span-2">
-                      <label className="block text-gray-500 mb-1">
-                        Síntesis
-                      </label>
-                      <textarea
-                        value={documentoEditar.sintesis}
-                        onChange={(e) =>
-                          setDocumentoEditar({
-                            ...documentoEditar,
-                            sintesis: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="w-full border border-gray-300 rounded px-2 py-2"
-                      />
-                    </div>
-            
-                    <div>
-                      <label className="block text-gray-500 mb-1">
-                        Estatus
-                      </label>
-                      <input
-                        value={documentoEditar.estatus}
-                        onChange={(e) =>
-                          setDocumentoEditar({
-                            ...documentoEditar,
-                            estatus: e.target.value,
-                          })
-                        }
-                        className="w-full border border-gray-300 rounded px-2 py-2"
-                      />
-                    </div>
-            
-                    <div>
-                      <label className="block text-gray-500 mb-1">
-                        Motivo
-                      </label>
-                      <input
-                        value={documentoEditar.motivo}
-                        onChange={(e) =>
-                          setDocumentoEditar({
-                            ...documentoEditar,
-                            motivo: e.target.value,
-                          })
-                        }
-                        className="w-full border border-gray-300 rounded px-2 py-2"
-                      />
-                    </div>
-            
-                  </div>
-            
-                  {/* Botón actualizar */}
-                  <div className="flex justify-end mt-6">
-                    <button
-                      onClick={() => {
-                        setDocumentoEditar(null);
-                      }}
-                      className="bg-[#8B1538] text-white px-6 py-2 rounded-lg hover:opacity-90"
-                    >
-                      Actualizar
-                    </button>
-                  </div>
-            
-                </motion.div>
-              </motion.div>
-            )}
-           </AnimatePresence>
           </motion.div>
         </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* Visor de PDF generado */}
+      <AnimatePresence>
+        {mostrarVisorPDF && archivoPDF && (
+          <motion.div
+            className="fixed inset-0 z-[999] bg-black/60 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white w-[90%] h-[90%] rounded-lg overflow-hidden"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+            >
+              <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
+                <span>{archivoPDF.nombre}</span>
+
+                <button
+                  onClick={() => setMostrarVisorPDF(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"
+                >
+                  <Minus size={14} />
+                </button>
+              </div>
+
+              <iframe
+                src={archivoPDF.url}
+                className="w-full h-[calc(100%-56px)]"
+                title="PDF"
+              />
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
