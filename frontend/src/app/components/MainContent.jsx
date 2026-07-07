@@ -553,43 +553,372 @@ const moverAPendientes = () => {
     window.print();
   };
 
-  const descargarBitacora = () => {
-    window.print();
+const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+const bitacora = docSeleccionado?.bitacora || [];
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleDateString("es-MX", {
+    timeZone: "America/Mexico_City",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatearHora = (fecha) => {
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleTimeString("es-MX", {
+    timeZone: "America/Mexico_City",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
+const descargarBitacora = async () => {
+    const pdf = await generarBitacoraPDF();
+
+    const enlace = document.createElement("a");
+    enlace.href = pdf.url;
+    enlace.download = pdf.nombre;
+    enlace.click();
+
+    URL.revokeObjectURL(pdf.url);
+};
+
+  const generarBitacoraPDF = async () => {
+    const doc = new jsPDF("p", "mm", "letter");
+
+  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+  doc.addFont(MontserratRegular, "Montserrat", "normal");
+  doc.addFont(MontserratBold, "Montserrat", "bold");
+
+  const COLORS = {
+    grisPrincipal: [96, 89, 93],
+    grisSecundario: [155, 157, 154],
+    blanco: [255, 255, 255],
+    negro: [0, 0, 0],
   };
-  
-  const bitacora = [
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Registró el asunto",
-      fecha: "11/10/2022",
-      hora: "21:45:30",
-      tipo: "registro",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion: "Adjuntó el documento: GUARDIA NACIONAL.pdf",
-      fecha: "11/10/2022",
-      hora: "21:47:11",
-      tipo: "adjunto",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Generó la instrucción: Atender el tema y dar respuesta al interesado. Prioridad: Trámite Extra-urgente.",
-      fecha: "11/10/2022",
-      hora: "21:48:54",
-      tipo: "instruccion",
-    },
-    {
-      usuario: "Víctor Manuel Enríquez Paniagua",
-      descripcion:
-        "Autorizado y turnado a Dirección de Desarrollo Archivístico Nacional",
-      fecha: "11/10/2022",
-      hora: "21:48:56",
-      tipo: "autorizado",
-    },
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+
+  const hoy = new Date();
+
+  const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(
+    hoy.getMonth() + 1
+  ).padStart(2, "0")}/${hoy.getFullYear()}`;
+
+  let y = 40;
+
+  // HEADER
+  const dibujarHeader = () => {
+    doc.setFillColor(...COLORS.grisSecundario);
+    doc.rect(margin, 12, contentWidth, 18, "F");
+
+    doc.addImage(
+      logoGobierno,
+      "PNG",
+      margin + 2,
+      12,
+      85,
+      18
+    );
+
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.roundedRect(
+      pageWidth - 60,
+      17,
+      25,
+      8,
+      2,
+      2,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      "FECHA",
+      pageWidth - 47,
+      22,
+      { align: "center" }
+    );
+
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text(
+      fechaHoy,
+      pageWidth - 22,
+      22,
+      { align: "center" }
+    );
+  };
+
+  dibujarHeader();
+
+  // TITULO
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...COLORS.grisPrincipal);
+
+  doc.text(
+    "REPORTE DE BITÁCORA",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  // FOLIO DEL DOCUMENTO
+  y += 7;
+
+  doc.setFont("Montserrat", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.negro);
+
+  doc.text(
+    ` ${docSeleccionado?.folio || documentoSeleccionado?.folio || "-"}`,
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 5;
+
+  // TABLA
+  const columnas = [
+    "USUARIO",
+    "DESCRIPCIÓN",
+    "FECHA",
+    "HORA",
   ];
 
+  const anchos = [40, 90, 30, 25];
+
+  let x = margin;
+
+  columnas.forEach((titulo, i) => {
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      10,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      titulo,
+      x + anchos[i] / 2,
+      y + 6,
+      {
+        align: "center",
+      }
+    );
+
+    x += anchos[i];
+  });
+
+  y += 10;
+
+  // MOVIMIENTOS
+  bitacora.forEach((mov, index) => {
+    const valores = [
+      mov.user?.nombre || "-",
+      mov.descripcion || "-",
+      formatearFecha(mov.fecha),
+      formatearHora(mov.fecha),
+    ];
+
+    const lineas = valores.map((v, i) =>
+      doc.splitTextToSize(
+        String(v),
+        anchos[i] - 4
+      )
+    );
+
+    const maxLineas = Math.max(
+      ...lineas.map((l) => l.length)
+    );
+
+    const altoFila = Math.max(
+      10,
+      maxLineas * 4 + 4
+    );
+
+    if (y + altoFila > pageHeight - 20) {
+      doc.addPage();
+
+      dibujarHeader();
+
+      y = 40;
+
+      let xx = margin;
+
+      columnas.forEach((titulo, i) => {
+        doc.setFillColor(
+          ...COLORS.grisPrincipal
+        );
+
+        doc.rect(
+          xx,
+          y,
+          anchos[i],
+          10,
+          "F"
+        );
+
+        doc.setTextColor(
+          ...COLORS.blanco
+        );
+
+        doc.text(
+          titulo,
+          xx + anchos[i] / 2,
+          y + 6,
+          {
+            align: "center",
+          }
+        );
+
+        xx += anchos[i];
+      });
+
+      y += 10;
+    }
+
+    let xx = margin;
+
+    lineas.forEach((texto, i) => {
+      const fondo =
+        index % 2 === 0
+          ? [255, 255, 255]
+          : [245, 245, 245];
+
+      doc.setFillColor(...fondo);
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila,
+        "F"
+      );
+
+      doc.setDrawColor(
+        ...COLORS.grisSecundario
+      );
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila
+      );
+
+      doc.setFont(
+        "Montserrat",
+        "normal"
+      );
+
+      doc.setFontSize(9);
+
+      doc.setTextColor(
+        ...COLORS.negro
+      );
+
+      doc.text(
+        texto,
+        xx + 2,
+        y + 5
+      );
+
+      xx += anchos[i];
+    });
+
+    y += altoFila;
+  });
+
+  // FOOTER
+  const footerY = pageHeight - 15;
+
+  doc.setDrawColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.line(
+    margin,
+    footerY,
+    pageWidth - margin,
+    footerY
+  );
+
+  doc.setFont(
+    "Montserrat",
+    "normal"
+  );
+
+  doc.setFontSize(8);
+
+  doc.setTextColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.text(
+    "Sistema Automatizado de Gestión de Correspondencia",
+    pageWidth / 2,
+    footerY + 5,
+    {
+      align: "center",
+    }
+  );
+
+  // doc.save(
+  //   `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`
+  // );
+
+    const blob = doc.output("blob");
+
+    return {
+      blob,
+      url: URL.createObjectURL(blob),
+      nombre: `Bitacora_${docSeleccionado?.folio || "SAGASE"}.pdf`,
+    };
+  };
+
+const [pdfBitacora, setPdfBitacora] = useState(null);
+const [pdfGenerado, setPdfGenerado] = useState(false);
+
+useEffect(() => {
+    if (tabActiva !== "bitacora") return;
+
+    if (pdfGenerado) return;
+
+    const cargar = async () => {
+        const pdf = await generarBitacoraPDF();
+        setPdfBitacora(pdf.url);
+        setPdfGenerado(true);
+    };
+
+    cargar();
+}, [tabActiva]);
     const [formEditar, setFormEditar] = useState({
       ejercicio: "",
       noDocumento: "",
@@ -612,6 +941,11 @@ const moverAPendientes = () => {
       materialAdicional: false,
     });
   
+    useEffect(() => {
+    setPdfGenerado(false);
+    setPdfBitacora(null);
+}, [documentoSeleccionado]);
+
   const [errores, setErrores] = useState({});
 
   const handleChange = (e) => {
@@ -653,7 +987,7 @@ const moverAPendientes = () => {
       const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
         const [folioGenerado, setFolioGenerado] = useState("");
-        const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+
         const [documentoAnexos, setDocumentoAnexos] = useState([]);
         const [relacionadosDocumento, setRelacionadosDocumento] = useState([]);
         const [bitacoraDocumento, setBitacoraDocumento] = useState([]);
@@ -3131,94 +3465,58 @@ const generarDocumentoTurno = async (turno) => {
                         <div className="w-full max-w-4xl">
                     
                           {/* Barra visor */}
-                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
-                    
-                            <div className="flex items-center gap-3">
-                              <button onClick={descargarBitacora}
-                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
-                                 ⬇ Descargar
-                              </button>
-                              <button
-                                onClick={handlePrint}
-                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
-                              >
-                                 🖨 Imprimir Bitácora
-                              </button>
+                          <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 shadow-sm">
+
+                            <div className="flex flex-col">
+                              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                Vista previa
+                              </span>
+
+                              <span className="text-sm font-semibold text-gray-700">
+                                {`Bitacora_${docSeleccionado?.folio || "SAGASE"}.pdf`}
+                              </span>
                             </div>
-                    
-                            <div className="flex items-center gap-3 text-sm">
-                              <button className="px-2">◀</button>
-                              <span>Página 1 de 2</span>
-                              <button className="px-2">▶</button>
-                            </div>
-                    
-                            <div className="flex items-center gap-2">
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
-                            </div>
+
+                            <button
+                              onClick={descargarBitacora}
+                              className="
+                                flex items-center gap-2
+                                bg-[#E8EEF8]
+                                hover:bg-[#D8E4F5]
+                                text-[#2D4A73]
+                                border border-[#C9D8EE]
+                                px-4 py-2
+                                rounded-lg
+                                text-sm
+                                font-semibold
+                                transition-all
+                                duration-200
+                              "
+                            >
+                              Descargar PDF
+                            </button>
+
                           </div>
-                    
-                          {/* Hoja */}
-                          <div ref={bitacoraRef} className="zona-impresion">
-                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
-                      
-                              <div className="text-center py-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                  Bitácora
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Folio: {docSeleccionado?.folio}
-                                </p>
-                              </div>
-                      
-                              <div className="p-6 space-y-4">
-                      
-                                {bitacoraDocumento.length ? (
-                                  bitacoraDocumento.map((movimiento, index) => {
-                                    const esPrincipal =
-                                      movimiento.tipo === "registro" ||
-                                      movimiento.tipo === "turnado" ||
-                                      movimiento.tipo === "autorizado";
-                      
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
-                                        ${esPrincipal
-                                          ? "bg-[#79142A] text-white"
-                                          : "bg-[#CDB19C] text-gray-800"
-                                        }`}
-                                      >
-                                        <div>
-                                          <p className="font-semibold">
-                                            {movimiento.usuario}
-                                          </p>
-                      
-                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
-                                            {movimiento.descripcion}
-                                          </p>
-                                        </div>
-                      
-                                        <div className="text-right text-xs whitespace-nowrap">
-                                          <p>{movimiento.fecha}</p>
-                                          <p>{movimiento.hora}</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="text-center text-gray-500 text-sm">
-                                    No hay movimientos registrados.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
- 
+                                                
+                          {/* Hoja (estilo idéntico al PDF de Exportar PDF) */}
+                          <div className="flex justify-center mt-4">
+                            <iframe
+                              title="Vista previa bitácora"
+                              src={pdfBitacora}
+                              style={{
+                                width: "850px",
+                                height: "1100px",
+                                border: "none",
+                                background: "#fff",
+                                boxShadow: "0 10px 25px rgba(0,0,0,.15)",
+                              }}
+                            />
                           </div>
                     
                         </div>
                       </div>
                     )}
+     
 
                     {tabActiva === "turnoRecibido" && (
                       <div className="border border-gray-300 rounded bg-white overflow-hidden text-xs">
@@ -4940,97 +5238,57 @@ const generarDocumentoTurno = async (turno) => {
                     )}
 
                   
-                    {tabActiva === "bitacora" && (
+                     {tabActiva === "bitacora" && (
                       <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
                         <div className="w-full max-w-4xl">
                     
                           {/* Barra visor */}
-                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
-                    
-                            <div className="flex items-center gap-3">
-                              <button onClick={descargarBitacora}
-                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
-                                 ⬇ Descargar
-                              </button>
-                              <button
-                                onClick={handlePrint}
-                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
-                              >
-                                 🖨 Imprimir Bitácora
-                              </button>
+                          <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 shadow-sm">
+
+                            <div className="flex flex-col">
+                              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                Vista previa
+                              </span>
+
+                              <span className="text-sm font-semibold text-gray-700">
+                                {`Bitacora_${docSeleccionado?.folio || "SAGASE"}.pdf`}
+                              </span>
                             </div>
-                    
-                            <div className="flex items-center gap-3 text-sm">
-                              <button className="px-2">◀</button>
-                              <span>Página 1 de 2</span>
-                              <button className="px-2">▶</button>
-                            </div>
-                    
-                            <div className="flex items-center gap-2">
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
-                            </div>
+
+                            <button
+                              onClick={descargarBitacora}
+                              className="
+                                flex items-center gap-2
+                                bg-[#E8EEF8]
+                                hover:bg-[#D8E4F5]
+                                text-[#2D4A73]
+                                border border-[#C9D8EE]
+                                px-4 py-2
+                                rounded-lg
+                                text-sm
+                                font-semibold
+                                transition-all
+                                duration-200
+                              "
+                            >
+                              Descargar PDF
+                            </button>
+
                           </div>
-                    
-                          {/* Hoja */}
-                          <div ref={bitacoraRef} className="zona-impresion">
-                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
-                      
-                              <div className="text-center py-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                  Bitácora
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Folio: {documentoSeleccionado?.folio}
-                                </p>
-                              </div>
-                      
-                              <div className="p-6 space-y-4">
-                      
-                                {bitacoraDocumento.length ? (
-                                  bitacoraDocumento.map((movimiento, index) => {
-                                    const esPrincipal =
-                                      movimiento.importancia === "Alta";
-                      
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
-                                        ${esPrincipal
-                                          ? "bg-[#79142A] text-white"
-                                          : "bg-[#CDB19C] text-gray-800"
-                                        }`}
-                                      >
-                                        <div>
-                                          <p className="font-semibold">
-                                            {movimiento.user.nombre}
-                                          </p>
-                      
-                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
-                                            {movimiento.descripcion}
-                                          </p>
-                                        </div>
-                      
-                                        <div className="text-right text-xs whitespace-nowrap">
-                                          <p>Fecha: {formatDateValue(movimiento.fecha)}</p>
-                                          <p>Hora: {// Obtener solo la hora en formato HH:mm
-                                            new Date(movimiento.fecha).toLocaleTimeString([], {
-                                              hour: "2-digit",
-                                              minute: "2-digit",
-                                            })
-                                          }</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="text-center text-gray-500 text-sm">
-                                    No hay movimientos registrados.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
- 
+                                                
+                          {/* Hoja (estilo idéntico al PDF de Exportar PDF) */}
+                          <div className="flex justify-center mt-4">
+                            <iframe
+                              title="Vista previa bitácora"
+                              src={pdfBitacora}
+                              style={{
+                                width: "850px",
+                                height: "1100px",
+                                border: "none",
+                                background: "#fff",
+                                boxShadow: "0 10px 25px rgba(0,0,0,.15)",
+                              }}
+                            />
                           </div>
                     
                         </div>
@@ -5866,94 +6124,57 @@ const generarDocumentoTurno = async (turno) => {
                       </div>
                     )}
 
-                    {tabActiva === "bitacora" && (
+                     {tabActiva === "bitacora" && (
                       <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
                         <div className="w-full max-w-4xl">
                     
                           {/* Barra visor */}
-                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
-                    
-                            <div className="flex items-center gap-3">
-                              <button onClick={descargarBitacora}
-                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
-                                 ⬇ Descargar
-                              </button>
-                              <button
-                                onClick={handlePrint}
-                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
-                              >
-                                 🖨 Imprimir Bitácora
-                              </button>
+                          <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 shadow-sm">
+
+                            <div className="flex flex-col">
+                              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                Vista previa
+                              </span>
+
+                              <span className="text-sm font-semibold text-gray-700">
+                                {`Bitacora_${docSeleccionado?.folio || "SAGASE"}.pdf`}
+                              </span>
                             </div>
-                    
-                            <div className="flex items-center gap-3 text-sm">
-                              <button className="px-2">◀</button>
-                              <span>Página 1 de 2</span>
-                              <button className="px-2">▶</button>
-                            </div>
-                    
-                            <div className="flex items-center gap-2">
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
-                            </div>
+
+                            <button
+                              onClick={descargarBitacora}
+                              className="
+                                flex items-center gap-2
+                                bg-[#E8EEF8]
+                                hover:bg-[#D8E4F5]
+                                text-[#2D4A73]
+                                border border-[#C9D8EE]
+                                px-4 py-2
+                                rounded-lg
+                                text-sm
+                                font-semibold
+                                transition-all
+                                duration-200
+                              "
+                            >
+                              Descargar PDF
+                            </button>
+
                           </div>
-                    
-                          {/* Hoja */}
-                          <div ref={bitacoraRef} className="zona-impresion">
-                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
-                      
-                              <div className="text-center py-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                  Bitácora
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Folio: {docSeleccionadoPendientes?.folio}
-                                </p>
-                              </div>
-                      
-                              <div className="p-6 space-y-4">
-                      
-                                {bitacoraDocumento.length ? (
-                                  bitacoraDocumento.map((movimiento, index) => {
-                                    const esPrincipal =
-                                      movimiento.tipo === "registro" ||
-                                      movimiento.tipo === "turnado" ||
-                                      movimiento.tipo === "autorizado";
-                      
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
-                                        ${esPrincipal
-                                          ? "bg-[#79142A] text-white"
-                                          : "bg-[#CDB19C] text-gray-800"
-                                        }`}
-                                      >
-                                        <div>
-                                          <p className="font-semibold">
-                                            {movimiento.usuario}
-                                          </p>
-                      
-                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
-                                            {movimiento.descripcion}
-                                          </p>
-                                        </div>
-                      
-                                        <div className="text-right text-xs whitespace-nowrap">
-                                          <p>{movimiento.fecha}</p>
-                                          <p>{movimiento.hora}</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="text-center text-gray-500 text-sm">
-                                    No hay movimientos registrados.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
- 
+                                                
+                          {/* Hoja (estilo idéntico al PDF de Exportar PDF) */}
+                          <div className="flex justify-center mt-4">
+                            <iframe
+                              title="Vista previa bitácora"
+                              src={pdfBitacora}
+                              style={{
+                                width: "850px",
+                                height: "1100px",
+                                border: "none",
+                                background: "#fff",
+                                boxShadow: "0 10px 25px rgba(0,0,0,.15)",
+                              }}
+                            />
                           </div>
                     
                         </div>
