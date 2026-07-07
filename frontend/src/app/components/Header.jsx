@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useState, useEffect } from "react";
 import nayaritLogo from "../assets/images/nayaritLogo.png";
+import personajeNayarit from "../assets/images/personajenayarit2.jpg";
 import { verifyTokenRequest } from "../services/auth.service";
 import { getNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, clearNotificaciones } from "../services/user.service";
 import { getDocumentById } from "../services/document.service";
@@ -558,7 +559,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
       {/* FRANJA DECORATIVA */}
       <div className="w-full h-[50px] sm:h-[90px] overflow-hidden">
         <img
-          src="src/app/assets/images/personajenayarit2.jpg"
+          src={personajeNayarit}
           alt="Decoración Nayarit"
           className="w-full h-full object-cover"
         />

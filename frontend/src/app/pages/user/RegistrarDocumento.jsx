@@ -29,6 +29,7 @@ export function RegistrarDocumento() {
     remitenteInterno: "",
     remitenteExterno: "",
     tipoDocumento: "",
+    tipoOtro: "",
     temaPrincipal: "",
     sintesis: "",
     faltaInformacion: false,
@@ -225,9 +226,14 @@ export function RegistrarDocumento() {
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
-  const tiposFiltrados = tiposDocumento.filter((tipo) =>
-    tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
-  );
+  const tiposFiltrados = [
+    ...tiposDocumento.filter((tipo) =>
+      tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
+    ),
+    ...(busquedaTipoDoc.toLowerCase().includes("otro") || busquedaTipoDoc === ""
+      ? [{ value: "otro", label: "Otro" }]
+      : []),
+  ];
 
   const [mostrarModalRemitente, setMostrarModalRemitente] = useState(false);
 
@@ -302,14 +308,14 @@ export function RegistrarDocumento() {
       if (result.isConfirmed) {
         try {
           const data = {
-            folio: `Folio ${Math.floor(Math.random() * 900) + 100}-${new Date().getFullYear()}`,
             docId: form.noDocumento,
             ejercicio: form.ejercicio,
             fechaDoc: form.fechaDocumento,
             acuse: form.fechaAcuse,
             registro: form.fechaRegistro,
             remitente: form.tipoRemitente === "interno" ? form.remitenteInterno : form.remitenteExterno,
-            tipo: form.tipoDocumento,
+            tipo: form.tipoDocumento !== "otro" ? form.tipoDocumento : undefined,
+            tipoOtro: form.tipoDocumento === "otro" ? form.tipoOtro : undefined,
             tema: form.temaPrincipal,
             asunto: busquedaTemaPrincipal || form.temaPrincipal.descripcion || "",
             sintesis: form.sintesis,
@@ -348,6 +354,7 @@ export function RegistrarDocumento() {
               remitenteExterno: form.remitenteExterno,
 
               tipoDocumento: form.tipoDocumento,
+              tipoOtro: form.tipoOtro,
               temaPrincipal: form.temaPrincipal,
               materialAdicional: form.materialAdicional,
 
@@ -1168,7 +1175,7 @@ const obtenerLabel = (lista, id) => {
                         <div
                           key={t.value}
                           onClick={() => {
-                            setForm({ ...form, tipoDocumento: t.value });
+                            setForm({ ...form, tipoDocumento: t.value, tipoOtro: t.value === "otro" ? form.tipoOtro : "" });
                             setBusquedaTipoDoc(t.label);
                             setMostrarOpcionesTipoDoc(false);
 
@@ -1181,6 +1188,31 @@ const obtenerLabel = (lista, id) => {
                     </div>
                   )}
                 </div>
+
+                {/* Tipo de documento "Otro" - campo adicional */}
+                {form.tipoDocumento === "otro" && (
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Especifique el tipo de documento <span className="text-red-600"> *</span>
+                    </label>
+                    <input
+                      name="tipoOtro"
+                      value={form.tipoOtro}
+                      onChange={handleChange}
+                      className={`w-full
+                        rounded-lg
+                        border
+                        px-3
+                        py-2
+                        transition
+                        focus:border-[#8B1538]
+                        focus:ring-2
+                        focus:ring-[#8B1538]/20
+                        outline-none`}
+                      placeholder="Escriba el tipo de documento"
+                    />
+                  </div>
+                )}
 
                 {/* Relacionado */}
                 <div className="flex flex-col">
@@ -2594,7 +2626,7 @@ outline-none"
                           >
                             {/* <Search size={16} className="text-gray-400" /> */}
                             <input
-                              value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento)?.label || ""}
+                              value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento && !formEditar.tipoOtro)?.label || ( formEditar.tipoOtro ? formEditar.tipoOtro : "")}
                               disabled
                               className="w-full
                                 rounded-lg

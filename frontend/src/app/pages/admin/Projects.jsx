@@ -580,7 +580,6 @@ const handleSaveTemaPrincipal = async () => {
   try {
     const data = {
       descripcion: temaPrincipalEditando.descripcion,
-      validacion: temaPrincipalEditando.validacion || false,
       activo: temaPrincipalEditando.activo !== undefined ? temaPrincipalEditando.activo : true,
     };
 
@@ -2177,7 +2176,6 @@ const handleSaveRemitente = async (tipo) => {
 
                                 setTemaPrincipalEditando({
                                   id: null,
-                                  nombre: "",
                                   descripcion: "",
                                   activo: true,
                                 });
@@ -2212,11 +2210,6 @@ const handleSaveRemitente = async (tipo) => {
                               <thead className="bg-[#8B1538] text-white">
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
-
-                                  <th className="px-4 py-3 text-left">
-                                    Nombre
-                                  </th>
-
                                   <th className="px-4 py-3 text-left">
                                     Descripción del tema principal
                                   </th>
@@ -2256,12 +2249,6 @@ const handleSaveRemitente = async (tipo) => {
                                           <Pencil size={16} />
                                         </button>
                                       </td>
-
-                                      {/* 📄 NOMBRE */}
-                                      <td className="px-4 py-3 text-gray-700">
-                                        {tema.nombre}
-                                      </td>
-
                                       {/* 📝 DESCRIPCIÓN */}
                                       <td className="px-4 py-3 text-gray-700">
                                         {tema.descripcion}
@@ -2337,26 +2324,6 @@ const handleSaveRemitente = async (tipo) => {
 
                                     <div className="space-y-5">
 
-                                      {/* 📄 NOMBRE */}
-                                      <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Nombre
-                                        </label>
-
-                                        <input
-                                          type="text"
-                                          value={temaPrincipalEditando.nombre}
-                                          onChange={(e) =>
-                                            setTemaPrincipalEditando({
-                                              ...temaPrincipalEditando,
-                                              nombre: e.target.value,
-                                            })
-                                          }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
-                                          placeholder="Ingrese nombre del tema principal"
-                                        />
-                                      </div>
-
                                       {/* 📝 DESCRIPCIÓN */}
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2375,27 +2342,6 @@ const handleSaveRemitente = async (tipo) => {
                                           className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
                                           placeholder="Ingrese descripción"
                                         />
-                                      </div>
-
-                                      {/* ✅ VALIDACIÓN */}
-                                      <div className="flex items-center gap-3">
-
-                                        <input
-                                          type="checkbox"
-                                          checked={temaPrincipalEditando.validacion}
-                                          onChange={(e) =>
-                                            setTemaPrincipalEditando({
-                                              ...temaPrincipalEditando,
-                                              validacion: e.target.checked,
-                                            })
-                                          }
-                                          className="w-4 h-4 accent-[#8B1538]"
-                                        />
-
-                                        <label className="text-sm font-medium text-gray-700">
-                                          Con validación
-                                        </label>
-
                                       </div>
 
                                     </div>

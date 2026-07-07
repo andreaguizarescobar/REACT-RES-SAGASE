@@ -10,15 +10,12 @@ import { ReporteAsuntos } from "../pages/user/ReporteAsunto";
 import { GeneracionOficios } from "../pages/user/GeneracionOficios";
 import { ControlOficios } from "../pages/user/ControlOficios";
 import { SalidaCorrespondencia } from "../pages/user/SalidaCorrespondencia";
-import { ModificaSalidaCorrespondencia } from "../pages/user/ModificaSalidaCorrespondencia";
 import { ConsultaSalidaCorrespondencia } from "../pages/user/ConsultaSalidaCorrespondencia";
 import { ReporteSalidaCorrespondencia } from "../pages/user/ReporteSalidaCorrespondencia";
-import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroControlSalidaCorrespondencia";
-import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
 import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
 
-import { updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
+import { updateDocument, uploadAnexo, removeAnexo, removeRelacionado, addTurnado, getDocumentById, enviarRespuesta } from "../services/document.service";
 import { getAreas, getInstrucciones } from "../services/catalogos.service.js";
 import { getRemitentes } from "../services/remitente.service.js";
 import { getUsers, getTareas, moveTarea, concluirTarea, validarTarea, devolverTarea } from "../services/user.service.js";
@@ -45,7 +42,8 @@ export default function MainContent({ currentView }) {
       const user = localStorage.getItem("user");
       const userId = JSON.parse(user).userId;
       const tareas = await getTareas(userId, token);
-      const tareasLista = (await tareas.json()).tareas;
+      const tareasData = await tareas.json();
+      const tareasLista = tareasData?.tareas || [];
       const entradas = [];
       const salidas = [];
       const pendientes = [];
@@ -90,6 +88,28 @@ export default function MainContent({ currentView }) {
     cargarTareas();
   }, []);
 
+  // Recargar tareas cuando se vuelve al tablero principal desde otra vista
+  useEffect(() => {
+    const vistasPaginas = [
+      "tablero-control",
+      "registra-documento",
+      "buscador-documento",
+      "reporte-asuntos",
+      "reporte-acuerdos",
+      "generacion-oficios",
+      "control-oficios",
+      "salida-correspondencia",
+      "consultaS-correspondencia",
+      "reporteS-correspondencia",
+      "visualiza-documento",
+    ];
+    
+    // Si no es una vista de página específica, es la vista por defecto (tablero)
+    if (!vistasPaginas.includes(currentView)) {
+      cargarTareas();
+    }
+  }, [currentView]);
+
   const [docSeleccionado, setDocSeleccionado] = useState(null);
   const [docSeleccionadoPendientes, setDocSeleccionadoPendientes] = useState(null);
   const [misPendientes, setMisPendientes] = useState([]);
@@ -101,6 +121,13 @@ export default function MainContent({ currentView }) {
     return Number.isNaN(date.getTime())
       ? ""
       : date.toISOString().split("T")[0];
+  };
+
+    const formatDateValue = (value, withTime = false) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toISOString().slice(0, 16) : date.toISOString().slice(0, 10);
   };
 
   const safeText = (value, fallback = "") => {
@@ -292,6 +319,7 @@ export default function MainContent({ currentView }) {
           ? fullDoc.remitente?._id || fullDoc.remitente || ""
           : "",
         tipoDocumento: fullDoc.tipo?._id || fullDoc.tipo || "",
+        tipoOtro: fullDoc.tipoOtro || "",
         temaPrincipal: fullDoc.tema?._id || fullDoc.tema || "",
         temaSecundario:
           fullDoc.secundario?._id || fullDoc.secundario || "",
@@ -308,6 +336,7 @@ export default function MainContent({ currentView }) {
 
       // Reflejar labels visibles en inputs de búsqueda
       setBusquedaTipoDoc(
+        fullDoc.tipoOtro ||
         fullDoc.tipo?.tipo ||
         fullDoc.tipo?.descripcion ||
         ""
@@ -638,32 +667,20 @@ const moverAPendientes = () => {
         const [copiasDocumento, setCopiasDocumento] = useState([]);
           const [mostrarModalTurno, setMostrarModalTurno] = useState(false);
         const [loading, setLoading] = useState(false);
-        const [error, setError] = useState(null);
         const [token, setToken] = useState(localStorage.getItem("token") || "");
 
       const tiposFiltrados = tiposDocumento.filter((tipo) =>
         tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
       );
     
-       const [asuntos] = useState([]);
         const [asuntoSeleccionado, setAsuntoSeleccionado] = useState(null);
       
         const [busquedaAsunto, setBusquedaAsunto] = useState("");
         const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
       
         const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
-        const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
       
         const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
-        const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
-        const [mostrarOpcionesDocumento, setMostrarOpcionesDocumento] = useState(false);
-      
-      const documentosFiltrados = documentos.filter((d) =>
-          d.folio.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()) ||
-          d.docId.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()) ||
-          (d.asunto && d.asunto.toLowerCase().includes(busquedaDocumentoRelacionado.toLowerCase()))
-        );
-      
         const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
         const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
         const [busquedaTemaSecundario, setBusquedaTemaSecundario] = useState("");
@@ -709,9 +726,6 @@ const moverAPendientes = () => {
           const handleClickOutside = (event) => {
             if (refTipoDoc.current && !refTipoDoc.current.contains(event.target)) {
               setMostrarOpcionesTipoDoc(false);
-            }
-            if (refRemitenteExt.current && !refRemitenteExt.current.contains(event.target)) {
-              setMostrarOpcionesRemitenteExt(false);
             }
             if (refMaterial.current && !refMaterial.current.contains(event.target)) {
               setMostrarOpcionesMaterial(false);
@@ -828,8 +842,6 @@ const moverAPendientes = () => {
             });
           };
         
-
-          const [mostrarModalAnexo, setMostrarModalAnexo] = useState(false);
             const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
             const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
             const [archivo, setArchivo] = useState(null);
@@ -1094,9 +1106,7 @@ const moverAPendientes = () => {
           
           
             const [materiales, setMateriales] = useState([]);
-          
-            const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
-          
+
             const materialesAdicionalesFiltrados = materialesAdicionales.filter((m) =>
               m.tipo?.toLowerCase().includes(busquedaMaterial.toLowerCase()) ||
               m.descripcion?.toLowerCase().includes(busquedaMaterial.toLowerCase()) ||
@@ -1150,20 +1160,11 @@ const moverAPendientes = () => {
       case "salida-correspondencia":
         return <SalidaCorrespondencia />;
 
-      case "modificaS-correspondencia":
-        return <ModificaSalidaCorrespondencia />;
-
       case "consultaS-correspondencia":
         return <ConsultaSalidaCorrespondencia />;
 
       case "reporteS-correspondencia":
         return <ReporteSalidaCorrespondencia />;
-
-      case "tableroS-correspondencia":
-        return <TableroControlSalidaCorrespondencia />;
-
-      case "registra-notinternas":
-        return <RegistraInstruccionesSolicitudesNotificacionesInt />;
 
       case "visualiza-documento":
         return <VisualizaDocumento />;
@@ -1273,7 +1274,7 @@ const moverAPendientes = () => {
 
                       <div className="mt-2 space-y-1">
                         <p>
-                          <span className="font-medium">Síntesis Asunto:</span> {doc.documento.asunto || "Sin síntesis disponible"}
+                          <span className="font-medium">Síntesis Asunto:</span> { doc.documento.asunto || "Sin síntesis disponible"}
                         </p>
                         <p>
                           <span className="font-medium">Folio:</span> {doc.documento.folio}
@@ -1308,9 +1309,9 @@ const moverAPendientes = () => {
                           <p className="font-semibold text-gray-800">
                             {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
                           </p>
-                          <p className="text-gray-500 text-[11px]">
-                            {safeText(doc.documento.tipo.tipo, "No disponible")} / {doc.tarea}
-                          </p>
+                              <p className="text-gray-500 text-[11px]">
+                                {safeText(doc.documento.tipoOtro || doc.documento.tipo?.tipo, "No disponible")} / {doc.tarea}
+                              </p>
                         </div>
                         { doc.documento.turnados && doc.documento.turnados.length > 0 && (
                           <div className="text-right" >
@@ -1465,11 +1466,11 @@ const moverAPendientes = () => {
                             
                             <div>
                               <p className="font-semibold text-gray-800">
-                                {doc.tarea}
+                                {doc.documento?.docId || "Sin título disponible"}
                               </p>
 
                               <p className="text-gray-500 text-[11px]">
-                                {safeText(doc.documento?.tipo?.tipo, "No disponible")} / Documento atendido
+                                {safeText(doc.documento?.tipoOtro || doc.documento?.tipo?.tipo, "No disponible")} / Documento atendido
                               </p>
                             </div>
 
@@ -1658,6 +1659,8 @@ const moverAPendientes = () => {
           showConfirmButton: false,
           timer: 2000,
         });
+
+        cargarTareas();
       } catch (error) {
         console.error(error);
         Swal.fire({
@@ -1727,13 +1730,6 @@ const moverAPendientes = () => {
       } finally {
         setModalMensajeGuardando(false);
       }
-    };
-    
-    const nombreRoles = {
-      VALIDADOR: "Validador",
-      REGISTRADOR: "Registrador Enrutador",
-      EJECUTOR: "Ejecutor",
-      ADMIN: "Administrador"
     };
 
     const user = JSON.parse(localStorage.getItem("user"));
@@ -1866,8 +1862,6 @@ const moverAPendientes = () => {
 
   };
 
-  const [htmlTurno, setHtmlTurno] = useState("");
-  const [modalVerTurno, setModalVerTurno] = useState(false);
 const [mostrarVisorTurno, setMostrarVisorTurno] = useState(false);
 const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
@@ -2542,7 +2536,7 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
                               <input
                                 value={
-                                  docSeleccionado.tipo
+                                  docSeleccionado.tipo || docSeleccionado.tipoOtro
                                 }
                                 disabled
                                 className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
@@ -2832,7 +2826,6 @@ const generarDocumentoTurno = async (turno) => {
                                           </button> 
                                         </td>
     
-    
                                         {/* NOMBRE */}
                                         <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
                                           {anexo.nombre || "Sin nombre"}
@@ -2986,7 +2979,7 @@ const generarDocumentoTurno = async (turno) => {
                             <tbody>
                               
                               {turnosVerFiltrados.length > 0 ? (
-                                turnosVerFiltrados.map((turno, index) => (
+                                turnosVerFiltrados.map((turno) => (
                                   <tr
                                       key={turno._id}
                                       className="border-t hover:bg-gray-50"
@@ -3678,12 +3671,6 @@ const generarDocumentoTurno = async (turno) => {
                                     <div className={`flex items-center border rounded px-2 ${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
                                       <Search size={16} className="text-gray-400" />
                                       <input
-                                        value={busquedaRemitenteExt}
-                                        onChange={(e) => {
-                                          setBusquedaRemitenteExt(e.target.value);
-                                          setMostrarOpcionesRemitenteExt(true);
-                                        }}
-                                        onFocus={() => setMostrarOpcionesRemitenteExt(true)}
                                         className="w-full px-2 py-1 outline-none"
                                         placeholder="Buscar y seleccionar opción"
                                       />
@@ -3777,7 +3764,6 @@ const generarDocumentoTurno = async (turno) => {
                                 checked={formEditar.altaTipoDocumento}
                                 onChange={(v) => {
                                   setFormEditar({ ...formEditar, altaTipoDocumento: v });
-                                  if (v) setMostrarModalTipoDocumento(true);
                                 }}
                               />
                             </div>
@@ -4582,7 +4568,6 @@ const generarDocumentoTurno = async (turno) => {
                       {/* Botón agregar */}
                       <div className="flex justify-start">
                         <button
-                          onClick={() => setMostrarModalCopias(true)}
                           className="bg-[#8B1538] text-white w-10 h-10 rounded-full text-xl flex items-center justify-center shadow hover:opacity-90"
                         >
                           +
@@ -4714,7 +4699,7 @@ const generarDocumentoTurno = async (turno) => {
                                       {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
                                     </td>
                                     <td className="px-3 py-2 text-gray-700">
-                                      {safeText(turno.turna || "-"  || turno.dirigido?.area)}
+                                      {safeText( turno.turna?.area)}
                                     </td>
                                     <td className="px-3 py-2 text-gray-700">
                                       {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
@@ -4885,11 +4870,6 @@ const generarDocumentoTurno = async (turno) => {
                         {/* Botón agregar */}
                         <div className="flex justify-start">
                           <button
-                            onClick={() => {
-                              setMostrarModalCopias(true);
-                              setBusquedaFuncionario("");
-                              setSelectedCopiaUsuario(null);
-                            }}
                              className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
                             Añadir funcionario
@@ -5183,7 +5163,8 @@ const generarDocumentoTurno = async (turno) => {
                               </label>
                               <input
                                 value={safeText(
-                                  docSeleccionadoPendientes.tipo?.tipo ||
+                                  docSeleccionadoPendientes.tipoOtro ||
+                                    docSeleccionadoPendientes.tipo?.tipo ||
                                     docSeleccionadoPendientes.tipo ||
                                     docSeleccionadoPendientes.tipoDocumento?.tipo ||
                                     docSeleccionadoPendientes.tipoDocumento,
@@ -5464,7 +5445,6 @@ const generarDocumentoTurno = async (turno) => {
                                           <button 
                                           title="Ver archivo"
                                           onClick={() => { 
-                                            console.log("Ruta del anexo:", anexo.ruta); 
                                             openAnexo(anexo);
                                           }} 
                                           className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
@@ -5677,7 +5657,7 @@ const generarDocumentoTurno = async (turno) => {
                                     <td className="px-3 py-2">{turno.prioridad || "-"}</td>
                                     <td className="px-3 py-2">{formatDateForInput(turno.fechaTurnado) || "-"}</td>
                                     <td className="px-3 py-2">{safeText(turno.dirigido?.area, turno.turna, "-")}</td>
-                                    <td className="px-3 py-2">{safeText(turno.turna || "-"  || turno.dirigido?.area)}</td>
+                                    <td className="px-3 py-2">{safeText(turno.turna || turno.dirigido?.area)}</td>
                                     <td className="px-3 py-2 font-medium">
                                       {turno.status || turno.estatus || "-"}
                                     </td>
@@ -6895,9 +6875,6 @@ const generarDocumentoTurno = async (turno) => {
                                 <label className="text-xs text-gray-500">Funcionario / Área *</label>
                                 <select name="remitenteInterno" value={formEditar.remitenteInterno} onChange={handleChange} className={`w-full border rounded px-2 py-1 ${errores.remitenteInterno ? "border-red-500 bg-red-50" : ""}`}>
                                   <option value="">Seleccionar</option>
-                                  {(remitentesInternos.length > 0 ? remitentesInternos : usuariosInstitucion.map((u) => ({ value: u.nombre, label: u.nombre }))).map((r) => (
-                                    <option key={r.value || r.id} value={r.value || r.nombre}>{r.label || r.nombre}</option>
-                                  ))}
                                 </select>
                               </div>
                             )}
@@ -6910,38 +6887,11 @@ const generarDocumentoTurno = async (turno) => {
                                     <div className={`flex items-center border rounded px-2 ${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
                                       <Search size={16} className="text-gray-400" />
                                       <input
-                                        value={busquedaRemitenteExt}
-                                        onChange={(e) => {
-                                          setBusquedaRemitenteExt(e.target.value);
-                                          setMostrarOpcionesRemitenteExt(true);
-                                        }}
-                                        onFocus={() => setMostrarOpcionesRemitenteExt(true)}
                                         className="w-full px-2 py-1 outline-none"
                                         placeholder="Buscar y seleccionar opción"
                                       />
                                     </div>
 
-                                    {mostrarOpcionesRemitenteExt && (
-                                      <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                        {remitentesFiltrados.length > 0 ? (
-                                          remitentesFiltrados.map((r) => (
-                                            <div
-                                              key={r.value}
-                                              onClick={() => {
-                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.value }));
-                                                setBusquedaRemitenteExt(r.label);
-                                                setMostrarOpcionesRemitenteExt(false);
-                                              }}
-                                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                            >
-                                              {r.label}
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                        )}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -8181,11 +8131,6 @@ const generarDocumentoTurno = async (turno) => {
                         {/* Botón agregar */}
                         <div className="flex justify-start">
                           <button
-                            onClick={() => {
-                              setMostrarModalCopias(true);
-                              setBusquedaFuncionario("");
-                              setSelectedCopiaUsuario(null);
-                            }}
                              className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
                             Añadir funcionario
@@ -8352,7 +8297,6 @@ const generarDocumentoTurno = async (turno) => {
                         </div>
                       </div>
                     )}
-
 
                   </div>
               </motion.div>

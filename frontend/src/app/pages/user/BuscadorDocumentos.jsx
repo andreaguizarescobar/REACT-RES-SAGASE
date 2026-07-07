@@ -127,10 +127,11 @@ useEffect(() => {
         const user = JSON.parse(localStorage.getItem("user"));
         const copiasResponse = await getCopias(user.userId, token);
         const copias = copiasResponse.ok ? await copiasResponse.json() : [];
-        console.log(copias);
         const data = await response.json();
         const documentos = data.filter((doc) => (
-          doc.turnados.some((t) => t.dirigido.area === user.area) || copias.some((c) => c.docId === doc.docId) || user.roles.some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")
+          (doc.turnados || []).some((t) => t.dirigido?.area === user.area) || 
+          (copias || []).some((c) => c.docId === doc.docId) || 
+          (user.roles || []).some((r) => r.rol === "VALIDADOR" || r.rol === "REGISTRADOR")
         ));
         setDocumentos(documentos);
       } catch (fetchError) {
@@ -201,6 +202,7 @@ useEffect(() => {
     remitenteInterno: "",
     remitenteExterno: "",
     tipoDocumento: "",
+    tipoOtro: "",
     temaPrincipal: "",
     temaSecundario: "",
     sintesis: "",
@@ -214,7 +216,7 @@ useEffect(() => {
     const doc = menuContextual.documento;
     if (!doc) return;
 
-    const docId = doc.docId || doc.numeroDocumento || doc._id;
+    const docId = doc.docId || doc._id;
     if (!docId) return;
 
     try {
@@ -230,10 +232,11 @@ useEffect(() => {
       }
 
       const fullDoc = await response.json();
-      const selectedTipoLabel = getReferenceLabel(fullDoc.tipo) || "";
+      const selectedTipoLabel = fullDoc.tipo ? getReferenceLabel(fullDoc.tipo) : "otro";
       const selectedTemaLabel = getReferenceLabel(fullDoc.tema) || "";
       const selectedSecundarioLabel = getReferenceLabel(fullDoc.secundario) || "";
-      const selectedTipoValue = fullDoc.tipo?._id || fullDoc.tipo || "";
+      const selectedTipoValue = fullDoc.tipo ? (fullDoc.tipo?._id || fullDoc.tipo || "") : "otro";
+      const selectedTipoOtroValue = fullDoc.tipoOtro || "";
       const selectedTemaValue = fullDoc.tema?._id || fullDoc.tema || "";
       const selectedMaterialValue = fullDoc.adicional?._id || fullDoc.adicional || "";
       const remitenteLabel = getReferenceLabel(fullDoc.remitente) || "";
@@ -251,6 +254,7 @@ useEffect(() => {
         remitenteInterno: tipoRemitente === "interno" ? remitenteId : "",
         remitenteExterno: tipoRemitente === "externo" ? remitenteId : "",
         tipoDocumento: selectedTipoValue,
+        tipoOtro: selectedTipoOtroValue,
         asunto: selectedTemaValue,
         sintesis: fullDoc.sintesis,
         observaciones: fullDoc.observaciones || "",
@@ -340,6 +344,18 @@ useEffect(() => {
             throw new Error("Documento no válido para actualizar");
           }
 
+          const remitenteOriginal =
+            documentoEditar?.remitente?._id ||
+            documentoEditar?.remitente ||
+            "";
+          const remitenteSeleccionado =
+            formEditar.tipoRemitente === "interno"
+              ? formEditar.remitenteInterno
+              : formEditar.tipoRemitente === "externo"
+              ? formEditar.remitenteExterno
+              : "";
+          const remitenteFinal = remitenteSeleccionado || remitenteOriginal;
+
           const payload = {
             docId: formEditar.noDocumento,
             ejercicio: formEditar.ejercicio,
@@ -348,17 +364,14 @@ useEffect(() => {
             registro: formEditar.fechaRegistro,
             interno: formEditar.documentoInterno,
             faltaInformacion: formEditar.faltaInformacion,
-            remitente:
-              formEditar.tipoRemitente === "interno"
-                ? formEditar.remitenteInterno
-                : formEditar.remitenteExterno,
-            tipo: formEditar.tipoDocumento,
+            ...(remitenteFinal ? { remitente: remitenteFinal } : {}),
+            tipo: formEditar.tipoDocumento !== "otro" ? formEditar.tipoDocumento : null,
+            tipoOtro: formEditar.tipoDocumento === "otro" ? formEditar.tipoOtro : null,
             tema: formEditar.temaPrincipal,
             observaciones: formEditar.observaciones,
             asunto: formEditar.asunto,
             sintesis: formEditar.sintesis,
-          };
-
+          }
           const response = await updateDocument(currentDocId, payload, token);
           if (response.ok) {
             const updatedDocumento = await response.json();
@@ -422,9 +435,14 @@ useEffect(() => {
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
 
-  const tiposFiltrados = tiposDocumento.filter((tipo) =>
-    tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
-  );
+  const tiposFiltrados = [
+    ...tiposDocumento.filter((tipo) =>
+      tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
+    ),
+    ...(busquedaTipoDoc.toLowerCase().includes("otro") || busquedaTipoDoc === ""
+      ? [{ value: "otro", label: "Otro" }]
+      : []),
+  ];
 
   const [asuntoSeleccionado, setAsuntoSeleccionado] = useState(null);
 
@@ -995,10 +1013,10 @@ const documentosFiltrados = documentos.filter((d) =>
 };
 
   const generarDocumentoTurno = async (turno) => {
-    
+     
       // ===== OBTENER ID DEL DOCUMENTO =====
 
-    const documentoId = documentoSeleccionado?._id || documentoSeleccionado?.docId || documentoSeleccionadoPendientes?._id || documentoSeleccionadoPendientes?.docId;
+    const documentoId = documentoSeleccionado?._id || documentoSeleccionado?.docId;
 
     let documentoCompleto = {};
   
@@ -1536,7 +1554,7 @@ const documentosFiltrados = documentos.filter((d) =>
                   </td>
                 </tr>
               ) : (
-                resultadosPaginados.map((doc, index) => (
+                resultadosPaginados.map((doc) => (
                   <tr
                     key={doc.folio}
                     onContextMenu={(e) => handleRightClick(e, doc)}
@@ -1560,7 +1578,7 @@ const documentosFiltrados = documentos.filter((d) =>
                     </td>
 
                     <td className="px-4 py-2 whitespace-nowrap">
-                      {doc.remitente.name}
+                      {doc.remitente?.name || doc.remitente?.nombre || "N/A"}
                     </td>
 
                     <td className="px-4 py-2 whitespace-nowrap">
@@ -1710,7 +1728,7 @@ const documentosFiltrados = documentos.filter((d) =>
                           id: "materialAdicional",
                           label: "Material adicional",
                         }]
-                      ) : null,
+                      ) : [],
                       {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
@@ -1911,6 +1929,24 @@ const documentosFiltrados = documentos.filter((d) =>
                                 </div>
                               )}
                             </div>
+
+                            {/* Campo "Otro" tipo de documento - solo visible cuando se selecciona "otro" */}
+                            {formEditar.tipoDocumento === "otro" && (
+                              <div className="col-span-2">
+                                <label className="text-xs text-gray-500">
+                                  Especificar tipo de documento *
+                                </label>
+                                <input
+                                  type="text"
+                                  name="tipoOtro"
+                                  value={formEditar.tipoOtro}
+                                  onChange={handleChange}
+                                  className="w-full border rounded px-2 py-1"
+                                  placeholder="Ingrese el tipo de documento"
+                                />
+                              </div>
+                            )}
+
                             <div className="col-span-2">
 
                               <div ref={refTemaPrincipal} className="col-span-2 relative">

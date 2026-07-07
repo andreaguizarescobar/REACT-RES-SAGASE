@@ -48,6 +48,27 @@ const loginUser = async (username, password) => {
     throw new Error("Contraseña incorrecta");
   }
   const token = jwt.generateToken(user);
+  
+  // Eliminar tareas con status "salida" que tengan más de 2 días de antigüedad
+  const dosDiasEnMs = 2 * 24 * 60 * 60 * 1000; // 2 días en milisegundos
+  const ahora = Date.now();
+  
+  const tareasSalidaAntiguas = user.tareas.filter(t => 
+    t.status === 'salida' && 
+    t.fecha && 
+    (ahora - new Date(t.fecha).getTime()) > dosDiasEnMs
+  );
+  
+  if (tareasSalidaAntiguas.length > 0) {
+    // Eliminar las tareas antiguas del array
+    user.tareas = user.tareas.filter(t => 
+      !(t.status === 'salida' && 
+        t.fecha && 
+        (ahora - new Date(t.fecha).getTime()) > dosDiasEnMs)
+    );
+    await user.save();
+  }
+  
   // comprobar si el usuario tiene tareas pendientes apunto de vencer y añadirlas a notificaciones
   const tareasPendientes = user.tareas.filter(t => t.status === 'pendiente');
   tareasPendientes?.forEach( async (tarea) => {
@@ -217,7 +238,6 @@ export const moveTarea = async (userId, tareaId) => {
           fecha: new Date()
         });
         await documento.save();
-        console.log("Notificación enviada al registrador:", userRegistrador);
         await userRegistrador.save();
       }
   }
@@ -289,6 +309,7 @@ export const validarTarea = async (userId, tareaId) => {
     tarea.titulo = 'Documento validado';
     tarea.proceso = 'Validación';
     tarea.status = 'salida';
+    tarea.fecha = new Date();
   }
 
   const documento = await documentoModel.findById(tarea.documento);
@@ -335,6 +356,7 @@ export const devolverTarea = async (userId, tareaId) => {
   }
 
   tarea.status = 'salida';
+  tarea.fecha = new Date();
 
   const destinatario = await userModel.findById(lastTurnado.dirigido);
   if (!destinatario) {

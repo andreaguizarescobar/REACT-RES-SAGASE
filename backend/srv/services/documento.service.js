@@ -22,7 +22,6 @@ const getById = async (docId) => {
         .populate('remitente')
         .populate('tipo')
         .populate('tema')
-        .populate('secundario')
         .populate('adicional')
         .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
         .populate('turnados.instruccion')
@@ -52,14 +51,9 @@ const create = async (documentoData, user) => {
     if (existingDocumento) {
         throw new Error('Ya existe un documento con este número');
     }
-
-    // Verificar si ya existe un documento con el mismo folio
-    let existingFolio = await documentoModel.findOne({ folio: documentoData.folio });
-    if (existingFolio) {
         // Generar un nuevo folio si ya existe
         const numero = await obtenerSiguienteNumero("documento");
         documentoData.folio = `${numero}-${new Date().getFullYear()}-${Date.now()}`;
-    }
 
     // Asegurar que las fechas sean objetos Date válidos
     if (documentoData.fechaDoc) {
@@ -121,7 +115,6 @@ const putDocumento = async (docId, documentoData, user) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -162,7 +155,6 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -182,7 +174,7 @@ const patchTurnadoDocumento = async (docId, turnadoData, user) => {
     // mover la tarea pendeiente a salidas, cambiando el estatus a salida, y agregar una nueva tarea pendiente para el area destino
     const pendientes = await userModel.updateOne(
     { _id: user.id },
-    { $set: { 'tareas.$[t].status': 'salida' } },
+    { $set: { 'tareas.$[t].status': 'salida', 'tareas.$[t].fecha': new Date, 'tareas.$[t].tarea': 'Turnado' } },
     {
         session,
         arrayFilters: [{ 't.documento': doc._id, 't.status': 'pendiente' }]
@@ -251,7 +243,6 @@ const patchCopiaDocumento = async (docId, copiaData) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -283,7 +274,6 @@ const patchAnexoDocumento = async (docId, anexoData, user) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -355,7 +345,6 @@ const patchRemoverAnexoDocumento = async (docId, anexoId, user) => {
         .populate('remitente')
         .populate('tipo')
         .populate('tema')
-        .populate('secundario')
         .populate('adicional')
         .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
         .populate('turnados.instruccion')
@@ -395,7 +384,6 @@ const patchStatusDocumento = async (docId, statusData, user) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -427,7 +415,6 @@ const patchRelacionadoDocumento = async (docId, relacionadoData, user) => {
     .populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -459,7 +446,6 @@ const patchRemoverRelacionadoDocumento = async (docId, relacionadoId, user) => {
     ).populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
@@ -550,7 +536,6 @@ const patchRespuestaDocumento = async (docId, respuestaData, user, ruta) => {
     ).populate('remitente')
     .populate('tipo')
     .populate('tema')
-    .populate('secundario')
     .populate('adicional')
     .populate({ path: 'relacionados.item', populate: { path: 'remitente', select: 'name' } })
     .populate('turnados.instruccion')
