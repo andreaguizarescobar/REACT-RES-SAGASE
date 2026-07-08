@@ -52,7 +52,7 @@ export const postFondoItem = async (req, res, next) => {
 };
 
 export const putFondoItem = async (req, res, next) => {
-    const { fondoId } = req.params;
+    const { id } = req.params;
     try {
         const data = { ...req.body };
         if (req.files) {
@@ -66,7 +66,7 @@ export const putFondoItem = async (req, res, next) => {
                 data.fondo = `${process.env.ARCHIVOS_PATH}/fondo/${req.files.fondo[0].filename}`;
             }
         }
-        const fondo = await service.updateFondo(fondoId, data);
+        const fondo = await service.updateFondo(id, data);
         res.status(200).json(fondo);
     } catch (error) {
         next(error);

@@ -26,13 +26,11 @@ export function SolicitudAltaUsuarios() {
     try {
       const token = localStorage.getItem("token");
       const response = await getSolicitudes(token);
-      console.log("Respuesta de getSolicitudes:", response);
       if (!response.ok) {
         setError("No se pudieron cargar las solicitudes.");
         return;
       }
       const data = await response.json();
-      console.log("Datos de solicitudes:", data);
       setRequests(Array.isArray(data) ? data : []);
     } catch (fetchError) {
       console.error("Error cargando solicitudes:", fetchError);

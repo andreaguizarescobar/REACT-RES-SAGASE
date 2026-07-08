@@ -407,7 +407,6 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
         throw new Error(errorText || "Error en búsqueda de documentos");
       }
       const resultados = await response.json();
-      console.log("Documentos encontrados:", resultados);
       const documentos = Array.isArray(resultados)
         ? resultados
         : Array.isArray(resultados.data)
@@ -574,7 +573,6 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
     }
 
     setErrores(nuevosErrores);
-    console.log(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
 
@@ -624,7 +622,6 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
           const respuesta = await createCorrespondenciaSalida(datosGuardar);
 
           if (!respuesta.ok) {
-            console.log(await respuesta.json());
             throw new Error("Error al guardar la correspondencia");
           }
 

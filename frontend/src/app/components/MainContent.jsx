@@ -1338,8 +1338,6 @@ useEffect(() => {
                 formData.append('mensaje', mensaje);
                 formData.append('nombre', nombreDoc);
                 formData.append('docId', currentDocId);
-
-                console.log("Subiendo anexo con datos:", currentDocId);
                 const response = await uploadAnexo(formData, token);
                 if (!response.ok) throw new Error('Error subiendo el anexo');
           
@@ -2536,8 +2534,6 @@ const generarDocumentoTurno = async (turno) => {
 
     return `${dia}/${mes}/${anio}`;
   };
-
-  console.log("TURNO COMPLETO:", turno);
 
   // ===== OBTENER ID DEL DOCUMENTO =====
 
@@ -4621,7 +4617,6 @@ const generarDocumentoTurno = async (turno) => {
                                           <button 
                                           title="Ver archivo"
                                           onClick={() => { 
-                                            console.log("Ruta del anexo:", anexo.ruta); 
                                             openAnexo(anexo);
                                           }} 
                                           className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 
@@ -7804,7 +7799,6 @@ const generarDocumentoTurno = async (turno) => {
                                           <button 
                                           title="Ver archivo"
                                           onClick={() => { 
-                                            console.log("Ruta del anexo:", anexo.ruta); 
                                             openAnexo(anexo);
                                           }} 
                                           className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90 flex items-center gap-2" > 

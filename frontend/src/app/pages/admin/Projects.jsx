@@ -170,8 +170,8 @@ export function Projects() {
   const [busquedaFondo, setBusquedaFondo] = useState("");
   
     const fondosFiltrados = fondos.filter((m) => 
-      m.nombre?.toLowerCase().includes(busquedaFondo.toLowerCase()) ||
-      m.abreviatura?.toLowerCase().includes(busquedaFondo.toLowerCase())
+      m?.nombre?.toLowerCase().includes(busquedaFondo.toLowerCase()) ||
+      m?.abreviatura?.toLowerCase().includes(busquedaFondo.toLowerCase()) || ""
     );
   
   const [mostrarModalFondo, setMostrarModalFondo] = useState(false);

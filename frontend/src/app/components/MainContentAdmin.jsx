@@ -76,7 +76,6 @@ export function MainContentAdmin({ currentView, selectedAreaId }) {
   const cargarDashboard = async () => {
     try {
       const data = await getDashboard(); // petición al backend
-      console.log("Dashboard:", data);   // debug temporal
       setDashboard(data);                // actualización de estado
     } catch (error) {
       console.error(error);              // manejo básico de errores

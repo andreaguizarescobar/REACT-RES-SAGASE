@@ -170,7 +170,6 @@ export const reporteAcuerdos = (data, token) => {
 };
 
 export const reporteAsuntos = (data, token) => {
-    console.log('Enviando datos para reporte de asuntos:', data);
     return fetchAPI(`/documentos/reporte/asuntos`, {
         method: 'POST',
         headers: {

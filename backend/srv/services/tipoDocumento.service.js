@@ -24,18 +24,12 @@ const postTipoDocumento = async (data) => {
       const tipoDocumento = await tipoDocumentoModel.create({ tipo: data.tipo.trim() });
       return tipoDocumento;
   } catch (error) {
-    // Handle MongoDB duplicate key error for null _id
     if (error.code === 11000 && error.message.includes('ID_1') && error.message.includes('null')) {
-      console.log('Detected corrupted data with null _id. Attempting to clean up...');
       try {
-        // Remove documents with null _id
         await tipoDocumentoModel.collection.deleteMany({ _id: null });
-        console.log('Cleaned up corrupted documents. Retrying creation...');
-        // Retry the creation
         const tipoDocumento = await tipoDocumentoModel.create({ tipo: data.tipo.trim() });
         return tipoDocumento;
       } catch (cleanupError) {
-        console.error('Failed to clean up corrupted data:', cleanupError);
         throw new Error("Error en la base de datos. Contacte al administrador.");
       }
     }

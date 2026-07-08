@@ -32,7 +32,6 @@ export function ConsultaSalidaCorrespondencia() {
     try {
       const response = await getCorrespondencias();
       if (!response.ok) {
-        console.log('Error cargando correspondencias:', await response.json());
         throw new Error('Error al cargar correspondencias');
       }
       const datos = await response.json();

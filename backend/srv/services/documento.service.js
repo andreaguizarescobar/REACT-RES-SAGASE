@@ -225,11 +225,8 @@ const patchBitacoraDocumento = async (docId, bitacoraData) => {
 
 const patchCopiaDocumento = async (docId, copiaData) => {
     const funcionario = await userModel.findById(copiaData.funcionario);
-    console.log("Funcionario encontrado para agregar copia:", docId);
     const documento = await documentoModel.findOne({ docId });
-    console.log("Documento encontrado para agregar copia:", documento);
     funcionario.copias.push(documento._id);
-    console.log("Guardando funcionario con copia agregada:", funcionario);
     funcionario.notificaciones.push({ 
         tarea: 'Copia de documento',
         descripcion: `Agregada copia del documento ${docId}`,
@@ -237,7 +234,6 @@ const patchCopiaDocumento = async (docId, copiaData) => {
         status: 'Sin leer',
         documento: documento._id,
      });
-     console.log("Guardando funcionario con copia agregada:", funcionario);
      await funcionario.save();
 
     return await documentoModel.findOneAndUpdate(

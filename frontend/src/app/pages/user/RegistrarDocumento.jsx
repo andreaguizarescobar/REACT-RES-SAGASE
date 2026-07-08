@@ -3365,7 +3365,7 @@ useEffect(() => {
                           {/* BODY */}
                           <tbody>
                             {anexosPaginados.length > 0 ? (
-                              anexosPaginados.map((anexo) => (console.log(anexo),
+                              anexosPaginados.map((anexo) => (
                                 <tr
                                   key={anexo._id || anexo.nombre}
                                   className="border-t hover:bg-gray-50"

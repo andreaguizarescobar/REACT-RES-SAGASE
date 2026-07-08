@@ -74,7 +74,6 @@ const loginUser = async (username, password) => {
   tareasPendientes?.forEach( async (tarea) => {
     const documento = await documentoModel.findById(tarea.documento);
   const ultimoTurnado = documento.turnados?.at(-1);
-    console.log("Último turnado:", documento);
   if (
     ultimoTurnado?.compromiso &&
     ultimoTurnado.compromiso < Date.now() + 1000 * 60 * 60 * 24 * 3 &&

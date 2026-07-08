@@ -148,7 +148,6 @@ export const concluirTarea = async (req, res) => {
     const tareaId = req.params.tareaId;
     const notas = req.body.notas;
     const userId = req.user.id; // Asegúrate de que el middleware de autenticación establezca userId en req
-    console.log(`Concluyendo tarea ${tareaId} para el usuario ${userId}`);
     const result = await userService.concluirTarea(userId, tareaId, notas);
     res.json({ message: result });
   } catch (error) {

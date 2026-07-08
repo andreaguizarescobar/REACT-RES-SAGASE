@@ -1894,7 +1894,9 @@ const documentosFiltrados = documentos.filter((d) =>
     const [pdfGenerado, setPdfGenerado] = useState(false);
   
     useEffect(() => {
-      if (tabActiva !== "bitacora") return;
+      if (tabActiva !== "bitacora") {
+        setPdfBitacora(null);
+        return};
 
       const cargar = async () => {
         const pdf = await generarBitacoraPDF();
@@ -4327,7 +4329,11 @@ useEffect(() => {
                   )}
 
                   {tabActiva === "bitacora" && (
-                      <motion.div className="w-full flex justify-center bg-[#2f2f2f] py-6">
+                      <motion.div 
+                      key="bitacora"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="w-full flex justify-center bg-[#2f2f2f] py-6">
                         <div className="w-full max-w-4xl">
                     
                           {/* Barra visor */}
