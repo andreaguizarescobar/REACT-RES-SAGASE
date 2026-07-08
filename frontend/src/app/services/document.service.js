@@ -39,13 +39,13 @@ export const updateDocument = (id, data, token) => {
     });
 };
 
-export const deleteDocument = (id, token) => {
+export const deleteDocument = (id, motivo, token) => {
     return fetchAPI(`/documentos/delete`, {
         method: 'DELETE',
         headers: {
             Authorization: `Bearer ${token}`
-        }
-        , body: JSON.stringify({ docId: id})
+        },
+        body: JSON.stringify({ docId: id, motivo })
     });
 };
 
@@ -187,6 +187,15 @@ export const enviarRespuesta = (formData, token) => {
             Authorization: `Bearer ${token}`
         },
         body: formData,
+    });
+};
+
+export const getEliminados = (token) => {
+    return fetchAPI(`/documentos/eliminados`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
     });
 };
 

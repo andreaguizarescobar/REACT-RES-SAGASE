@@ -240,11 +240,14 @@ export const patchEliminarAdicionalDocumento = async (req, res) => {
 
 export const deleteDocumento = async (req, res) => {
     try {
-        const { docId } = req.body;
+        const { docId, motivo } = req.body;
         const user = req.user;
-        const deletedDocumento = await documentoService.deleteDocumento(docId, user);
+        if (!motivo || !motivo.trim()) {
+            return res.status(400).json({ error: 'El motivo de eliminación es obligatorio' });
+        }
+        const deletedDocumento = await documentoService.deleteDocumento(docId, user, motivo);
         if (deletedDocumento) {
-            res.status(200).json({ message: 'Documento eliminado correctamente' });
+            res.status(200).json(deletedDocumento);
         } else {
             res.status(404).json({ error: 'Documento no encontrado' });
         }
@@ -303,6 +306,15 @@ export const patchRespuestaDocumento = async (req, res) => {
     }
 };
 
+export const getEliminados = async (req, res) => {
+    try {
+        const eliminados = await documentoService.getEliminados();
+        res.status(200).json(eliminados);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const searchDocumentos = async (req, res) => {
     try {
         const { query } = req.body;
@@ -332,5 +344,6 @@ export default {
     deleteDocumento,
     reporteAcuerdos,
     reporteAsuntos,
-    searchDocumentos
+    searchDocumentos,
+    getEliminados
 };

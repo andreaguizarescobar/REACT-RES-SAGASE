@@ -44,7 +44,6 @@ export function RegistrarDocumento() {
 
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [temasPrincipales, setTemasPrincipales] = useState([]);
-  const [adicionales, setAdicionales] = useState([]);
   const [remitentes, setRemitentes] = useState([]);
   const [documentos, setDocumentos] = useState([]);
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
@@ -230,7 +229,7 @@ export function RegistrarDocumento() {
     ...tiposDocumento.filter((tipo) =>
       tipo.label.toLowerCase().includes(busquedaTipoDoc.toLowerCase())
     ),
-    ...(busquedaTipoDoc.toLowerCase().includes("otro") || busquedaTipoDoc === ""
+    ...("otro".toLowerCase().includes(busquedaTipoDoc.toLowerCase()) || busquedaTipoDoc === ""
       ? [{ value: "otro", label: "Otro" }]
       : []),
   ];
@@ -853,20 +852,7 @@ export function RegistrarDocumento() {
   const [archivoVista, setArchivoVista] = useState(null);
     
   const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
-  const [anexosDisponibles, setAnexosDisponibles] = useState([
-    {
-      id: 1,
-      folio: "ANX-001",
-      nombre: "Contrato.pdf",
-      archivo: null,
-    },
-    {
-      id: 2,
-      folio: "ANX-002",
-      nombre: "Identificación.jpg",
-      archivo: null,
-    },
-  ]);
+  const [anexosDisponibles, setAnexosDisponibles] = useState([]);
 
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
 
@@ -894,22 +880,14 @@ export function RegistrarDocumento() {
   const [busquedaTemaPrincipal, setBusquedaTemaPrincipal] = useState("");
   const [mostrarOpcionesTemaPrincipal, setMostrarOpcionesTemaPrincipal] = useState(false);
 
-  const [mostrarOpcionesAdicional, setMostrarOpcionesAdicional] = useState(false);
-
   const temasFiltradosPrincipal = temasPrincipales.filter((tema) =>
     tema.label.toLowerCase().includes(busquedaTemaPrincipal.toLowerCase())
   );
 
-const [mostrarOpcionesAsunto, setMostrarOpcionesAsunto] = useState(false);
-
 const refTipoDoc = useRef(null);
 const refRemitenteInt = useRef(null);
 const refRemitenteExt = useRef(null);
-const refMaterial = useRef(null);
-const refAsunto = useRef(null);
 const refTemaPrincipal = useRef(null);
-const refAdicional = useRef(null);
-
 useEffect(() => {
   const handleClickOutside = (event) => {
     if (refTipoDoc.current && !refTipoDoc.current.contains(event.target)) {
@@ -924,20 +902,8 @@ useEffect(() => {
       setMostrarOpcionesRemitenteExt(false);
     }
 
-    if (refMaterial.current && !refMaterial.current.contains(event.target)) {
-      setMostrarOpcionesMaterial(false);
-    }
-
-    if (refAsunto.current && !refAsunto.current.contains(event.target)) {
-      setMostrarOpcionesAsunto(false);
-    }
-
     if (refTemaPrincipal.current && !refTemaPrincipal.current.contains(event.target)) {
       setMostrarOpcionesTemaPrincipal(false);
-    }
-
-    if (refAdicional.current && !refAdicional.current.contains(event.target)) {
-      setMostrarOpcionesAdicional(false);
     }
   };
 
@@ -990,25 +956,6 @@ const obtenerLabel = (lista, id) => {
 
   return lista.find(item => item._id === id)?.nombre || "";
 };
-
-    const anexos = [
-      {
-        folio: "12345",
-        nombre: "GUARDIA NACIONAL.pdf",
-      },
-      {
-        folio: "67890",
-        nombre: "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
-      },
-      {
-        folio: "54321",
-        nombre: "Ficha de Gestión Instrucción Distribuir los materiales.pdf",
-      },
-      {
-        folio: "67890",
-        nombre: "Ficha de Gestión Instrucción Atender el tema y dar respuesta al interesado.pdf",
-      },
-    ];
     
       useEffect(() => {
         const handleClickOutside = (event) => {
@@ -1017,12 +964,6 @@ const obtenerLabel = (lista, id) => {
           }
           if (refRemitenteExt.current && !refRemitenteExt.current.contains(event.target)) {
             setMostrarOpcionesRemitenteExt(false);
-          }
-          if (refMaterial.current && !refMaterial.current.contains(event.target)) {
-            setMostrarOpcionesMaterial(false);
-          }
-          if (refAsunto.current && !refAsunto.current.contains(event.target)) {
-            setMostrarOpcionesAsunto(false);
           }
           if (refTemaPrincipal.current && !refTemaPrincipal.current.contains(event.target)) {
             setMostrarOpcionesTemaPrincipal(false);

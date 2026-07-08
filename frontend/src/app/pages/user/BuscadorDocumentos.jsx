@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import Swal from "sweetalert2";
-import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional } from "../../services/document.service.js";
+import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional, deleteDocument } from "../../services/document.service.js";
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
@@ -47,6 +47,7 @@ export default function BuscadorDocumentos() {
   const [remitentes, setRemitentes] = useState([]);
   const [turnosDocumento, setTurnosDocumento] = useState([]);
   const [copiasDocumento, setCopiasDocumento] = useState([]);
+  const [respuestasDocumento, setRespuestasDocumento] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -212,6 +213,62 @@ useEffect(() => {
 
   const [errores, setErrores] = useState({});
 
+  const handleEliminar = () => {
+    const doc = menuContextual.documento;
+    if (!doc) return;
+    setDocumentoEliminar(doc);
+    setMotivoEliminacion("");
+    setMenuContextual((m) => ({ ...m, visible: false }));
+    setMostrarModalEliminar(true);
+  };
+
+  const handleConfirmarEliminar = async () => {
+    if (!documentoEliminar) return;
+    if (!motivoEliminacion.trim()) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Debe especificar el motivo de eliminación",
+      });
+      return;
+    }
+
+    const docId = documentoEliminar.docId || documentoEliminar._id;
+    if (!docId) return;
+
+    try {
+      const response = await deleteDocument(docId, motivoEliminacion, token);
+      if (response.ok) {
+        setDocumentos((prev) => prev.filter((doc) => (doc.docId || doc._id) !== docId));
+        setMostrarModalEliminar(false);
+        setDocumentoEliminar(null);
+        setMotivoEliminacion("");
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Documento eliminado correctamente",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+      } else {
+        const errorResponse = await response.json().catch(() => null);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: errorResponse?.error || "No se pudo eliminar el documento",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error de conexión",
+        text: "No se pudo eliminar el documento",
+      });
+    }
+  };
+
   const handleModificar = async () => {
     const doc = menuContextual.documento;
     if (!doc) return;
@@ -277,6 +334,7 @@ useEffect(() => {
       setTurnosDocumento(fullDoc.turnados || []);
       setCopiasDocumento(fullDoc.copias || []);
       setBitacoraDocumento(fullDoc.bitacora || []);
+      setRespuestasDocumento(fullDoc.respuestas || []);
       setRelacionadosDocumento(
         (fullDoc.relacionados || [])
           .map((rel) => {
@@ -422,15 +480,11 @@ useEffect(() => {
   
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
-
   const [busquedaRemitenteInt, setBusquedaRemitenteInt] = useState("");
   const [mostrarOpcionesRemitenteInt, setMostrarOpcionesRemitenteInt] = useState(false);
 
   const remitentesInternos = remitentes.filter((r) => r.tipo === "interno");
   const remitentesExternos = remitentes.filter((r) => r.tipo === "externo");
-  const remitentesFiltrados = remitentesExternos.filter((r) =>
-    r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
-  );
 
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
@@ -450,6 +504,9 @@ useEffect(() => {
 
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
   const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [motivoEliminacion, setMotivoEliminacion] = useState("");
+  const [documentoEliminar, setDocumentoEliminar] = useState(null);
 
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
   const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
@@ -922,6 +979,8 @@ const documentosFiltrados = documentos.filter((d) =>
 
   const [mostrarVisor, setMostrarVisor] = useState(false);
   const [archivoVista, setArchivoVista] = useState(null);
+  const [mostrarVisorRespuesta, setMostrarVisorRespuesta] = useState(false);
+  const [archivoRespuesta, setArchivoRespuesta] = useState(null);
     
   const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
   const [anexosDisponibles, setAnexosDisponibles] = useState([
@@ -940,11 +999,6 @@ const documentosFiltrados = documentos.filter((d) =>
   ]);
 
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
-
-
-  const [materiales, setMateriales] = useState([]);
-
-  const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
 
   const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
 
@@ -988,7 +1042,6 @@ const documentosFiltrados = documentos.filter((d) =>
   };
   
   const [mostrarVisorTurno, setMostrarVisorTurno] = useState(false);
-  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
   const obtenerTextoPlano = (valor, fallback = "-") => {
   if (!valor) return fallback;
@@ -1198,7 +1251,7 @@ const documentosFiltrados = documentos.filter((d) =>
   
     dibujarFila(
       "TURNO NÚMERO",
-      turno?.numeroTurno || "000000",
+      turno?.numero || "000000",
       "FOLIO",
       documentoCompleto?.folio ||
       documentoCompleto?.numeroFolio ||
@@ -1672,6 +1725,14 @@ const documentosFiltrados = documentos.filter((d) =>
               >
                 Modificar registro
               </button>
+              {menuContextual.documento?.status !== "Validado" && (
+                <button
+                  className="block px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
+                  onClick={handleEliminar}
+                >
+                  Eliminar documento
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1733,6 +1794,11 @@ const documentosFiltrados = documentos.filter((d) =>
                         id: "verTurnos",
                         label: "Ver todos los turnos",
                       },
+                      // Mostrar pestaña de respuestas solo si hay respuestas en el documento
+                      ...(respuestasDocumento.length > 0 ? [{
+                        id: "respuestas",
+                        label: "Respuestas al documento",
+                      }] : []),
                       {
                         id: "copias",
                         label: "Copias de conocimiento",
@@ -3140,7 +3206,7 @@ const documentosFiltrados = documentos.filter((d) =>
                       </div>
               
                         <AnimatePresence>
-                          {mostrarVisorTurno && turnoSeleccionado && (
+                          {mostrarVisorTurno && archivoVista && (
                             <motion.div
                               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
                               initial={{ opacity: 0 }}
@@ -3155,7 +3221,7 @@ const documentosFiltrados = documentos.filter((d) =>
                               >
 
                                 <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
-                                  <span>{turnoSeleccionado.nombre}</span>
+                                  <span>Documento de turno</span>
 
                                   {/* CERRAR */}
                                   <button
@@ -3169,7 +3235,7 @@ const documentosFiltrados = documentos.filter((d) =>
                                 {/* VISTA */}
                                 <iframe
                                   title="Vista previa turno"
-                                  src={turnoSeleccionado.url}
+                                  src={archivoVista.url}
                                   className="w-full h-[calc(100%-56px)]"
                                 />
 
@@ -3374,7 +3440,132 @@ const documentosFiltrados = documentos.filter((d) =>
                   
                     </motion.div>
                   )}
+
+                  {tabActiva === "respuestas" && (
+                    <motion.div
+                      key="respuestas"
+                      initial={{ opacity: 0, x: 15 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -15 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="space-y-4">
+                        <div className="bg-gray-100 border-b px-4 py-2 text-sm font-semibold text-gray-600">
+                          Respuestas al documento
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full border border-gray-200 text-xs">
+                            <thead>
+                              <tr className="bg-[#D8B2BC] text-white">
+                                <th className="px-3 py-2 text-left border-r">
+                                  Registrador del mensaje
+                                </th>
+                                <th className="px-3 py-2 text-left border-r">
+                                  Documento anexo
+                                </th>
+                                <th className="px-3 py-2 text-left border-r">
+                                  Número de documento
+                                </th>
+                                <th className="px-3 py-2 text-left">
+                                  Mensaje
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {respuestasDocumento.length > 0 ? (
+                                respuestasDocumento.map((respuesta, index) => (
+                                  <tr key={index} className="border-b hover:bg-gray-50">
+                                    <td className="px-3 py-3 text-gray-700 align-top">
+                                      {respuesta.registrador?.nombre || 'Usuario'}
+                                    </td>
+                    <td className="px-3 py-3 align-top">
+                                      {respuesta.ruta ? (
+                                        <button
+                                          onClick={() => {
+                                            setArchivoRespuesta(`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta}`);
+                                            setMostrarVisorRespuesta(true);
+                                          }}
+                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
+                                        >
+                                          Ver Archivo
+                                        </button>
+                                      ) : (
+                                        <span className="text-gray-500 text-[11px]">Sin documento adjunto</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-3 align-top">
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-[11px] font-medium">
+                                        {respuesta.nombre || 'Respuesta'}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-3 text-gray-700 align-top">
+                                      {respuesta.mensaje}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan="4" className="px-3 py-4 text-center text-gray-500">
+                                    No hay respuestas registradas.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                   
+                  </AnimatePresence>
+
+                  {/* Modal ver archivo respuesta */}
+                  <AnimatePresence>
+                    {mostrarVisorRespuesta && (
+                      <motion.div
+                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <motion.div
+                          className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0.8 }}
+                        >
+                          {/* Botón cerrar */}
+                          <button
+                            onClick={() => setMostrarVisorRespuesta(false)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                          >
+                            ✕
+                          </button>
+
+                          {/* Contenido */}
+                          <div className="w-full h-full flex items-center justify-center">
+                            {typeof archivoRespuesta === "string" ? (
+                              archivoRespuesta.endsWith(".pdf") ? (
+                                <iframe
+                                  src={archivoRespuesta}
+                                  className="w-full h-full rounded"
+                                />
+                              ) : (
+                                <img
+                                  src={archivoRespuesta}
+                                  alt="preview"
+                                  className="max-h-full rounded"
+                                />
+                              )
+                            ) : (
+                              <p className="text-gray-500">
+                                No se puede previsualizar este archivo
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
                   </AnimatePresence>
 
                   </div>
@@ -3565,6 +3756,84 @@ const documentosFiltrados = documentos.filter((d) =>
           </motion.div>
         )}
       </AnimatePresence>
+
+        {/* MODAL ELIMINAR DOCUMENTO */}
+        <AnimatePresence>
+          {mostrarModalEliminar && (
+            <motion.div
+              className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white w-[500px] rounded shadow-lg overflow-hidden"
+              >
+                {/* HEADER */}
+                <div className="flex justify-between items-center bg-[#8B1538] px-4 py-2">
+                  <span className="text-white text-sm font-semibold">
+                    Eliminar documento
+                  </span>
+                  <button
+                    onClick={() => {
+                      setMostrarModalEliminar(false);
+                      setDocumentoEliminar(null);
+                      setMotivoEliminacion("");
+                    }}
+                    className="bg-white text-[#8B1538] p-1 rounded-full flex items-center justify-center"
+                  >
+                    <Minus size={16} />
+                  </button>
+                </div>
+
+                {/* BODY */}
+                <div className="p-6">
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-700 mb-2">
+                      ¿Está seguro de eliminar el documento <strong>{documentoEliminar?.folio || documentoEliminar?.docId}</strong>?
+                    </p>
+                    <p className="text-xs text-red-500 mb-4">
+                      Esta acción eliminará el documento y todos sus archivos anexos y respuestas asociadas de forma permanente.
+                    </p>
+                    <label className="text-xs text-gray-500 font-medium block mb-1">
+                      Motivo de eliminación *
+                    </label>
+                    <textarea
+                      value={motivoEliminacion}
+                      onChange={(e) => setMotivoEliminacion(e.target.value)}
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      rows="3"
+                      placeholder="Especifique el motivo de la eliminación..."
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setMostrarModalEliminar(false);
+                        setDocumentoEliminar(null);
+                        setMotivoEliminacion("");
+                      }}
+                      className="px-4 py-2 bg-gray-300 rounded text-sm"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleConfirmarEliminar}
+                      className="px-4 py-2 bg-[#8B1538] text-white rounded text-sm"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {mostrarModalCopias && (

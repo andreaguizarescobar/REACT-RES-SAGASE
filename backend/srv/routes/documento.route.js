@@ -58,5 +58,7 @@ router.post('/reporte/asuntos', verifyToken, documentoController.reporteAsuntos)
 router.post('/respuesta', verifyToken, upload.single('archivo'), documentoController.patchRespuestaDocumento);
 // documento/search
 router.post('/search', documentoController.searchDocumentos);
+// documento/eliminados
+router.get('/eliminados', verifyToken, documentoController.getEliminados);
 
 export default router;

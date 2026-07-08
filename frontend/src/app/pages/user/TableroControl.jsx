@@ -8,7 +8,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, FileText, FileSpreadsheet } from "lucide-react";
-import { getDocuments } from "../../services/document.service";
+import { getDocuments, getEliminados } from "../../services/document.service";
 import { getAreas } from "../../services/catalogos.service";
 
 import jsPDF from "jspdf";
@@ -140,6 +140,7 @@ export function TableroControl() {
   const [archivoPDF, setArchivoPDF] = useState(null);
 
   const [documentos, setDocumentos] = useState([]);
+  const [eliminados, setEliminados] = useState([]);
   const [fichas, setFichasGestion] = useState(fichasGestion);
   const [Enviadas, setInstruccionesEnviadas] = useState(instruccionesEnviadas);
   const [usuarioInstrucciones, setInstruccionesUsuario] = useState(instruccionesUsuario);
@@ -153,11 +154,25 @@ export function TableroControl() {
       const documentos = await getDocuments(localStorage.getItem("token"));
       const docs = await documentos.json();
       setDocumentos(docs);
+
+      // Fetch deleted documents count
+      let eliminadosCount = 0;
+      try {
+        const eliminadosRes = await getEliminados(localStorage.getItem("token"));
+        if (eliminadosRes.ok) {
+          const eliminadosData = await eliminadosRes.json();
+          setEliminados(eliminadosData);
+          eliminadosCount = eliminadosData.length;
+        }
+      } catch (e) {
+        console.error("Error al obtener eliminados:", e);
+      }
+
       const contador = {
         "Sin instrucciones": 0,
         "Con instrucción turnada": 0,
         "Con gestión cerrada": 0,
-        "Eliminados": 0,
+        "Eliminados": eliminadosCount,
         "Cerrado": 0,
         "Con respuesta registrada": 0,
         "Recibido, en ejecución": 0,
@@ -201,8 +216,6 @@ export function TableroControl() {
         }else if(doc.status === "Cerrado") {
           contador["Con gestión cerrada"] += 1;
           contador["Cerrado"] += 1;
-        }else if(doc.eliminado) {
-          contador["Eliminados"] += 1;
         }
         if (doc.registrador._id === user._id || doc.validador === user._id || doc.turnados?.some((t) => t.dirigido._id === user._id)) {
           contador["Registrado de usuario"] += 1;
@@ -253,7 +266,9 @@ export function TableroControl() {
   fetchDocuments();
 }, []);
 
-  const documentosFiltrados = documentos.filter(
+  const esEliminados = estatusSeleccionado === "Eliminados";
+
+  const documentosFiltrados = esEliminados ? [] : documentos.filter(
     (doc) => (estatusSeleccionado === "Registrado" ||
     (doc.status === estatusSeleccionado) || (doc.status !== "Sin instrucciones" && estatusSeleccionado === "Con instrucción turnada") ||
     (doc.status === "Cerrado" && estatusSeleccionado === "Con gestión cerrada") || 
@@ -272,14 +287,16 @@ export function TableroControl() {
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 6;
 
+  const dataSource = esEliminados ? eliminados : documentosFiltrados;
+
   const totalPaginas = Math.ceil(
-    documentosFiltrados.length / registrosPorPagina,
+    dataSource.length / registrosPorPagina,
   );
 
   const indexInicio = (paginaActual - 1) * registrosPorPagina;
   const indexFin = indexInicio + registrosPorPagina;
 
-  const documentosPaginados = documentosFiltrados.slice(
+  const documentosPaginados = dataSource.slice(
     indexInicio,
     indexFin,
   );
@@ -1324,8 +1341,8 @@ export function TableroControl() {
                   Documentos en estatus: {estatusSeleccionado}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  {documentosFiltrados.length}{" "}
-                  {documentosFiltrados.length === 1
+                  {dataSource.length}{" "}
+                  {dataSource.length === 1
                     ? "documento encontrado"
                     : "documentos encontrados"}
                 </p>
@@ -1425,24 +1442,24 @@ export function TableroControl() {
                 <table className="min-w-full text-xs tabla-documentos">
                   <thead className="bg-[#79142A] text-white">
                     <tr>
-                      <th className="px-3 py-2 text-left">
-                        Folio
-                      </th>
-                      <th className="px-3 py-2 text-left">
-                        No. de Documento
-                      </th>
-                      <th className="px-3 py-2 text-left">
-                        Fecha del documento
-                      </th>
-                      <th className="px-3 py-2 text-left">
-                        Síntesis del asunto
-                      </th>
-                      <th className="px-3 py-2 text-left">
-                        Remitente
-                      </th>
-                      <th className="px-3 py-2 text-left">
-                        Estatus
-                      </th>
+                      {esEliminados ? (
+                        <>
+                          <th className="px-3 py-2 text-left">Folio</th>
+                          <th className="px-3 py-2 text-left">No. de Documento</th>
+                          <th className="px-3 py-2 text-left">Motivo de eliminación</th>
+                          <th className="px-3 py-2 text-left">Eliminado por</th>
+                          <th className="px-3 py-2 text-left">Fecha de eliminación</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-3 py-2 text-left">Folio</th>
+                          <th className="px-3 py-2 text-left">No. de Documento</th>
+                          <th className="px-3 py-2 text-left">Fecha del documento</th>
+                          <th className="px-3 py-2 text-left">Síntesis del asunto</th>
+                          <th className="px-3 py-2 text-left">Remitente</th>
+                          <th className="px-3 py-2 text-left">Estatus</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
@@ -1452,54 +1469,49 @@ export function TableroControl() {
                         <tr
                           key={index}
                           className="border-t hover:bg-gray-100 cursor-context-menu"
-                          // onContextMenu={(e) => {
-                          //   e.preventDefault();
-                          //   setMenuContextual({
-                          //     x: Math.min(
-                          //       e.pageX,
-                          //       window.innerWidth - 180,
-                          //     ),
-                          //     y: Math.min(
-                          //       e.pageY,
-                          //       window.innerHeight - 100,
-                          //     ),
-                          //     documento: doc,
-                          //   });
-                          // }}
                         >
-                          <td className="px-3 py-2">
-                            {doc.folio}
-                          </td>
-                          <td className="px-3 py-2">
-                            {doc.docId}
-                          </td>
-                          <td className="px-3 py-2">
-                            {doc.fechaDoc
-                              ? new Date(doc.fechaDoc).toLocaleDateString(
-                                  "es-MX",
-                                  {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit'
-                                  }
-                                )
-                              : ''}
-                          </td>
-                          <td className="px-3 py-2">
-                            {doc.asunto}
-                          </td>
-                          <td className="px-3 py-2">
-                            {doc.remitente?.name || "N/A"}
-                          </td>
-                          <td className="px-3 py-2">
-                            {doc.status}
-                          </td>
+                          {esEliminados ? (
+                            <>
+                              <td className="px-3 py-2">{doc.folio || "-"}</td>
+                              <td className="px-3 py-2">{doc.docId || "-"}</td>
+                              <td className="px-3 py-2">{doc.motivoEliminacion || "-"}</td>
+                              <td className="px-3 py-2">{doc.usuario?.nombre || "N/A"}</td>
+                              <td className="px-3 py-2">
+                                {doc.fechaEliminacion
+                                  ? new Date(doc.fechaEliminacion).toLocaleDateString("es-MX", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "-"}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-3 py-2">{doc.folio}</td>
+                              <td className="px-3 py-2">{doc.docId}</td>
+                              <td className="px-3 py-2">
+                                {doc.fechaDoc
+                                  ? new Date(doc.fechaDoc).toLocaleDateString("es-MX", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                    })
+                                  : ""}
+                              </td>
+                              <td className="px-3 py-2">{doc.asunto}</td>
+                              <td className="px-3 py-2">{doc.remitente?.name || "N/A"}</td>
+                              <td className="px-3 py-2">{doc.status}</td>
+                            </>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={esEliminados ? 5 : 6}
                           className="text-center py-4 text-gray-500"
                         >
                           No hay documentos en este estatus

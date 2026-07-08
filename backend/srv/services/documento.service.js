@@ -1,4 +1,5 @@
 import documentoModel from '../models/documento.model.js';
+import eliminadoModel from '../models/eliminados.model.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -53,7 +54,16 @@ const create = async (documentoData, user) => {
     }
         // Generar un nuevo folio si ya existe
         const numero = await obtenerSiguienteNumero("documento");
-        documentoData.folio = `${numero}-${new Date().getFullYear()}-${Date.now()}`;
+        // dar formato de 4 digitos al numero
+        if (numero < 10) {
+            documentoData.folio = `000${numero}-${new Date().getFullYear()}`;
+        } else if (numero < 100) {
+            documentoData.folio = `00${numero}-${new Date().getFullYear()}`;
+        } else if (numero < 1000) {
+            documentoData.folio = `0${numero}-${new Date().getFullYear()}`;
+        }else {
+            documentoData.folio = `${numero}-${new Date().getFullYear()}`;
+        }
 
     // Asegurar que las fechas sean objetos Date válidos
     if (documentoData.fechaDoc) {
@@ -459,8 +469,82 @@ const patchRemoverRelacionadoDocumento = async (docId, relacionadoId, user) => {
 
 };
 
-const deleteDocumento = async (docId) => {
-    return await documentoModel.findOneAndDelete({ docId });
+const deleteDocumento = async (docId, user, motivo) => {
+    const documento = await documentoModel.findOne({ docId });
+    if (!documento) {
+        throw new Error('Documento no encontrado');
+    }
+
+    // Validar que el documento no tenga estatus "Validado"
+    if (documento.status === "Validado") {
+        throw new Error('No se puede eliminar un documento con estatus Validado');
+    }
+
+    // Guardar registro en eliminados
+    const eliminadoData = {
+        docId: documento.docId,
+        folio: documento.folio,
+        motivoEliminacion: motivo,
+        usuario: user.id,
+        fechaEliminacion: new Date(),
+    };
+    await eliminadoModel.create(eliminadoData);
+
+    // Eliminar archivos físicos de anexos
+    if (documento.anexos && documento.anexos.length > 0) {
+        for (const anexo of documento.anexos) {
+            if (anexo.ruta) {
+                try {
+                    let rutaCompleta = anexo.ruta;
+                    if (!path.isAbsolute(anexo.ruta)) {
+                        rutaCompleta = path.join(__dirname, anexo.ruta);
+                    }
+                    if (fs.existsSync(rutaCompleta)) {
+                        fs.unlinkSync(rutaCompleta);
+                    }
+                } catch (error) {
+                    console.error(`Error al eliminar archivo de anexo: ${error.message}`);
+                }
+            }
+        }
+    }
+
+    // Eliminar archivos físicos de respuestas
+    if (documento.respuestas && documento.respuestas.length > 0) {
+        for (const respuesta of documento.respuestas) {
+            if (respuesta.ruta) {
+                try {
+                    let rutaCompleta = respuesta.ruta;
+                    if (!path.isAbsolute(respuesta.ruta)) {
+                        rutaCompleta = path.join(__dirname, respuesta.ruta);
+                    }
+                    if (fs.existsSync(rutaCompleta)) {
+                        fs.unlinkSync(rutaCompleta);
+                    }
+                } catch (error) {
+                    console.error(`Error al eliminar archivo de respuesta: ${error.message}`);
+                }
+            }
+        }
+    }
+
+    // Eliminar tareas, notificaciones y copias de todos los usuarios relacionadas con este documento
+    const docObjectId = documento._id;
+    await userModel.updateMany(
+      {},
+      { 
+        $pull: { 
+          tareas: { documento: docObjectId }, 
+          notificaciones: { documento: docObjectId },
+          copias: docObjectId
+        } 
+      }
+    );
+
+    // Eliminar el documento de la colección
+    await documentoModel.findOneAndDelete({ docId });
+
+    return { message: 'Documento eliminado correctamente', folio: documento.folio };
 };
 
 const reporteAcuerdos = async (fechaInicio, fechaFin) => {
@@ -617,6 +701,12 @@ const patchEliminarAdicionalDocumento = async (docId, adicionalId, user) => {
     return await getById(docId);
 };
 
+const getEliminados = async () => {
+    return await eliminadoModel.find()
+        .populate('usuario', 'nombre')
+        .sort({ fechaEliminacion: -1 });
+};
+
 const searchDocumentos = async (query) => {
     const searchQuery = {
         eliminado: false,
@@ -653,5 +743,6 @@ export default {
     reporteAcuerdos,
     reporteAsuntos,
     patchRespuestaDocumento,
-    searchDocumentos
+    searchDocumentos,
+    getEliminados
 };

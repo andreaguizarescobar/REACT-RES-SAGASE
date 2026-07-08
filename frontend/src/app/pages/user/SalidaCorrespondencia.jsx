@@ -241,9 +241,8 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
                                       className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                                   >
                                       <option value="">Selecciona tipo</option>
-                                      <option value="interno">Interno</option>
-                                      <option value="externo">Externo</option>
-                                      <option value="ciudadano">Ciudadano</option>
+                                      <option value="Interno">Interno</option>
+                                      <option value="Externo">Externo</option>
                                   </select>
                               </div>
 
@@ -331,10 +330,13 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
   const [remitentesFiltrados, setRemitentesFiltrados] = useState([]);
   const [busquedaDestinatario, setBusquedaDestinatario] = useState("");
   const [destinatariosFiltrados, setDestinatariosFiltrados] = useState([]);
+  const [busquedaArea, setBusquedaArea] = useState("");
+  const [areasFiltrados, setAreasFiltrados] = useState([]);
   const [mostrando, setMostrando] = useState({
     resultadosDocumentos: false,
     resultadosRemitente: false,
     resultadosDestinatario: false,
+    resultadosArea: false,
   });
   const [showModalRemitente, setShowModalRemitente] = useState(false);
   const [tipoModalRemitente, setTipoModalRemitente] = useState(""); // "remitente" o "destinatario"
@@ -461,6 +463,34 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
     }));
     setBusquedaRemitente("");
     setMostrando((prev) => ({ ...prev, resultadosRemitente: false }));
+  };
+
+  // Buscar áreas
+  const handleBuscarAreas = (query) => {
+    setBusquedaArea(query);
+    setForm((prev) => ({ ...prev, areaTramitadora: "" }));
+
+    if (query.length < 1) {
+      setAreasFiltrados([]);
+      setMostrando((prev) => ({ ...prev, resultadosArea: false }));
+      return;
+    }
+
+    const filtrados = areas.filter((area) =>
+      area.nombre?.toLowerCase().includes(query.toLowerCase())
+    );
+    setAreasFiltrados(filtrados);
+    setMostrando((prev) => ({ ...prev, resultadosArea: true }));
+  };
+
+  // Seleccionar área
+  const handleSeleccionarArea = (area) => {
+    setForm((prev) => ({
+      ...prev,
+      areaTramitadora: area._id,
+    }));
+    setBusquedaArea(area.nombre);
+    setMostrando((prev) => ({ ...prev, resultadosArea: false }));
   };
 
   // Buscar destinatarios
@@ -641,9 +671,11 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
           setBusquedaDocumento("");
           setBusquedaRemitente("");
           setBusquedaDestinatario("");
+          setBusquedaArea("");
           setDocumentosResultados([]);
           setRemitentesFiltrados([]);
           setDestinatariosFiltrados([]);
+          setAreasFiltrados([]);
         } catch (error) {
           Swal.fire({
             icon: "error",
@@ -841,28 +873,35 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
         </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+            <div className="relative">
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Área tramitadora <span className="text-red-500">*</span>
             </label>
-              <select
-                name="areaTramitadora"
-                value={form.areaTramitadora}
-                onChange={handleChange}
+              <input
+                type="text"
+                value={busquedaArea}
+                onChange={(e) => handleBuscarAreas(e.target.value)}
+                placeholder={form.areaTramitadora ? (areas.find(a => a._id === form.areaTramitadora)?.nombre || "Buscar área tramitadora") : "Buscar área tramitadora"}
                 className={`w-full h-10 rounded-lg border px-3 text-sm transition
                   ${
                   errores.areaTramitadora
                   ? "border-red-500 bg-red-50"
                   : "border-gray-300 focus:border-[#79142A] focus:ring-2 focus:ring-[#79142A]/20"
                   }`}
-              >
-                <option value="">Selecciona opción</option>
-                {areas.map((area) => (
-                  <option key={area._id} value={area._id}>
-                    {area.nombre}
-                  </option>
-                ))}
-              </select>
+              />
+              {mostrando.resultadosArea && areasFiltrados.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-t-0 rounded-b shadow-lg z-10 max-h-48 overflow-y-auto mt-0">
+                  {areasFiltrados.map((area) => (
+                    <div
+                      key={area._id}
+                      onClick={() => handleSeleccionarArea(area)}
+                      className="p-2 hover:bg-gray-100 cursor-pointer text-xs border-b"
+                    >
+                      <div className="font-semibold">{area.nombre}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -873,7 +912,7 @@ const cargarFolioSalida = useCallback(async (anioSeleccionado) => {
                 name="asunto"
                 value={form.asunto}
                 readOnly
-                className={`w-full h-10 rounded-lg border px-3 text-sm transition
+                className={`w-full h-10 rounded-lg border px-3 text-sm transition bg-gray-100
                 ${
                 errores.asunto
                 ? "border-red-500 bg-red-50"

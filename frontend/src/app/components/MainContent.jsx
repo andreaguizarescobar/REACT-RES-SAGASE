@@ -2476,7 +2476,7 @@ const generarDocumentoTurno = async (turno) => {
 
   y += dibujarFila(
     "TURNO NÚMERO",
-    turno?.numeroTurno || "000000",
+    turno?.numero || "000000",
     "FOLIO",
     documentoCompleto?.folio ||
     documentoCompleto?.numeroFolio ||
