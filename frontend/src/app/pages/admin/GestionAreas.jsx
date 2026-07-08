@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createArea, getAreas, updateArea } from "../../services/catalogos.service";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Plus,
+} from "lucide-react";
 
 function AreaTreeNode({ area, areas, depth, selectedAreaId, onSelect, onEdit, onCreateChild, expandedNodes, onToggleExpand }) {
   const children = areas.filter((item) => String(item.pertenece) === String(area._id));
@@ -8,7 +12,15 @@ function AreaTreeNode({ area, areas, depth, selectedAreaId, onSelect, onEdit, on
 
   return (
     <div className="space-y-2">
-      <div
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{
+          scale: 1.01,
+          transition: { duration: 0.15 }
+        }}
+        transition={{ duration: 0.25 }}
         className={`group rounded-xl border px-3 py-3 transition ${
           isSelected
             ? "border-[#8B1538] bg-[#FBEFF2]"
@@ -24,7 +36,12 @@ function AreaTreeNode({ area, areas, depth, selectedAreaId, onSelect, onEdit, on
                 onClick={() => onToggleExpand(area._id)}
                 className="mt-0.5 rounded border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-600 hover:border-[#8B1538] hover:text-[#8B1538]"
               >
-                {isExpanded ? "▾" : "▸"}
+              <motion.span
+                  animate={{ rotate: isExpanded ? 90 : 0 }}
+                  transition={{ duration: .2 }}
+              >
+                  ▶
+              </motion.span>
               </button>
             )}
             <button type="button" onClick={() => onSelect(area)} className="flex-1 text-left">
@@ -59,26 +76,34 @@ function AreaTreeNode({ area, areas, depth, selectedAreaId, onSelect, onEdit, on
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {children.length > 0 && isExpanded && (
-        <div className="space-y-2 border-l-2 border-[#8B1538]/20 pl-4">
-          {children.map((child) => (
-            <AreaTreeNode
-              key={child._id}
-              area={child}
-              areas={areas}
-              depth={depth + 1}
-              selectedAreaId={selectedAreaId}
-              onSelect={onSelect}
-              onEdit={onEdit}
-              onCreateChild={onCreateChild}
-              expandedNodes={expandedNodes}
-              onToggleExpand={onToggleExpand}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {children.length > 0 && isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-2 border-l-2 border-[#8B1538]/20 pl-4 overflow-hidden"
+          >
+            {children.map((child) => (
+              <AreaTreeNode
+                key={child._id}
+                area={child}
+                areas={areas}
+                depth={depth + 1}
+                selectedAreaId={selectedAreaId}
+                onSelect={onSelect}
+                onEdit={onEdit}
+                onCreateChild={onCreateChild}
+                expandedNodes={expandedNodes}
+                onToggleExpand={onToggleExpand}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -277,9 +302,13 @@ export function GestionAreas({ selectedAreaId = null }) {
               <button
                 type="button"
                 onClick={() => abrirFormulario("create")}
-                className="rounded-lg bg-[#8B1538] px-3 py-2 text-sm font-medium text-white hover:bg-[#6f102d]"
+                title="Nueva área raíz"
+                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
               >
-                Nueva área raíz
+                <Plus
+                  size={22}
+                  className="group-hover:rotate-90 transition-transform duration-300"
+                />
               </button>
             </div>
           </div>
@@ -303,98 +332,126 @@ export function GestionAreas({ selectedAreaId = null }) {
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-[#8B1538] focus:outline-none"
                   disabled={loading}
                 />
-
-                {showAreaOptions && (
-                  <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedArea(null);
-                        setAreaSearch("");
-                        setShowAreaOptions(false);
-                      }}
-                      className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                
+                <AnimatePresence>
+                  {showAreaOptions && (
+                    <motion.div
+                        initial={{
+                            opacity:0,
+                            y:-8,
+                            scale:.98
+                        }}
+                        animate={{
+                            opacity:1,
+                            y:0,
+                            scale:1
+                        }}
+                        exit={{
+                            opacity:0,
+                            y:-8,
+                            scale:.98
+                        }}
+                        transition={{duration:.18}}
+                        className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg"
                     >
-                      Seleccione un área
-                    </button>
-                    {filteredAreaOptions.length > 0 ? (
-                      filteredAreaOptions.map((area) => (
-                        <button
-                          key={area._id}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => {
-                            setSelectedArea(area);
-                            setAreaSearch(area.nombre || area.clave || "Sin nombre");
-                            setShowAreaOptions(false);
-                          }}
-                          className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          {`${"  ".repeat(area.pertenece ? 1 : 0)}${area.nombre || area.clave || "Sin nombre"}`}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500">No hay resultados</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                {areaSeleccionadaActual ? (
-                  <>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="text-lg font-semibold text-gray-800">
-                          {areaSeleccionadaActual.nombre || areaSeleccionadaActual.clave}
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                          {areaSeleccionadaActual.clave || "Sin clave"}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => abrirFormulario("edit", areaSeleccionadaActual)}
-                          className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-[#8B1538] hover:text-[#8B1538]"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => abrirNuevaSubarea(areaSeleccionadaActual)}
-                          className="rounded-lg bg-[#8B1538] px-2.5 py-1.5 text-xs font-medium text-white hover:bg-[#6f102d]"
-                        >
-                          Añadir subárea
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 space-y-2 text-sm text-gray-600">
-                      <p>
-                        <span className="font-medium text-gray-700">Abreviatura:</span>{" "}
-                        {areaSeleccionadaActual.abreviatura || "Sin abreviatura"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-gray-700">Dirección:</span>{" "}
-                        {areaSeleccionadaActual.direccion ? "Sí" : "No"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-gray-700">Pertenece a otra área:</span>{" "}
-                        {areaSeleccionadaActual.pertenece ? "Sí" : "No"}
-                      </p>
-                      {areaPadre && (
-                        <p>
-                          <span className="font-medium text-gray-700">Área padre:</span>{" "}
-                          {areaPadre.nombre || areaPadre.clave}
-                        </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedArea(null);
+                          setAreaSearch("");
+                          setShowAreaOptions(false);
+                        }}
+                        className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        Seleccione un área
+                      </button>
+                      {filteredAreaOptions.length > 0 ? (
+                        filteredAreaOptions.map((area) => (
+                          <button
+                            key={area._id}
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setSelectedArea(area);
+                              setAreaSearch(area.nombre || area.clave || "Sin nombre");
+                              setShowAreaOptions(false);
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            {`${"  ".repeat(area.pertenece ? 1 : 0)}${area.nombre || area.clave || "Sin nombre"}`}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">No hay resultados</div>
                       )}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500">Seleccione un área para ver sus datos completos.</p>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+              
+              <AnimatePresence>
+                <motion.div
+                    layout
+                    initial={{ opacity:0, y:10 }}
+                    animate={{ opacity:1, y:0 }}
+                    transition={{ duration:.25 }}
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                >
+                  {areaSeleccionadaActual ? (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-800">
+                            {areaSeleccionadaActual.nombre || areaSeleccionadaActual.clave}
+                          </h2>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {areaSeleccionadaActual.clave || "Sin clave"}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => abrirFormulario("edit", areaSeleccionadaActual)}
+                            className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-[#8B1538] hover:text-[#8B1538]"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => abrirNuevaSubarea(areaSeleccionadaActual)}
+                            className="rounded-lg bg-[#8B1538] px-2.5 py-1.5 text-xs font-medium text-white hover:bg-[#6f102d]"
+                          >
+                            Añadir subárea
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-2 text-sm text-gray-600">
+                        <p>
+                          <span className="font-medium text-gray-700">Abreviatura:</span>{" "}
+                          {areaSeleccionadaActual.abreviatura || "Sin abreviatura"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-700">Dirección:</span>{" "}
+                          {areaSeleccionadaActual.direccion ? "Sí" : "No"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-700">Pertenece a otra área:</span>{" "}
+                          {areaSeleccionadaActual.pertenece ? "Sí" : "No"}
+                        </p>
+                        {areaPadre && (
+                          <p>
+                            <span className="font-medium text-gray-700">Área padre:</span>{" "}
+                            {areaPadre.nombre || areaPadre.clave}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500">Seleccione un área para ver sus datos completos.</p>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4">
@@ -407,7 +464,13 @@ export function GestionAreas({ selectedAreaId = null }) {
                 </div>
               </div>
 
-              <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              <motion.div
+                  layout
+                  initial={{ opacity:0 }}
+                  animate={{ opacity:1 }}
+                  transition={{ duration:.35 }}
+                  className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1"
+              >
                 {loading ? (
                   <p className="text-sm text-gray-500">Cargando áreas...</p>
                 ) : areasJerarquizadas.length > 0 ? (
@@ -430,130 +493,157 @@ export function GestionAreas({ selectedAreaId = null }) {
                 ) : (
                   <p className="text-sm text-gray-500">No hay áreas registradas.</p>
                 )}
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
       </div>
-
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {formMode === "edit" ? "Editar área" : "Agregar nueva área"}
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Complete los datos del área y asóciela a un padre si aplica.
-                </p>
-              </div>
-              <button type="button" onClick={() => setIsFormOpen(false)} className="text-sm text-gray-500 hover:text-gray-700">
-                Cerrar
-              </button>
-            </div>
-
-            <form className="mt-5 space-y-4" onSubmit={manejarEnvio}>
-              <div className="grid gap-4 md:grid-cols-2">
+      
+      <AnimatePresence>
+        {isFormOpen && (
+          <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{
+                  opacity: 0,
+                  scale: .92,
+                  y: 30
+              }}
+              animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0
+              }}
+              exit={{
+                  opacity: 0,
+                  scale: .92,
+                  y: 20
+              }}
+              transition={{
+                  duration: .25
+              }}
+              className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl"
+          >
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Clave</label>
-                  <input
-                    required
-                    value={formData.clave}
-                    onChange={(event) => setFormData({ ...formData, clave: event.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
-                  />
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {formMode === "edit" ? "Editar área" : "Agregar nueva área"}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Complete los datos del área y asóciela a un padre si aplica.
+                  </p>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Nombre</label>
-                  <input
-                    required
-                    value={formData.nombre}
-                    onChange={(event) => setFormData({ ...formData, nombre: event.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Abreviatura</label>
-                  <input
-                    value={formData.abreviatura}
-                    onChange={(event) => setFormData({ ...formData, abreviatura: event.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
-                  />
-                </div>
-                <div className="relative">
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Área padre</label>
-                  <input
-                    type="text"
-                    value={parentSearch}
-                    onChange={(event) => {
-                      setParentSearch(event.target.value);
-                      setShowParentOptions(true);
-                    }}
-                    onFocus={() => setShowParentOptions(true)}
-                    placeholder="Buscar área padre"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
-                  />
-
-                  {showParentOptions && (
-                    <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => seleccionarAreaPadre(null)}
-                        className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Sin área padre
-                      </button>
-                      {filteredParentAreas.length > 0 ? (
-                        filteredParentAreas.map((area) => (
-                          <button
-                            key={area._id}
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => seleccionarAreaPadre(area)}
-                            className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                          >
-                            {area.nombre || area.clave || "Sin nombre"}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-sm text-gray-500">No hay resultados</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={formData.direccion}
-                  onChange={(event) => setFormData({ ...formData, direccion: event.target.checked })}
-                />
-                ¿Es una dirección?
-              </label>
-
-              {feedback && (
-                <div className={`rounded-lg border px-3 py-2 text-sm ${feedback.includes("correctamente") ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
-                  {feedback}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={saving} className="rounded-lg bg-[#8B1538] px-3 py-2 text-sm font-medium text-white hover:bg-[#6f102d] disabled:cursor-not-allowed disabled:opacity-70">
-                  {saving ? "Guardando..." : formMode === "edit" ? "Guardar cambios" : "Crear área"}
+                <button type="button" onClick={() => setIsFormOpen(false)} className="text-sm text-gray-500 hover:text-gray-700">
+                  Cerrar
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form className="mt-5 space-y-4" onSubmit={manejarEnvio}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Clave</label>
+                    <input
+                      required
+                      value={formData.clave}
+                      onChange={(event) => setFormData({ ...formData, clave: event.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Nombre</label>
+                    <input
+                      required
+                      value={formData.nombre}
+                      onChange={(event) => setFormData({ ...formData, nombre: event.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Abreviatura</label>
+                    <input
+                      value={formData.abreviatura}
+                      onChange={(event) => setFormData({ ...formData, abreviatura: event.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Área padre</label>
+                    <input
+                      type="text"
+                      value={parentSearch}
+                      onChange={(event) => {
+                        setParentSearch(event.target.value);
+                        setShowParentOptions(true);
+                      }}
+                      onFocus={() => setShowParentOptions(true)}
+                      placeholder="Buscar área padre"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#8B1538] focus:outline-none"
+                    />
+
+                    {showParentOptions && (
+                      <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                        <button
+                          type="button"
+                          onClick={() => seleccionarAreaPadre(null)}
+                          className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Sin área padre
+                        </button>
+                        {filteredParentAreas.length > 0 ? (
+                          filteredParentAreas.map((area) => (
+                            <button
+                              key={area._id}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => seleccionarAreaPadre(area)}
+                              className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                              {area.nombre || area.clave || "Sin nombre"}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500">No hay resultados</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.direccion}
+                    onChange={(event) => setFormData({ ...formData, direccion: event.target.checked })}
+                  />
+                  ¿Es una dirección?
+                </label>
+
+                {feedback && (
+                  <div className={`rounded-lg border px-3 py-2 text-sm ${feedback.includes("correctamente") ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
+                    {feedback}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setIsFormOpen(false)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={saving} className="rounded-lg bg-[#8B1538] px-3 py-2 text-sm font-medium text-white hover:bg-[#6f102d] disabled:cursor-not-allowed disabled:opacity-70">
+                    {saving ? "Guardando..." : formMode === "edit" ? "Guardar cambios" : "Crear área"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>  
     </div>
   );
 }

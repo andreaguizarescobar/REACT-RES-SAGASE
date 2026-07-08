@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, FileText, FileSpreadsheet } from "lucide-react";
+import { Minus, FileText, FileSpreadsheet, ChevronLeft, ChevronRight,} from "lucide-react";
 import { getDocuments } from "../../services/document.service";
 import { getAreas } from "../../services/catalogos.service";
 
@@ -1532,45 +1532,73 @@ export function TableroControl() {
 
                 </div>
               )} */}
+          
               {/* PAGINACIÓN */}
               {totalPaginas > 1 && (
-                <div className="flex justify-start items-center gap-2 mt-4 text-sm">
-                  <button
-                    disabled={paginaActual === 1}
-                    onClick={() =>
-                      setPaginaActual(paginaActual - 1)
-                    }
-                    className="px-2 py-1 border rounded disabled:opacity-40"
-                  >
-                    Anterior
-                  </button>
+                <div className="border-t border-gray-100 pt-4 mt-4">
+                  <div className="flex items-center justify-center gap-2">
 
-                  {Array.from(
-                    { length: totalPaginas },
-                    (_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPaginaActual(i + 1)}
-                        className={`px-3 py-1 rounded border ${
-                          paginaActual === i + 1
-                            ? "bg-[#8B1538] text-white"
-                            : "bg-white"
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ),
-                  )}
+                    {/* ANTERIOR */}
+                    <button
+                      onClick={() =>
+                        setPaginaActual((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={paginaActual === 1}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#8B1538] hover:text-white hover:border-[#8B1538] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400 disabled:hover:border-gray-200"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
 
-                  <button
-                    disabled={paginaActual === totalPaginas}
-                    onClick={() =>
-                      setPaginaActual(paginaActual + 1)
-                    }
-                    className="px-2 py-1 border rounded disabled:opacity-40"
-                  >
-                    Siguiente
-                  </button>
+                    {/* NÚMEROS */}
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const maxVisible = 3;
+
+                        let inicio = Math.max(1, paginaActual - 1);
+                        let fin = inicio + maxVisible - 1;
+
+                        if (fin > totalPaginas) {
+                          fin = totalPaginas;
+                          inicio = Math.max(1, fin - maxVisible + 1);
+                        }
+
+                        return Array.from(
+                          { length: fin - inicio + 1 },
+                          (_, i) => {
+                            const numeroPagina = inicio + i;
+
+                            return (
+                              <button
+                                key={numeroPagina}
+                                onClick={() => setPaginaActual(numeroPagina)}
+                                className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                  paginaActual === numeroPagina
+                                    ? "bg-[#8B1538] text-white shadow-md scale-105"
+                                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                }`}
+                              >
+                                {numeroPagina}
+                              </button>
+                            );
+                          }
+                        );
+                      })()}
+                    </div>
+
+                    {/* SIGUIENTE */}
+                    <button
+                      onClick={() =>
+                        setPaginaActual((prev) =>
+                          Math.min(prev + 1, totalPaginas)
+                        )
+                      }
+                      disabled={paginaActual === totalPaginas}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#8B1538] hover:text-white hover:border-[#8B1538] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400 disabled:hover:border-gray-200"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+
+                  </div>
                 </div>
               )}
             </div>

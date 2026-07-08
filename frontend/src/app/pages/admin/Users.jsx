@@ -524,7 +524,8 @@ export function Users() {
                     <input
                       value={formEditar.nombre}
                       onChange={(e) => setFormEditar({ ...formEditar, nombre: e.target.value })}
-                      className="w-full rounded-lg border px-3 py-2"
+                      className="w-full rounded-lg border px-3 py-2 bg-gray-100"
+                      disabled
                     />
 
                   </div>
@@ -536,7 +537,8 @@ export function Users() {
                     <input
                       value={formEditar.iniciales}
                       onChange={(e) => setFormEditar({ ...formEditar, iniciales: e.target.value })}
-                      className="w-full rounded-lg border px-3 py-2"
+                      className="w-full rounded-lg border px-3 py-2 bg-gray-100"
+                      disabled
                     />
 
                   </div>
