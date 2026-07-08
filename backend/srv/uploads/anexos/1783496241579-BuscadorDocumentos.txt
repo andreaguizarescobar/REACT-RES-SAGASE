@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Minus, Trash2, Plus, Upload, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import Swal from "sweetalert2";
-import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional, deleteDocument } from "../../services/document.service.js";
+import { getDocuments, getDocumentById, updateDocument, uploadAnexo, removeAnexo, addRelacionado, removeRelacionado, addTurnado, addCopia, addAdicional, removeAdicional } from "../../services/document.service.js";
 import { getTipoDocument } from "../../services/tipoDocumento.service.js";
 import { getTemaPrincipal, getAreas, getInstrucciones } from "../../services/catalogos.service.js";
 import { getRemitentes } from "../../services/remitente.service.js";
@@ -53,7 +53,6 @@ export default function BuscadorDocumentos() {
   const [remitentes, setRemitentes] = useState([]);
   const [turnosDocumento, setTurnosDocumento] = useState([]);
   const [copiasDocumento, setCopiasDocumento] = useState([]);
-  const [respuestasDocumento, setRespuestasDocumento] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -219,62 +218,6 @@ useEffect(() => {
 
   const [errores, setErrores] = useState({});
 
-  const handleEliminar = () => {
-    const doc = menuContextual.documento;
-    if (!doc) return;
-    setDocumentoEliminar(doc);
-    setMotivoEliminacion("");
-    setMenuContextual((m) => ({ ...m, visible: false }));
-    setMostrarModalEliminar(true);
-  };
-
-  const handleConfirmarEliminar = async () => {
-    if (!documentoEliminar) return;
-    if (!motivoEliminacion.trim()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Debe especificar el motivo de eliminación",
-      });
-      return;
-    }
-
-    const docId = documentoEliminar.docId || documentoEliminar._id;
-    if (!docId) return;
-
-    try {
-      const response = await deleteDocument(docId, motivoEliminacion, token);
-      if (response.ok) {
-        setDocumentos((prev) => prev.filter((doc) => (doc.docId || doc._id) !== docId));
-        setMostrarModalEliminar(false);
-        setDocumentoEliminar(null);
-        setMotivoEliminacion("");
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Documento eliminado correctamente",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      } else {
-        const errorResponse = await response.json().catch(() => null);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: errorResponse?.error || "No se pudo eliminar el documento",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      Swal.fire({
-        icon: "error",
-        title: "Error de conexión",
-        text: "No se pudo eliminar el documento",
-      });
-    }
-  };
-
   const handleModificar = async () => {
     const doc = menuContextual.documento;
     if (!doc) return;
@@ -340,7 +283,6 @@ useEffect(() => {
       setTurnosDocumento(fullDoc.turnados || []);
       setCopiasDocumento(fullDoc.copias || []);
       setBitacoraDocumento(fullDoc.bitacora || []);
-      setRespuestasDocumento(fullDoc.respuestas || []);
       setRelacionadosDocumento(
         (fullDoc.relacionados || [])
           .map((rel) => {
@@ -486,11 +428,15 @@ useEffect(() => {
   
   const [busquedaRemitenteExt, setBusquedaRemitenteExt] = useState("");
   const [mostrarOpcionesRemitenteExt, setMostrarOpcionesRemitenteExt] = useState(false);
+
   const [busquedaRemitenteInt, setBusquedaRemitenteInt] = useState("");
   const [mostrarOpcionesRemitenteInt, setMostrarOpcionesRemitenteInt] = useState(false);
 
   const remitentesInternos = remitentes.filter((r) => r.tipo === "interno");
   const remitentesExternos = remitentes.filter((r) => r.tipo === "externo");
+  const remitentesFiltrados = remitentesExternos.filter((r) =>
+    r.label.toLowerCase().includes(busquedaRemitenteExt.toLowerCase())
+  );
 
   const [busquedaTipoDoc, setBusquedaTipoDoc] = useState("");
   const [mostrarOpcionesTipoDoc, setMostrarOpcionesTipoDoc] = useState(false);
@@ -510,9 +456,6 @@ useEffect(() => {
 
   const [mostrarModalRelacionado, setMostrarModalRelacionado] = useState(false);
   const [mostrarModalAltaAsunto, setMostrarModalAltaAsunto] = useState(false);
-  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
-  const [motivoEliminacion, setMotivoEliminacion] = useState("");
-  const [documentoEliminar, setDocumentoEliminar] = useState(null);
 
   const [documentosSeleccionados, setDocumentosSeleccionados] = useState([]);
   const [busquedaDocumentoRelacionado, setBusquedaDocumentoRelacionado] = useState("");
@@ -981,8 +924,6 @@ const documentosFiltrados = documentos.filter((d) =>
 
   const [mostrarVisor, setMostrarVisor] = useState(false);
   const [archivoVista, setArchivoVista] = useState(null);
-  const [mostrarVisorRespuesta, setMostrarVisorRespuesta] = useState(false);
-  const [archivoRespuesta, setArchivoRespuesta] = useState(null);
     
   const [mostrarModalAnexos, setMostrarModalAnexos] = useState(false);
   const [anexosDisponibles, setAnexosDisponibles] = useState([
@@ -1001,6 +942,11 @@ const documentosFiltrados = documentos.filter((d) =>
   ]);
 
   const [anexosSeleccionados, setAnexosSeleccionados] = useState([]);
+
+
+  const [materiales, setMateriales] = useState([]);
+
+  const [busquedaMaterialAdicional, setBusquedaMaterialAdicional] = useState("");
 
   const [mostrarModalMaterial, setMostrarModalMaterial] = useState(false);
 
@@ -1044,6 +990,7 @@ const documentosFiltrados = documentos.filter((d) =>
   };
   
   const [mostrarVisorTurno, setMostrarVisorTurno] = useState(false);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
 
   const obtenerTextoPlano = (valor, fallback = "-") => {
   if (!valor) return fallback;
@@ -1253,7 +1200,7 @@ const documentosFiltrados = documentos.filter((d) =>
 
     dibujarFila(
       "TURNO NÚMERO",
-      turno?.numero || "000000",
+      turno?.numeroTurno || "000000",
       "FOLIO",
       documentoCompleto?.folio ||
       documentoCompleto?.numeroFolio ||
@@ -1563,7 +1510,7 @@ const documentosFiltrados = documentos.filter((d) =>
     });
   };
   
-    // const [docSeleccionado, setDocSeleccionado] = useState(null);
+    const [docSeleccionado, setDocSeleccionado] = useState(null);
     const bitacora = documentoSeleccionado?.bitacora || [];
     
     const descargarBitacora = async () => {
@@ -1893,125 +1840,20 @@ const documentosFiltrados = documentos.filter((d) =>
     const [pdfBitacora, setPdfBitacora] = useState(null);
     const [pdfGenerado, setPdfGenerado] = useState(false);
   
-    useEffect(() => {
+  useEffect(() => {
       if (tabActiva !== "bitacora") return;
-
+  
+      if (pdfGenerado) return;
+  
       const cargar = async () => {
-        const pdf = await generarBitacoraPDF();
-
-        if (pdfBitacora) {
-          URL.revokeObjectURL(pdfBitacora);
-        }
-
-        setPdfBitacora(pdf.url);
+          const pdf = await generarBitacoraPDF();
+          setPdfBitacora(pdf.url);
+          setPdfGenerado(true);
       };
-
+  
       cargar();
-    }, [
-      tabActiva,
-      documentoSeleccionado?._id,
-      bitacora.length
-    ]);
+  }, [tabActiva]);
 
-
-const [paginaAnexos, setPaginaAnexos] = useState(1);
-const [paginaRelacionados, setPaginaRelacionados] = useState(1);
-
-const registrosPorPagina = 3;
-
-useEffect(() => {
-  setPaginaAnexos(1);
-}, [busquedaSubirAnexo]);
-
-useEffect(() => {
-  setPaginaRelacionados(1);
-}, [busquedaVerTurnos]);
-
-/* ===========================
-   PAGINACIÓN ANEXOS
-=========================== */
-
-const totalPaginasAnexos = Math.ceil(
-  documentoAnexosFiltrados.length / registrosPorPagina
-);
-
-const anexosPaginados = documentoAnexosFiltrados.slice(
-  (paginaAnexos - 1) * registrosPorPagina,
-  paginaAnexos * registrosPorPagina
-);
-
-/* ===========================
-   PAGINACIÓN RELACIONADOS
-=========================== */
-
-const totalPaginasRelacionados = Math.ceil(
-  relacionadosFiltrados.length / registrosPorPagina
-);
-
-const relacionadosPaginados = relacionadosFiltrados.slice(
-  (paginaRelacionados - 1) * registrosPorPagina,
-  paginaRelacionados * registrosPorPagina
-);
-
-const [paginaTurnos, setPaginaTurnos] = useState(1);
-const registrosPorPaginaTurnos = 5;
-useEffect(() => {
-  setPaginaTurnos(1);
-}, [busquedaVerTurnos]);
-const totalPaginasTurnos = Math.ceil(
-  turnosVerFiltrados.length / registrosPorPaginaTurnos
-);
-
-const turnosPaginados = turnosVerFiltrados.slice(
-  (paginaTurnos - 1) * registrosPorPaginaTurnos,
-  paginaTurnos * registrosPorPaginaTurnos
-);
-
-const [paginaCopias, setPaginaCopias] = useState(1);
-const registrosPorPaginaCopias = 5;
-const totalPaginasCopias = Math.ceil(
-  copiasDocumento.length / registrosPorPaginaCopias
-);
-
-const copiasPaginadas = copiasDocumento.slice(
-  (paginaCopias - 1) * registrosPorPaginaCopias,
-  paginaCopias * registrosPorPaginaCopias
-);
-useEffect(() => {
-  const total = Math.max(
-    1,
-    Math.ceil(copiasDocumento.length / registrosPorPaginaCopias)
-  );
-
-  if (paginaCopias > total) {
-    setPaginaCopias(total);
-  }
-}, [copiasDocumento]);
-
-const [paginaMateriales, setPaginaMateriales] = useState(1);
-const registrosPorPaginaMateriales = 3;
-
-const totalPaginasMateriales = Math.ceil(
-  materialesAdicionales.length / registrosPorPaginaMateriales
-);
-
-const materialesPaginados = materialesAdicionales.slice(
-  (paginaMateriales - 1) * registrosPorPaginaMateriales,
-  paginaMateriales * registrosPorPaginaMateriales
-);
-useEffect(() => {
-  const total = Math.max(
-    1,
-    Math.ceil(
-      materialesAdicionales.length /
-        registrosPorPaginaMateriales
-    )
-  );
-
-  if (paginaMateriales > total) {
-    setPaginaMateriales(total);
-  }
-}, [materialesAdicionales]);
 
   return (
     <main
@@ -2022,14 +1864,9 @@ useEffect(() => {
       }
     >
       <h1 className="text-lg font-medium text-[#60595D] mb-0">Buscador de documentos</h1>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Busca registros por cualquiera de sus campos y modifica dando clic derecho.</label>
+        <label className="text-xs text-gray-500">Busca registros por cualquiera de sus campos y modifica dando clic derecho.</label>
 
-      <div className="relative flex-1">
-        <Search
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-        />
-
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
           value={criterio}
@@ -2038,27 +1875,21 @@ useEffect(() => {
             setPaginaActual(1);
           }}
           placeholder="Buscar por folio, remitente, síntesis..."
-          className="
-            w-full
-            pl-10
-            pr-4
-            py-2.5
-            rounded-xl
-            border
-            border-gray-200
-            bg-gray-50
-            focus:bg-white
-            focus:border-[#8B1538]
-            focus:ring-4
-            focus:ring-[#8B1538]/10
-            transition
-          "
+          className="flex-1 px-3 py-2 border rounded"
         />
-       
+        <button
+          onClick={() => {
+            setCriterio("");
+            setPaginaActual(1);
+          }}
+          className="px-3 py-2 border rounded"
+        >
+          Limpiar
+        </button>
       </div>
 
       {/* CONTENEDOR TABLA + PAGINACIÓN RESPONSIVA */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden max-w-full mt-2">
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden max-w-full">
 
       {/* SCROLL RESPONSIVO HORIZONTAL + VERTICAL */}
       <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
@@ -2212,14 +2043,6 @@ useEffect(() => {
               >
                 Modificar registro
               </button>
-              {menuContextual.documento?.status !== "Validado" && (
-                <button
-                  className="block px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
-                  onClick={handleEliminar}
-                >
-                  Eliminar documento
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -2281,11 +2104,6 @@ useEffect(() => {
                         id: "verTurnos",
                         label: "Ver todos los turnos",
                       },
-                      // Mostrar pestaña de respuestas solo si hay respuestas en el documento
-                      ...(respuestasDocumento.length > 0 ? [{
-                        id: "respuestas",
-                        label: "Respuestas al documento",
-                      }] : []),
                       {
                         id: "copias",
                         label: "Copias de conocimiento",
@@ -2321,21 +2139,12 @@ useEffect(() => {
                       exit={{ opacity: 0, x: -15 }}
                       transition={{ duration: 0.2 }}
                     >
-
                     <div className="space-y-6">
-
                       <div>
-                        {/* EJERCICIO */}
                         <div className="flex items-center gap-4 mb-4">
                           <div className="w-80">
                             <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
-                            
-                            <select 
-                              name="ejercicio" 
-                              value={formEditar.ejercicio} 
-                              disabled 
-                              onChange={handleChange} 
-                              className="w-full rounded-lg border bg-gray-100 px-3 py-2 outline-none cursor-not-allowed">
+                            <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed">
                               <option value="">Seleccionar</option>
                               <option value="2024">2024</option>
                               <option value="2025">2025</option>
@@ -2344,59 +2153,38 @@ useEffect(() => {
                           </div>
                         </div>
 
-                       {/* DATOS GENERALES */}
                         <div>
-                          
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="h-px flex-1 bg-gray-300" />
-
-                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                              Datos generales
-                            </h2>
-
-                            <div className="h-px flex-1 bg-gray-300" />
-                          </div>
-
-                          <div className="grid grid-cols-4 gap-4 items-end mb-5">
+                          <h2 className="text-sm font-semibold text-gray-600 mb-2">Datos generales</h2>
+                          <div className="grid grid-cols-4 gap-4 items-end">
                             <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">No. de documento *</label>
-                              <input name="noDocumento" value={formEditar.noDocumento} disabled className="w-full rounded-lg border bg-gray-100 px-3 py-2" />
+                              <label className="text-xs text-gray-500">No. de documento *</label>
+                              <input name="noDocumento" value={formEditar.noDocumento} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de documento *</label>
-                              <input type="date" name="fechaDocumento" value={formEditar.fechaDocumento} disabled className="w-full rounded-lg border bg-gray-100 px-3 py-2" />
+                              <label className="text-xs text-gray-500">Fecha de documento *</label>
+                              <input type="date" name="fechaDocumento" value={formEditar.fechaDocumento} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de acuse *</label>
-                              <input type="date" name="fechaAcuse" value={formEditar.fechaAcuse} disabled className="w-full rounded-lg border bg-gray-100 px-3 py-2" />
+                              <label className="text-xs text-gray-500">Fecha de acuse *</label>
+                              <input type="date" name="fechaAcuse" value={formEditar.fechaAcuse} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de registro *</label>
-                              <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full rounded-lg border bg-gray-100 px-3 py-2" />
+                              <label className="text-xs text-gray-500">Fecha de registro *</label>
+                              <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
                             </div>
 
                           </div>
                         </div>
+                    
 
-                        {/* REMITENTE */}
                         <div>
-
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="h-px flex-1 bg-gray-300" />
-
-                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                              Remitente
-                            </h2>
-
-                            <div className="h-px flex-1 bg-gray-300" />
-                          </div>
-                          
+                          <h2 className="text-sm font-semibold text-gray-600 mt-2">Remitente</h2>
                           <div className="grid grid-cols-6 gap-4 items-end">
                             <div className="col-span-2">
-                              <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de remitente *</label>
+                              <label className="text-xs text-gray-500">Tipo de remitente *</label>
                               <input
                                 value={
                                   formEditar?.tipoRemitente === "interno"
@@ -2406,12 +2194,12 @@ useEffect(() => {
                                     : safeText(formEditar?.tipoRemitente, "Interno")
                                 }
                                 disabled
-                                className="w-full rounded-lg border bg-gray-100 px-3 py-2 bg-gray-50 text-gray-700"
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
                             </div>
 
                             <div className="col-span-4">
-                              <label className="mb-1 block text-sm font-medium text-gray-700">Remitente</label>
+                              <label className="text-xs text-gray-500">Remitente</label>
                               <input
                                 value={
                                   formEditar.tipoRemitente === "interno"
@@ -2434,7 +2222,7 @@ useEffect(() => {
                                       safeText(documentoEditar?.remitente, "")
                                 }
                                 disabled
-                                className="w-full rounded-lg border bg-gray-100 px-3 py-2 bg-gray-50 text-gray-700"
+                                className="w-full border border-gray-300 rounded px-2 py-1 bg-gray-50 text-gray-700"
                               />
                             </div>
                           </div>
@@ -2442,21 +2230,15 @@ useEffect(() => {
 
                         {/* DATOS ESPECÍFICOS */}
                         <div>
-                          <div className="flex items-center gap-3 mb-1 mt-3">
-                            <div className="h-px flex-1 bg-gray-300" />
-
-                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                              Datos específicos
-                            </h2>
-
-                            <div className="h-px flex-1 bg-gray-300" />
-                          </div>
+                          <h2 className="text-sm font-semibold text-gray-600 mt-2">
+                            Datos específicos
+                          </h2>
 
                           <div className="grid grid-cols-4 gap-4 items-end">
 
                             {/* Tipo documento con buscador */}
                             <div ref={refTipoDoc} className="col-span-2 relative">
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                              <label className="text-xs text-gray-500">
                                 Selecciona tipo de documento *
                               </label>
                               <div
@@ -2522,7 +2304,7 @@ useEffect(() => {
                             {/* Campo "Otro" tipo de documento - solo visible cuando se selecciona "otro" */}
                             {formEditar.tipoDocumento === "otro" && (
                               <div className="col-span-2">
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                <label className="text-xs text-gray-500">
                                   Especificar tipo de documento *
                                 </label>
                                 <input
@@ -2539,7 +2321,7 @@ useEffect(() => {
                             <div className="col-span-2">
 
                               <div ref={refTemaPrincipal} className="col-span-2 relative">
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                <label className="text-xs text-gray-500">
                                   Selecciona Asunto
                                 </label>
 
@@ -2602,7 +2384,7 @@ useEffect(() => {
                           <div className="grid grid-cols-2 gap-4 mt-4">
 
                             <div className="col-span-4">
-                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                              <label className="text-xs text-gray-500">
                                 Síntesis del asunto *
                               </label>
                               <textarea
@@ -2615,7 +2397,7 @@ useEffect(() => {
                             </div>
 
                             <div className="col-span-4">
-                              <label className="mb-0 block text-sm font-medium text-gray-700">Observaciones</label>
+                              <label className="text-xs text-gray-500">Observaciones</label>
                               <textarea className="w-full border rounded px-2 py-1" 
                               value={formEditar.observaciones}
                               onChange={handleChange}
@@ -2654,56 +2436,24 @@ useEffect(() => {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="space-y-4">
-                      
-                      <div className="flex items-center gap-3 mb-3">
-                          <div className="h-px flex-1 bg-gray-300" />
-
-                          <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                              Anexos
-                          </h2>
-
-                          <div className="h-px flex-1 bg-gray-300" />
-                      </div>
 
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="relative group inline-flex">
+
                           {/* Botón */}
                           <button
                             onClick={() => setMostrarModalSubirAnexo(true)}
-                            title="Agregar anexo"
-                            className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
-                            <Plus
-                              size={22}
-                              className="group-hover:rotate-90 transition-transform duration-300"
-                            />
+                            Subir anexo
                           </button>
-                         </div>
 
                           {/* Buscador */}
-                          <div className="relative flex-1">
-                            <Search
-                              size={18}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                            />
+                          <div className="flex-1 flex items-center border rounded px-2">
+                            <Search size={16} className="text-gray-400" />
                            <input
                               value={busquedaSubirAnexo}
                               onChange={(e) => setBusquedaSubirAnexo(e.target.value)}
-                              className="
-                                w-full
-                                pl-10
-                                pr-4
-                                py-2.5
-                                rounded-xl
-                                border
-                                border-gray-200
-                                bg-gray-50
-                                focus:bg-white
-                                focus:border-[#8B1538]
-                                focus:ring-4
-                                focus:ring-[#8B1538]/10
-                                transition
-                              "
+                              className="w-full px-2 py-2 outline-none text-sm"
                               placeholder="Buscar anexo..."
                             />
 
@@ -2712,8 +2462,8 @@ useEffect(() => {
                         </div>
 
                         <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                          Sube archivos de anexos.
-                        </h3>
+                        Sube archivos de anexos.
+                      </h3>
                       
                        {/* Tabla de subir anexos */}                        
                         <div className="overflow-x-auto">
@@ -2732,13 +2482,13 @@ useEffect(() => {
 
                             {/* BODY */}
                             <tbody>
-                              {anexosPaginados.length > 0 ? (
-                                anexosPaginados.map((anexo) => (
+                              {documentoAnexosFiltrados.length > 0 ? (
+                                documentoAnexosFiltrados.map((anexo) => (
                                   <tr
                                     key={anexo._id || anexo.nombre}
                                     className="border-t hover:bg-gray-50"
                                   >
-                                    {/* ELIMINAR */}
+                                    {/* 🗑 ELIMINAR */}
                                     <td className="px-3 py-2">
                                       <button
                                         onClick={() => handleRemoveAnexo(anexo._id)}
@@ -2788,128 +2538,28 @@ useEffect(() => {
                             </tbody>
 
                           </table>
-
-                          {documentoAnexosFiltrados.length > 3 && totalPaginasAnexos > 1 && (
-                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
-                              <div className="flex items-center justify-center gap-2">
-
-                                <button
-                                  onClick={() =>
-                                    setPaginaAnexos((prev) => Math.max(prev - 1, 1))
-                                  }
-                                  disabled={paginaAnexos === 1}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
-                                >
-                                  <ChevronLeft size={16}/>
-                                </button>
-
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-
-                                    const maxVisible = 3;
-
-                                    let inicio = Math.max(1, paginaAnexos - 1);
-                                    let fin = inicio + maxVisible - 1;
-
-                                    if (fin > totalPaginasAnexos) {
-                                      fin = totalPaginasAnexos;
-                                      inicio = Math.max(1, fin - maxVisible + 1);
-                                    }
-
-                                    return Array.from(
-                                      { length: fin - inicio + 1 },
-                                      (_, i) => {
-
-                                        const numeroPagina = inicio + i;
-
-                                        return (
-                                          <button
-                                            key={numeroPagina}
-                                            onClick={() => setPaginaAnexos(numeroPagina)}
-                                            className={`w-8 h-8 rounded-xl text-xs transition ${
-                                              paginaAnexos === numeroPagina
-                                                ? "bg-[#79142A] text-white"
-                                                : "bg-gray-50 hover:bg-gray-100"
-                                            }`}
-                                          >
-                                            {numeroPagina}
-                                          </button>
-                                        );
-                                      }
-                                    );
-
-                                  })()}
-                                </div>
-
-                                <button
-                                  onClick={() =>
-                                    setPaginaAnexos((prev) =>
-                                      Math.min(prev + 1, totalPaginasAnexos)
-                                    )
-                                  }
-                                  disabled={paginaAnexos === totalPaginasAnexos}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
-                                >
-                                  <ChevronRight size={16}/>
-                                </button>
-
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="h-px flex-1 bg-gray-300" />
-
-                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
-                                Documentos relacionados
-                            </h2>
-
-                            <div className="h-px flex-1 bg-gray-300" />
                         </div>
 
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="relative group inline-flex">
-                            {/* Botón */}
-                            <button
-                              onClick={() => {
-                                setDocumentosSeleccionados([]);
-                                setMostrarModalRelacionado(true);
-                              }}
-                              title="Agregar documento relacionado"
-                              className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
-                            >
-                              <Plus
-                                size={22}
-                                className="group-hover:rotate-90 transition-transform duration-300"
-                              />
-                            </button>
-                          </div>
 
-                          {/* Buscador */}
-                          <div className="relative flex-1">
-                            <Search
-                              size={18}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                            />
+                          {/* Botón */}
+                          <button
+                            onClick={() => {
+                              setDocumentosSeleccionados([]);
+                              setMostrarModalRelacionado(true);
+                            }}
+                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
+                          >
+                            Añadir documento relacionado
+                          </button>
+
+                          {/* 🔍 Buscador */}
+                          <div className="flex-1 flex items-center border rounded px-2">
+                            <Search size={16} className="text-gray-400" />
                             <input
                               value={busquedaVerTurnos}
                               onChange={(e) => setBusquedaVerTurnos(e.target.value)}
-                              className="
-                                w-full
-                                pl-10
-                                pr-4
-                                py-2.5
-                                rounded-xl
-                                border
-                                border-gray-200
-                                bg-gray-50
-                                focus:bg-white
-                                focus:border-[#8B1538]
-                                focus:ring-4
-                                focus:ring-[#8B1538]/10
-                                transition
-                              "
+                              className="w-full px-2 py-2 outline-none text-sm"
                               placeholder="Buscar documento relacionado..."
                             />
                           </div>
@@ -2917,10 +2567,8 @@ useEffect(() => {
                         </div>
 
                         <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                          Documentos relacionados al registro.
-                        </h3>
-
-                        {/* Tabla de anexos */}
+                        Documentos relacionados al registro.
+                      </h3>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border border-gray-200">
                             <thead className="bg-[#8B1538] text-white">
@@ -2934,8 +2582,8 @@ useEffect(() => {
                             </thead>
 
                             <tbody>
-                              {relacionadosPaginados.length > 0 ? (
-                                relacionadosPaginados.map((relacionado) => (
+                              {relacionadosFiltrados.length > 0 ? (
+                                relacionadosFiltrados.map((relacionado) => (
                                   <tr
                                     key={relacionado.value}
                                     className="border-t hover:bg-gray-50"
@@ -2964,98 +2612,22 @@ useEffect(() => {
                             </tbody>
 
                           </table>
-                          {relacionadosFiltrados.length > 3 &&
-                            totalPaginasRelacionados > 1 && (
-                              <div className="border-t border-gray-100 px-3 py-3 bg-white">
-                                <div className="flex items-center justify-center gap-2">
-
-                                  <button
-                                    onClick={() =>
-                                      setPaginaRelacionados((prev) =>
-                                        Math.max(prev - 1, 1)
-                                      )
-                                    }
-                                    disabled={paginaRelacionados === 1}
-                                    className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
-                                  >
-                                    <ChevronLeft size={16}/>
-                                  </button>
-
-                                  <div className="flex items-center gap-2">
-
-                                    {(() => {
-
-                                      const maxVisible = 3;
-
-                                      let inicio = Math.max(
-                                        1,
-                                        paginaRelacionados - 1
-                                      );
-
-                                      let fin = inicio + maxVisible - 1;
-
-                                      if (fin > totalPaginasRelacionados) {
-
-                                        fin = totalPaginasRelacionados;
-
-                                        inicio = Math.max(
-                                          1,
-                                          fin - maxVisible + 1
-                                        );
-
-                                      }
-
-                                      return Array.from(
-                                        { length: fin - inicio + 1 },
-                                        (_, i) => {
-
-                                          const numeroPagina = inicio + i;
-
-                                          return (
-                                            <button
-                                              key={numeroPagina}
-                                              onClick={() =>
-                                                setPaginaRelacionados(numeroPagina)
-                                              }
-                                              className={`w-8 h-8 rounded-xl text-xs transition ${
-                                                paginaRelacionados === numeroPagina
-                                                  ? "bg-[#79142A] text-white"
-                                                  : "bg-gray-50 hover:bg-gray-100"
-                                              }`}
-                                            >
-                                              {numeroPagina}
-                                            </button>
-                                          );
-
-                                        }
-                                      );
-
-                                    })()}
-
-                                  </div>
-
-                                  <button
-                                    onClick={() =>
-                                      setPaginaRelacionados((prev) =>
-                                        Math.min(
-                                          prev + 1,
-                                          totalPaginasRelacionados
-                                        )
-                                      )
-                                    }
-                                    disabled={
-                                      paginaRelacionados === totalPaginasRelacionados
-                                    }
-                                    className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
-                                  >
-                                    <ChevronRight size={16}/>
-                                  </button>
-
-                                </div>
-                              </div>
-                            )}
                         </div>
 
+                        {/* Paginación estilo pequeño */}
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
+                            <button className="px-2 py-1 border rounded bg-gray-100">
+                              1
+                            </button>
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
 
                       {/* MODAL SUBIR ANEXO */}
                       <AnimatePresence>
@@ -3230,7 +2802,7 @@ useEffect(() => {
                                   >
                                     <div>
                                       <p className="text-sm font-medium">{anexo.nombre}</p>
-                                      <p className="mb-1 block text-sm font-medium text-gray-700">{anexo.folio}</p>
+                                      <p className="text-xs text-gray-500">{anexo.folio}</p>
                                     </div>
 
                                     <button
@@ -3287,9 +2859,9 @@ useEffect(() => {
                               {/* Botón cerrar */}
                               <button
                                 onClick={() => setMostrarVisor(false)}
-                                className="bg-[#79142A]  text-white hover:bg-[#79142A]/80 rounded-full p-1 transition"
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
                               >
-                                
+                                ✕
                               </button>
 
                               {/* Contenido */}
@@ -3347,18 +2919,14 @@ useEffect(() => {
                     <div className="space-y-4">
 
                       {/* HEADER */}
-                      <div className="flex justify-start">
+                      <div className="flex items-center gap-2 mb-2">
 
                         {/* Botón añadir */}
                         <button
                           onClick={() => setMostrarModalMaterial(true)}
-                          title="Agregar material adicional"
-                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                          className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
                         >
-                          <Plus
-                            size={22}
-                            className="group-hover:rotate-90 transition-transform duration-300"
-                          />
+                          Añadir material adicional
                         </button>
                       </div>
 
@@ -3377,7 +2945,7 @@ useEffect(() => {
 
                           <tbody>
                             {materialesAdicionales.length > 0 ? (
-                              materialesPaginados.map((material) => (
+                              materialesAdicionales.map((material) => (
                                 <tr key={material._id} className="border-t hover:bg-gray-50">
 
                                   {/* ELIMINAR */}
@@ -3458,95 +3026,6 @@ useEffect(() => {
                           </tbody>
 
                         </table>
-
-                        {materialesAdicionales.length > registrosPorPaginaMateriales &&
-                          totalPaginasMateriales > 1 && (
-                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
-                              <div className="flex items-center justify-center gap-2">
-
-                                {/* ANTERIOR */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaMateriales((prev) =>
-                                      Math.max(prev - 1, 1)
-                                    )
-                                  }
-                                  disabled={paginaMateriales === 1}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronLeft size={16} />
-                                </button>
-
-                                {/* NÚMEROS */}
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-
-                                    const maxVisible = 3;
-
-                                    let inicio = Math.max(
-                                      1,
-                                      paginaMateriales - 1
-                                    );
-
-                                    let fin = inicio + maxVisible - 1;
-
-                                    if (fin > totalPaginasMateriales) {
-                                      fin = totalPaginasMateriales;
-                                      inicio = Math.max(
-                                        1,
-                                        fin - maxVisible + 1
-                                      );
-                                    }
-
-                                    return Array.from(
-                                      { length: fin - inicio + 1 },
-                                      (_, i) => {
-
-                                        const numeroPagina = inicio + i;
-
-                                        return (
-                                          <button
-                                            key={numeroPagina}
-                                            onClick={() =>
-                                              setPaginaMateriales(numeroPagina)
-                                            }
-                                            className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
-                                              paginaMateriales === numeroPagina
-                                                ? "bg-[#79142A] text-white shadow-md scale-105"
-                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                            }`}
-                                          >
-                                            {numeroPagina}
-                                          </button>
-                                        );
-
-                                      }
-                                    );
-
-                                  })()}
-                                </div>
-
-                                {/* SIGUIENTE */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaMateriales((prev) =>
-                                      Math.min(
-                                        prev + 1,
-                                        totalPaginasMateriales
-                                      )
-                                    )
-                                  }
-                                  disabled={
-                                    paginaMateriales === totalPaginasMateriales
-                                  }
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronRight size={16} />
-                                </button>
-
-                              </div>
-                            </div>
-                        )}
                       </div>
 
                       <AnimatePresence>
@@ -3713,13 +3192,9 @@ useEffect(() => {
                       <div className="flex justify-start">
                         <button
                           onClick={() => setMostrarModalCopias(true)}
-                          title="Agregar turno"
-                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                          className="bg-[#8B1538] text-white w-10 h-10 rounded-full text-xl flex items-center justify-center shadow hover:opacity-90"
                         >
-                          <Plus
-                            size={22}
-                            className="group-hover:rotate-90 transition-transform duration-300"
-                          />
+                          +
                         </button>
                       </div>
 
@@ -3780,41 +3255,21 @@ useEffect(() => {
                         <div className="overflow-x-auto">
                           <div className="flex items-center gap-2 mb-4">
 
-                          <div className="relative group inline-flex">
-                            {/* BOTÓN AÑADIR TURNO */}
-                            <button
-                              onClick={() => setMostrarModalTurno(true)}
-                              title="Agregar turno"
-                              className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
-                            >
-                              <Plus
-                                size={22}
-                                className="group-hover:rotate-90 transition-transform duration-300"
-                              />
-                            </button>
-                          </div>
+                          {/* BOTÓN AÑADIR TURNO */}
+                          <button
+                            onClick={() => setMostrarModalTurno(true)}
+                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
+                          >
+                            Añadir turno
+                          </button>
 
                           {/* BUSCADOR */}
-                          <div className="relative flex-1">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                          <div className="flex-1 flex items-center border rounded px-2">
+                            <Search size={16} className="text-gray-400" />
                             <input
                               value={busquedaVerTurnos}
                               onChange={(e) => setBusquedaVerTurnos(e.target.value)}
-                              className="
-                                w-full
-                                pl-10
-                                pr-4
-                                py-2.5
-                                rounded-xl
-                                border
-                                border-gray-200
-                                bg-gray-50
-                                focus:bg-white
-                                focus:border-[#8B1538]
-                                focus:ring-4
-                                focus:ring-[#8B1538]/10
-                                transition
-                              "
+                              className="w-full px-2 py-2 outline-none"
                               placeholder="Buscar turno..."
                             />
                           </div>
@@ -3852,8 +3307,8 @@ useEffect(() => {
                             </thead>
 
                             <tbody>
-                              {turnosPaginados.length > 0 ? (
-                                turnosPaginados.map((turno, index) => (
+                              {turnosVerFiltrados.length > 0 ? (
+                                turnosVerFiltrados.map((turno, index) => (
                                   <tr
                                     key={index}
                                     className="border-t hover:bg-gray-50"
@@ -3913,98 +3368,24 @@ useEffect(() => {
                           </table>
                         </div>
 
-                        {/* PAGINACIÓN */}
-                        {turnosVerFiltrados.length > registrosPorPaginaTurnos &&
-                          totalPaginasTurnos > 1 && (
-                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
-                              <div className="flex items-center justify-center gap-2">
+                        {/* Paginación pequeña inferior */}
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
+                            <button className="px-2 py-1 border rounded bg-gray-100">
+                              1
+                            </button>
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
 
-                                {/* ANTERIOR */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaTurnos((prev) => Math.max(prev - 1, 1))
-                                  }
-                                  disabled={paginaTurnos === 1}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronLeft size={16} />
-                                </button>
-
-                                {/* NÚMEROS */}
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-
-                                    const maxVisible = 3;
-
-                                    let inicio = Math.max(1, paginaTurnos - 1);
-                                    let fin = inicio + maxVisible - 1;
-
-                                    if (fin > totalPaginasTurnos) {
-                                      fin = totalPaginasTurnos;
-                                      inicio = Math.max(1, fin - maxVisible + 1);
-                                    }
-
-                                    return Array.from(
-                                      { length: fin - inicio + 1 },
-                                      (_, i) => {
-
-                                        const numeroPagina = inicio + i;
-
-                                        return (
-                                          <button
-                                            key={numeroPagina}
-                                            onClick={() => setPaginaTurnos(numeroPagina)}
-                                            className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
-                                              paginaTurnos === numeroPagina
-                                                ? "bg-[#79142A] text-white shadow-md scale-105"
-                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                            }`}
-                                          >
-                                            {numeroPagina}
-                                          </button>
-                                        );
-
-                                      }
-                                    );
-
-                                  })()}
-                                </div>
-
-                                {/* SIGUIENTE */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaTurnos((prev) =>
-                                      Math.min(prev + 1, totalPaginasTurnos)
-                                    )
-                                  }
-                                  disabled={paginaTurnos === totalPaginasTurnos}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronRight size={16} />
-                                </button>
-
-                              </div>
-                            </div>
-                        )}
-                      <AnimatePresence>
                         {mostrarModalTurno && (
-                          <motion.div
-                            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <motion.div
-                              className="bg-white w-[900px] max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 relative"
-                              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                              transition={{
-                                duration: 0.25,
-                                ease: "easeOut",
-                              }}
-                            >
+                          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                            <div className="bg-white w-[900px] max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 relative">
 
                               {/* Cerrar */}
                               <button
@@ -4123,14 +3504,14 @@ useEffect(() => {
 
                               </div>
 
-                            </motion.div>
-                          </motion.div>
+                            </div>
+                          </div>
                         )}
-                      </AnimatePresence>
+
                       </div>
               
                         <AnimatePresence>
-                          {mostrarVisorTurno && archivoVista && (
+                          {mostrarVisorTurno && turnoSeleccionado && (
                             <motion.div
                               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
                               initial={{ opacity: 0 }}
@@ -4145,7 +3526,7 @@ useEffect(() => {
                               >
 
                                 <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
-                                  <span>Documento de turno</span>
+                                  <span>{turnoSeleccionado.nombre}</span>
 
                                   {/* CERRAR */}
                                   <button
@@ -4159,7 +3540,7 @@ useEffect(() => {
                                 {/* VISTA */}
                                 <iframe
                                   title="Vista previa turno"
-                                  src={archivoVista.url}
+                                  src={turnoSeleccionado.url}
                                   className="w-full h-[calc(100%-56px)]"
                                 />
 
@@ -4181,23 +3562,18 @@ useEffect(() => {
                     >
                       <div className="space-y-4">
                         {/* Botón agregar */}
-                         <div className="relative group inline-flex">
+                        <div className="flex justify-start">
                           <button
                             onClick={() => {
                               setMostrarModalCopias(true);
                               setBusquedaFuncionario("");
                               setSelectedCopiaUsuario(null);
                             }}
-                            title="Agregar funcionario"
-                            className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                             className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
                           >
-                            <Plus
-                              size={22}
-                              className="group-hover:rotate-90 transition-transform duration-300"
-                            />
+                            Añadir funcionario
                           </button>
                         </div>
-
                         {/* TABLA */}
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border border-gray-200">
@@ -4209,8 +3585,8 @@ useEffect(() => {
                             </thead>
 
                             <tbody>
-                              {copiasPaginadas.length > 0 ? (
-                                copiasPaginadas.map((copia, index) => (
+                              {copiasDocumento.length > 0 ? (
+                                copiasDocumento.map((copia, index) => (
                                   <tr
                                     key={copia._id || index}
                                     className="border-t hover:bg-gray-50"
@@ -4218,12 +3594,7 @@ useEffect(() => {
                                     <td className="px-4 py-2">
                                       <button
                                         onClick={() => {
-                                          const indiceReal =
-                                            (paginaCopias - 1) * registrosPorPaginaCopias + index;
-
-                                          setCopiasDocumento((prev) =>
-                                            prev.filter((_, i) => i !== indiceReal)
-                                          );
+                                          setCopiasDocumento((prev) => prev.filter((_, i) => i !== index));
                                         }}
                                         className="text-red-500 hover:text-red-700 transition"
                                         title="Eliminar"
@@ -4249,78 +3620,21 @@ useEffect(() => {
                         </div>
 
                         {/* PAGINACIÓN */}
-                        {copiasDocumento.length > registrosPorPaginaCopias &&
-                          totalPaginasCopias > 1 && (
-                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
-                              <div className="flex items-center justify-center gap-2">
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &lt;
+                            </button>
 
-                                {/* ANTERIOR */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaCopias((prev) => Math.max(prev - 1, 1))
-                                  }
-                                  disabled={paginaCopias === 1}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronLeft size={16} />
-                                </button>
+                            <button className="px-2 py-1 border rounded bg-[#8B1538] text-white">
+                              1
+                            </button>
 
-                                {/* NÚMEROS */}
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-
-                                    const maxVisible = 3;
-
-                                    let inicio = Math.max(1, paginaCopias - 1);
-                                    let fin = inicio + maxVisible - 1;
-
-                                    if (fin > totalPaginasCopias) {
-                                      fin = totalPaginasCopias;
-                                      inicio = Math.max(1, fin - maxVisible + 1);
-                                    }
-
-                                    return Array.from(
-                                      { length: fin - inicio + 1 },
-                                      (_, i) => {
-
-                                        const numeroPagina = inicio + i;
-
-                                        return (
-                                          <button
-                                            key={numeroPagina}
-                                            onClick={() => setPaginaCopias(numeroPagina)}
-                                            className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
-                                              paginaCopias === numeroPagina
-                                                ? "bg-[#79142A] text-white shadow-md scale-105"
-                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                            }`}
-                                          >
-                                            {numeroPagina}
-                                          </button>
-                                        );
-
-                                      }
-                                    );
-
-                                  })()}
-                                </div>
-
-                                {/* SIGUIENTE */}
-                                <button
-                                  onClick={() =>
-                                    setPaginaCopias((prev) =>
-                                      Math.min(prev + 1, totalPaginasCopias)
-                                    )
-                                  }
-                                  disabled={paginaCopias === totalPaginasCopias}
-                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
-                                >
-                                  <ChevronRight size={16} />
-                                </button>
-
-                              </div>
-                            </div>
-                        )}
+                            <button className="px-2 py-1 border rounded disabled:opacity-40">
+                              &gt;
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                     </motion.div>
@@ -4334,7 +3648,7 @@ useEffect(() => {
                           <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 shadow-sm">
 
                             <div className="flex flex-col">
-                              <span className="mb-1 block text-sm font-medium text-gray-700 uppercase tracking-wide">
+                              <span className="text-xs text-gray-500 uppercase tracking-wide">
                                 Vista previa
                               </span>
 
@@ -4381,139 +3695,8 @@ useEffect(() => {
                     
                         </div>
                       </div>
-<<<<<<< HEAD
-                  
-                    </motion.div>
-                  )}
-
-                  {tabActiva === "respuestas" && (
-                    <motion.div
-                      key="respuestas"
-                      initial={{ opacity: 0, x: 15 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -15 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="space-y-4">
-                        <div className="bg-gray-100 border-b px-4 py-2 text-sm font-semibold text-gray-600">
-                          Respuestas al documento
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full border border-gray-200 text-xs">
-                            <thead>
-                              <tr className="bg-[#D8B2BC] text-white">
-                                <th className="px-3 py-2 text-left border-r">
-                                  Registrador del mensaje
-                                </th>
-                                <th className="px-3 py-2 text-left border-r">
-                                  Documento anexo
-                                </th>
-                                <th className="px-3 py-2 text-left border-r">
-                                  Número de documento
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Mensaje
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {respuestasDocumento.length > 0 ? (
-                                respuestasDocumento.map((respuesta, index) => (
-                                  <tr key={index} className="border-b hover:bg-gray-50">
-                                    <td className="px-3 py-3 text-gray-700 align-top">
-                                      {respuesta.registrador?.nombre || 'Usuario'}
-                                    </td>
-                    <td className="px-3 py-3 align-top">
-                                      {respuesta.ruta ? (
-                                        <button
-                                          onClick={() => {
-                                            setArchivoRespuesta(`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta}`);
-                                            setMostrarVisorRespuesta(true);
-                                          }}
-                                          className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                        >
-                                          Ver Archivo
-                                        </button>
-                                      ) : (
-                                        <span className="text-gray-500 text-[11px]">Sin documento adjunto</span>
-                                      )}
-                                    </td>
-                                    <td className="px-3 py-3 align-top">
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-[11px] font-medium">
-                                        {respuesta.nombre || 'Respuesta'}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-3 text-gray-700 align-top">
-                                      {respuesta.mensaje}
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan="4" className="px-3 py-4 text-center text-gray-500">
-                                    No hay respuestas registradas.
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-=======
                     )}
->>>>>>> 5c1b1370a4a31a64b80e7d71ca998c06c6f2fae2
                   
-                  </AnimatePresence>
-
-                  {/* Modal ver archivo respuesta */}
-                  <AnimatePresence>
-                    {mostrarVisorRespuesta && (
-                      <motion.div
-                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <motion.div
-                          className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0.8 }}
-                        >
-                          {/* Botón cerrar */}
-                          <button
-                            onClick={() => setMostrarVisorRespuesta(false)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                          >
-                            ✕
-                          </button>
-
-                          {/* Contenido */}
-                          <div className="w-full h-full flex items-center justify-center">
-                            {typeof archivoRespuesta === "string" ? (
-                              archivoRespuesta.endsWith(".pdf") ? (
-                                <iframe
-                                  src={archivoRespuesta}
-                                  className="w-full h-full rounded"
-                                />
-                              ) : (
-                                <img
-                                  src={archivoRespuesta}
-                                  alt="preview"
-                                  className="max-h-full rounded"
-                                />
-                              )
-                            ) : (
-                              <p className="text-gray-500">
-                                No se puede previsualizar este archivo
-                              </p>
-                            )}
-                          </div>
-                        </motion.div>
-                      </motion.div>
-                    )}
                   </AnimatePresence>
 
                   </div>
@@ -4560,7 +3743,7 @@ useEffect(() => {
 
                 {/* Buscador */}
                 <div className="relative">
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="text-xs text-gray-500">
                     Buscar documento:
                   </label>
 
@@ -4613,7 +3796,7 @@ useEffect(() => {
 
                 {/* Lista seleccionados */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">Seleccionados:</label>
+                  <label className="text-xs text-gray-500">Seleccionados:</label>
                   <div className="border rounded p-2 max-h-32 overflow-y-auto">
                     {documentosSeleccionados.length > 0 ? (
                       documentosSeleccionados.map((id) => {
@@ -4688,7 +3871,7 @@ useEffect(() => {
 
                 {/* No. asunto */}
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="text-xs text-gray-500">
                     No. de asunto:
                   </label>
                   <input
@@ -4704,84 +3887,6 @@ useEffect(() => {
           </motion.div>
         )}
       </AnimatePresence>
-
-        {/* MODAL ELIMINAR DOCUMENTO */}
-        <AnimatePresence>
-          {mostrarModalEliminar && (
-            <motion.div
-              className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="bg-white w-[500px] rounded shadow-lg overflow-hidden"
-              >
-                {/* HEADER */}
-                <div className="flex justify-between items-center bg-[#8B1538] px-4 py-2">
-                  <span className="text-white text-sm font-semibold">
-                    Eliminar documento
-                  </span>
-                  <button
-                    onClick={() => {
-                      setMostrarModalEliminar(false);
-                      setDocumentoEliminar(null);
-                      setMotivoEliminacion("");
-                    }}
-                    className="bg-white text-[#8B1538] p-1 rounded-full flex items-center justify-center"
-                  >
-                    <Minus size={16} />
-                  </button>
-                </div>
-
-                {/* BODY */}
-                <div className="p-6">
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-700 mb-2">
-                      ¿Está seguro de eliminar el documento <strong>{documentoEliminar?.folio || documentoEliminar?.docId}</strong>?
-                    </p>
-                    <p className="text-xs text-red-500 mb-4">
-                      Esta acción eliminará el documento y todos sus archivos anexos y respuestas asociadas de forma permanente.
-                    </p>
-                    <label className="text-xs text-gray-500 font-medium block mb-1">
-                      Motivo de eliminación *
-                    </label>
-                    <textarea
-                      value={motivoEliminacion}
-                      onChange={(e) => setMotivoEliminacion(e.target.value)}
-                      className="w-full border rounded px-3 py-2 text-sm"
-                      rows="3"
-                      placeholder="Especifique el motivo de la eliminación..."
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => {
-                        setMostrarModalEliminar(false);
-                        setDocumentoEliminar(null);
-                        setMotivoEliminacion("");
-                      }}
-                      className="px-4 py-2 bg-gray-300 rounded text-sm"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={handleConfirmarEliminar}
-                      className="px-4 py-2 bg-[#8B1538] text-white rounded text-sm"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {mostrarModalCopias && (
@@ -4815,7 +3920,7 @@ useEffect(() => {
                 {/* BODY */}
                 <div className="p-6 space-y-4">
                   <div className="relative">
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario:</label>
+                    <label className="text-xs text-gray-500">Funcionario:</label>
 
                     <div className="flex items-center border rounded px-2">
                       <Search size={16} className="text-gray-400" />

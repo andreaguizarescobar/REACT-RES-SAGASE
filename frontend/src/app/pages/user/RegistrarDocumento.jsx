@@ -1,4 +1,4 @@
-import { Minus, Search, Trash2, Upload, X } from "lucide-react";
+import { Minus, Search, Trash2, Upload, X, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
@@ -14,6 +14,14 @@ import {
   validarDocumentoForm,
   showValidationError,
 } from "../../utils/documentoFormHelpers.jsx";
+
+import jsPDF from "jspdf";
+import logoGobierno from "../../assets/images/nayaritLogo.png";
+
+import GothamRoundedBold from "../../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
 
 export function RegistrarDocumento() {
 
@@ -203,18 +211,32 @@ export function RegistrarDocumento() {
         "tipoRemitente",
         "tipoDocumento",
         "temaPrincipal",
-        "materialAdicional",
+        // "materialAdicional",
         "sintesis",
       ],
       conditional: [
         (currentForm, currentErrores) => {
-          if (currentForm.tipoRemitente === "interno" && !currentForm.remitenteInterno)
+          if (
+            currentForm.tipoRemitente === "interno" &&
+            !currentForm.remitenteInterno
+          ) {
             currentErrores.remitenteInterno = true;
-          if (currentForm.tipoRemitente === "externo" && !currentForm.remitenteExterno)
+          }
+
+          if (
+            currentForm.tipoRemitente === "externo" &&
+            !currentForm.remitenteExterno
+          ) {
             currentErrores.remitenteExterno = true;
+          }
+
+          // NUEVO: validar archivo
+          if (!archivo) {
+            currentErrores.archivo = true;
+          }
         },
       ],
-    });
+  });
 
   const usuariosInstitucion = [
     { id: 1, nombre: "Juan Pérez - Dirección General" },
@@ -293,7 +315,7 @@ export function RegistrarDocumento() {
       return;
     }
 
-    // 🔥 MODAL DE CONFIRMACIÓN
+    // MODAL DE CONFIRMACIÓN
     Swal.fire({
       title: "Confirmación",
       text: "¿Seguro que desea continuar?, su información está correcta?",
@@ -404,14 +426,6 @@ export function RegistrarDocumento() {
     });
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const descargarBitacora = () => {
-    window.print();
-  };
-  
   const bitacoraRef = useRef(null);
 
   const [mostrarModalCopias, setMostrarModalCopias] = useState(false);
@@ -549,61 +563,61 @@ export function RegistrarDocumento() {
     }
   };
 
-    const handleGuardarCopia = async () => {
-      if (!selectedCopiaUsuario) {
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "error",
-          title: "Selecciona un funcionario",
-          showConfirmButton: false,
-          timer: 2500,
-        });
-        return;
-      }
-  
-      const currentDocId = documentoEditar?.docId || documentoEditar?._id;
-      if (!currentDocId) {
-        Swal.fire({
-          icon: "error",
-          title: "Documento no seleccionado",
-          text: "Abre un documento antes de guardar la copia.",
-        });
-        return;
-      }
-  
-      try {
-        const copiaData = {
-          funcionario: selectedCopiaUsuario.value,
-        };
-  
-        const response = await addCopia(currentDocId, copiaData, token);
-        if (!response.ok) throw new Error("Error agregando la copia");
-  
-        const updatedDocumento = await response.json();
-        setDocumentoEditar(updatedDocumento);
-        setDocumentoSeleccionado(updatedDocumento);
-        setCopiasDocumento(updatedDocumento.copias || []);
-        setMostrarModalCopias(false);
-        setBusquedaFuncionario("");
-        setSelectedCopiaUsuario(null);
-  
-        Swal.fire({
-          icon: "success",
-          title: "Copia guardada",
-          text: "La copia se agregó correctamente.",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      } catch (error) {
-        console.error(error);
-        Swal.fire({
-          icon: "error",
-          title: "Error al guardar la copia",
-          text: "No se pudo guardar la copia.",
-        });
-      }
-    };
+  const handleGuardarCopia = async () => {
+    if (!selectedCopiaUsuario) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Selecciona un funcionario",
+        showConfirmButton: false,
+        timer: 2500,
+      });
+      return;
+    }
+
+    const currentDocId = documentoEditar?.docId || documentoEditar?._id;
+    if (!currentDocId) {
+      Swal.fire({
+        icon: "error",
+        title: "Documento no seleccionado",
+        text: "Abre un documento antes de guardar la copia.",
+      });
+      return;
+    }
+
+    try {
+      const copiaData = {
+        funcionario: selectedCopiaUsuario.value,
+      };
+
+      const response = await addCopia(currentDocId, copiaData, token);
+      if (!response.ok) throw new Error("Error agregando la copia");
+
+      const updatedDocumento = await response.json();
+      setDocumentoEditar(updatedDocumento);
+      setDocumentoSeleccionado(updatedDocumento);
+      setCopiasDocumento(updatedDocumento.copias || []);
+      setMostrarModalCopias(false);
+      setBusquedaFuncionario("");
+      setSelectedCopiaUsuario(null);
+
+      Swal.fire({
+        icon: "success",
+        title: "Copia guardada",
+        text: "La copia se agregó correctamente.",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error al guardar la copia",
+        text: "No se pudo guardar la copia.",
+      });
+    }
+  };
 
   const [busquedaSubirAnexo, setBusquedaSubirAnexo] = useState("");
   const [mostrarModalSubirAnexo, setMostrarModalSubirAnexo] = useState(false);
@@ -929,28 +943,6 @@ useEffect(() => {
 
 const [mostrarModalRegistro, setMostrarModalRegistro] = useState(false);
 
-
-  // form editar (inicializado para evitar undefined)
-  const [formEditar, setFormEditar] = useState({
-    ejercicio: "",
-    noDocumento: "",
-    fechaDocumento: "",
-    fechaAcuse: "",
-    fechaRegistro: "",
-    tipoRemitente: "",
-    remitenteInterno: "",
-    remitenteExterno: "",
-    tipoDocumento: "",
-    temaPrincipal: "",
-    sintesis: "",
-    documentoInterno: false,
-    faltaInformacion: false,
-    otroFuncionario: false,
-    altaTipoDocumento: false,
-    relacionadoCon: false,
-    materialAdicional: "",
-  });
-
 const obtenerLabel = (lista, id) => {
   if (!Array.isArray(lista)) return "";
 
@@ -989,6 +981,500 @@ const obtenerLabel = (lista, id) => {
     descripcion: "",
   });
 
+const formatearFecha = (fecha) => {
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleDateString("es-MX", {
+    timeZone: "America/Mexico_City",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatearHora = (fecha) => {
+  if (!fecha) return "-";
+
+  return new Date(fecha).toLocaleTimeString("es-MX", {
+    timeZone: "America/Mexico_City",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
+  const [docSeleccionado, setDocSeleccionado] = useState(null);
+  const bitacora = documentoSeleccionado?.bitacora || [];
+  
+  const descargarBitacora = async () => {
+      const pdf = await generarBitacoraPDF();
+  
+      const enlace = document.createElement("a");
+      enlace.href = pdf.url;
+      enlace.download = pdf.nombre;
+      enlace.click();
+  
+      URL.revokeObjectURL(pdf.url);
+  };
+  
+  const generarBitacoraPDF = async () => {
+    const doc = new jsPDF("p", "mm", "letter");
+
+  doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+  doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
+
+  doc.addFont(MontserratRegular, "Montserrat", "normal");
+  doc.addFont(MontserratBold, "Montserrat", "bold");
+
+  const COLORS = {
+    grisPrincipal: [96, 89, 93],
+    grisSecundario: [155, 157, 154],
+    blanco: [255, 255, 255],
+    negro: [0, 0, 0],
+  };
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+
+  const hoy = new Date();
+
+  const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(
+    hoy.getMonth() + 1
+  ).padStart(2, "0")}/${hoy.getFullYear()}`;
+
+  let y = 40;
+
+  // HEADER
+  const dibujarHeader = () => {
+    doc.setFillColor(...COLORS.grisSecundario);
+    doc.rect(margin, 12, contentWidth, 18, "F");
+
+    doc.addImage(
+      logoGobierno,
+      "PNG",
+      margin + 2,
+      12,
+      85,
+      18
+    );
+
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.roundedRect(
+      pageWidth - 60,
+      17,
+      25,
+      8,
+      2,
+      2,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      "FECHA",
+      pageWidth - 47,
+      22,
+      { align: "center" }
+    );
+
+    doc.setTextColor(...COLORS.grisPrincipal);
+
+    doc.text(
+      fechaHoy,
+      pageWidth - 22,
+      22,
+      { align: "center" }
+    );
+  };
+
+  dibujarHeader();
+
+  // TITULO
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...COLORS.grisPrincipal);
+
+  doc.text(
+    "REPORTE DE BITÁCORA",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  // FOLIO DEL DOCUMENTO
+  y += 7;
+
+  doc.setFont("Montserrat", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.negro);
+
+  doc.text(
+    ` ${documentoSeleccionado?.folio || documentoSeleccionado?.folio || "-"}`,
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 5;
+
+  // TABLA
+  const columnas = [
+    "USUARIO",
+    "DESCRIPCIÓN",
+    "FECHA",
+    "HORA",
+  ];
+
+  const anchos = [40, 90, 30, 25];
+
+  let x = margin;
+
+  columnas.forEach((titulo, i) => {
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      10,
+      "F"
+    );
+
+    doc.setFont("Montserrat", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.blanco);
+
+    doc.text(
+      titulo,
+      x + anchos[i] / 2,
+      y + 6,
+      {
+        align: "center",
+      }
+    );
+
+    x += anchos[i];
+  });
+
+  y += 10;
+
+  // MOVIMIENTOS
+  bitacora.forEach((mov, index) => {
+    const valores = [
+      mov.user?.nombre || "-",
+      mov.descripcion || "-",
+      formatearFecha(mov.fecha),
+      formatearHora(mov.fecha),
+    ];
+
+    const lineas = valores.map((v, i) =>
+      doc.splitTextToSize(
+        String(v),
+        anchos[i] - 4
+      )
+    );
+
+    const maxLineas = Math.max(
+      ...lineas.map((l) => l.length)
+    );
+
+    const altoFila = Math.max(
+      10,
+      maxLineas * 4 + 4
+    );
+
+    if (y + altoFila > pageHeight - 20) {
+      doc.addPage();
+
+      dibujarHeader();
+
+      y = 40;
+
+      let xx = margin;
+
+      columnas.forEach((titulo, i) => {
+        doc.setFillColor(
+          ...COLORS.grisPrincipal
+        );
+
+        doc.rect(
+          xx,
+          y,
+          anchos[i],
+          10,
+          "F"
+        );
+
+        doc.setTextColor(
+          ...COLORS.blanco
+        );
+
+        doc.text(
+          titulo,
+          xx + anchos[i] / 2,
+          y + 6,
+          {
+            align: "center",
+          }
+        );
+
+        xx += anchos[i];
+      });
+
+      y += 10;
+    }
+
+    let xx = margin;
+
+    lineas.forEach((texto, i) => {
+      const fondo =
+        index % 2 === 0
+          ? [255, 255, 255]
+          : [245, 245, 245];
+
+      doc.setFillColor(...fondo);
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila,
+        "F"
+      );
+
+      doc.setDrawColor(
+        ...COLORS.grisSecundario
+      );
+
+      doc.rect(
+        xx,
+        y,
+        anchos[i],
+        altoFila
+      );
+
+      doc.setFont(
+        "Montserrat",
+        "normal"
+      );
+
+      doc.setFontSize(9);
+
+      doc.setTextColor(
+        ...COLORS.negro
+      );
+
+      doc.text(
+        texto,
+        xx + 2,
+        y + 5
+      );
+
+      xx += anchos[i];
+    });
+
+    y += altoFila;
+  });
+
+  // FOOTER
+  const footerY = pageHeight - 15;
+
+  doc.setDrawColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.line(
+    margin,
+    footerY,
+    pageWidth - margin,
+    footerY
+  );
+
+  doc.setFont(
+    "Montserrat",
+    "normal"
+  );
+
+  doc.setFontSize(8);
+
+  doc.setTextColor(
+    ...COLORS.grisPrincipal
+  );
+
+  doc.text(
+    "Sistema Automatizado de Gestión de Correspondencia",
+    pageWidth / 2,
+    footerY + 5,
+    {
+      align: "center",
+    }
+  );
+
+  // doc.save(
+  //   `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`
+  // );
+
+    const blob = doc.output("blob");
+
+    return {
+      blob,
+      url: URL.createObjectURL(blob),
+      nombre: `Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`,
+    };
+  };
+  
+  const [pdfBitacora, setPdfBitacora] = useState(null);
+  const [pdfGenerado, setPdfGenerado] = useState(false);
+
+useEffect(() => {
+    if (tabActiva !== "bitacora") return;
+
+    if (pdfGenerado) return;
+
+    const cargar = async () => {
+        const pdf = await generarBitacoraPDF();
+        setPdfBitacora(pdf.url);
+        setPdfGenerado(true);
+    };
+
+    cargar();
+}, [tabActiva]);
+
+    const [formEditar, setFormEditar] = useState({
+      ejercicio: "",
+      noDocumento: "",
+      fechaDocumento: "",
+      fechaAcuse: "",
+      fechaRegistro: "",
+      tipoRemitente: "",
+      remitenteInterno: "",
+      remitenteExterno: "",
+      tipoDocumento: "",
+      temaPrincipal: "",
+      temaSecundario: "",
+      sintesis: "",
+      observaciones: "",
+      documentoInterno: false,
+      faltaInformacion: false,
+      otroFuncionario: false,
+      altaTipoDocumento: false,
+      relacionadoCon: false,
+      materialAdicional: false,
+    });
+  
+    useEffect(() => {
+    setPdfGenerado(false);
+    setPdfBitacora(null);
+}, [documentoSeleccionado]);
+
+const [paginaAnexos, setPaginaAnexos] = useState(1);
+const [paginaRelacionados, setPaginaRelacionados] = useState(1);
+
+const registrosPorPagina = 3;
+
+useEffect(() => {
+  setPaginaAnexos(1);
+}, [busquedaSubirAnexo]);
+
+useEffect(() => {
+  setPaginaRelacionados(1);
+}, [busquedaVerTurnos]);
+
+/* ===========================
+   PAGINACIÓN ANEXOS
+=========================== */
+
+const totalPaginasAnexos = Math.ceil(
+  documentoAnexosFiltrados.length / registrosPorPagina
+);
+
+const anexosPaginados = documentoAnexosFiltrados.slice(
+  (paginaAnexos - 1) * registrosPorPagina,
+  paginaAnexos * registrosPorPagina
+);
+
+/* ===========================
+   PAGINACIÓN RELACIONADOS
+=========================== */
+
+const totalPaginasRelacionados = Math.ceil(
+  relacionadosFiltrados.length / registrosPorPagina
+);
+
+const relacionadosPaginados = relacionadosFiltrados.slice(
+  (paginaRelacionados - 1) * registrosPorPagina,
+  paginaRelacionados * registrosPorPagina
+);
+
+
+const [paginaTurnos, setPaginaTurnos] = useState(1);
+const registrosPorPaginaTurnos = 5;
+useEffect(() => {
+  setPaginaTurnos(1);
+}, [busquedaVerTurnos]);
+const totalPaginasTurnos = Math.ceil(
+  turnosVerFiltrados.length / registrosPorPaginaTurnos
+);
+
+const turnosPaginados = turnosVerFiltrados.slice(
+  (paginaTurnos - 1) * registrosPorPaginaTurnos,
+  paginaTurnos * registrosPorPaginaTurnos
+);
+
+const [paginaCopias, setPaginaCopias] = useState(1);
+const registrosPorPaginaCopias = 5;
+const totalPaginasCopias = Math.ceil(
+  copiasDocumento.length / registrosPorPaginaCopias
+);
+
+const copiasPaginadas = copiasDocumento.slice(
+  (paginaCopias - 1) * registrosPorPaginaCopias,
+  paginaCopias * registrosPorPaginaCopias
+);
+useEffect(() => {
+  const total = Math.max(
+    1,
+    Math.ceil(copiasDocumento.length / registrosPorPaginaCopias)
+  );
+
+  if (paginaCopias > total) {
+    setPaginaCopias(total);
+  }
+}, [copiasDocumento]);
+
+
+const [paginaMateriales, setPaginaMateriales] = useState(1);
+const registrosPorPaginaMateriales = 3;
+
+const totalPaginasMateriales = Math.ceil(
+  materialesAdicionales.length / registrosPorPaginaMateriales
+);
+
+const materialesPaginados = materialesAdicionales.slice(
+  (paginaMateriales - 1) * registrosPorPaginaMateriales,
+  paginaMateriales * registrosPorPaginaMateriales
+);
+useEffect(() => {
+  const total = Math.max(
+    1,
+    Math.ceil(
+      materialesAdicionales.length /
+        registrosPorPaginaMateriales
+    )
+  );
+
+  if (paginaMateriales > total) {
+    setPaginaMateriales(total);
+  }
+}, [materialesAdicionales]);
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
       <div className="max-w-6xl mx-auto bg-white rounded shadow">
@@ -1257,11 +1743,9 @@ const obtenerLabel = (lista, id) => {
 
               <div className="grid grid-cols-3 gap-4 mt-4">
 
-         
-
               </div>
 
-            </div>
+          </div>
 
           {/* DATOS GENERALES */}
           <div>
@@ -1547,7 +2031,6 @@ const obtenerLabel = (lista, id) => {
             </div>
           </div>
 
-
           {/* DATOS ESPECÍFICOS */}
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -1588,7 +2071,7 @@ const obtenerLabel = (lista, id) => {
               <div className="flex items-start gap-10 col-span-1">
                 <div className="flex items-center gap-2 pt-0">
                   <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between">
-                    <span>Soporte adicional</span>
+                    <span>Material adicional</span>
                   </label>
                   <Toggle
                     checked={form.materialAdicional}
@@ -1728,7 +2211,7 @@ const obtenerLabel = (lista, id) => {
           {/* SUBIR ARCHIVO */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-gray-600 mb-2">
-              Documento digital
+              Documento digital  <span className="text-red-500 ml-1">*</span>
             </h2>
 
             <div className="flex justify-center">
@@ -1742,7 +2225,18 @@ const obtenerLabel = (lista, id) => {
                   type="file"
                   id="archivoDocumento"
                   className="hidden"
-                  onChange={(e) => setArchivo(e.target.files[0])}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+
+                    setArchivo(file);
+
+                    if (file) {
+                      setErrores((prev) => ({
+                        ...prev,
+                        archivo: false,
+                      }));
+                    }
+                  }}
                 />
 
                 {/* Zona Drag & Drop */}
@@ -1761,6 +2255,11 @@ const obtenerLabel = (lista, id) => {
 
                     if (file) {
                       setArchivo(file);
+
+                      setErrores((prev) => ({
+                        ...prev,
+                        archivo: false,
+                      }));
                     }
                   }}
                   className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-2 cursor-pointer transition ${
@@ -1798,6 +2297,11 @@ const obtenerLabel = (lista, id) => {
                   </span>
                 </label>
 
+                {errores.archivo && (
+                  <p className="mt-2 text-xs text-red-500">
+                    El documento digital es obligatorio.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1813,6 +2317,7 @@ const obtenerLabel = (lista, id) => {
           </div>
 
         </div>
+
       {/* MODAL REMITENTE EXTERNO */}
       <AnimatePresence>
         {mostrarModalRemitente && (
@@ -1855,15 +2360,15 @@ const obtenerLabel = (lista, id) => {
                   </label>
                   <input
                     className="w-full
-rounded-lg
-border
-px-3
-py-2
-transition
-focus:border-[#8B1538]
-focus:ring-2
-focus:ring-[#8B1538]/20
-outline-none"
+                    rounded-lg
+                    border
+                    px-3
+                    py-2
+                    transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none"
                     value={nuevoRemitente.nombreCompleto}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, nombreCompleto: e.target.value })}
                   />
@@ -1873,15 +2378,15 @@ outline-none"
                   <label className="mb-1 block text-sm font-medium text-gray-700">Cargo:</label>
                   <input
                     className="w-full
-rounded-lg
-border
-px-3
-py-2
-transition
-focus:border-[#8B1538]
-focus:ring-2
-focus:ring-[#8B1538]/20
-outline-none"
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     value={nuevoRemitente.cargo}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, cargo: e.target.value })}
                   />
@@ -1893,15 +2398,15 @@ outline-none"
                   </label>
                   <input
                     className="w-full
-rounded-lg
-border
-px-3
-py-2
-transition
-focus:border-[#8B1538]
-focus:ring-2
-focus:ring-[#8B1538]/20
-outline-none"
+                      rounded-lg
+                      border
+                      px-3
+                      py-2
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     value={nuevoRemitente.dependencia}
                     onChange={(e) => setNuevoRemitente({ ...nuevoRemitente, dependencia: e.target.value })}
                   />
@@ -2329,7 +2834,7 @@ outline-none"
                   },
                   {
                     id: "materialAdicional",
-                    label: "Soporte adicional",
+                    label: "Material adicional",
                   },
                   {
                     id: "verTurnos",
@@ -2360,52 +2865,58 @@ outline-none"
             </div>
               
             <div className="flex-1 overflow-y-auto p-4">
-              {tabActiva === "datosAsunto" && (
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-80">
-                        <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
-                        <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full
-                          rounded-lg
-                          border
-                          px-3
-                          py-2.5
-                          transition
-                          focus:border-[#8B1538]
-                          focus:ring-2
-                          focus:ring-[#8B1538]/20
-                          outline-none">
-                          <option value="">Seleccionar tipo de ejercicio</option>
-                          <option value="2024">2024</option>
-                          <option value="2025">2025</option>
-                          <option value="2026">2026</option>
-                        </select>
-                      </div>
-                    </div>
+              <AnimatePresence mode="wait">
 
-                    <div>
-                      <h2 className="text-sm font-semibold text-gray-600 mb-2">Datos generales</h2>
-                      <div className="grid grid-cols-4 gap-4 items-end">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">No. de documento *</label>
-                          <input  name="noDocumento" value={documentoEditar?.noDocumento || ""} disabled className="w-full
-                            rounded-lg
-                            border
-                            px-3
-                            py-2
-                            transition
-                            focus:border-[#8B1538]
-                            focus:ring-2
-                            focus:ring-[#8B1538]/20
-                            outline-none bg-gray-100" />
+                {tabActiva === "datosAsunto" && (
+                  <motion.div
+                    key="datosAsunto"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="space-y-6">
+
+                      <div>
+                        {/* EJERCICIO */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-80">
+                            <h2 className="text-sm font-semibold text-gray-600 mb-2">Ejercicio</h2>
+                            
+                            <select name="ejercicio" value={formEditar.ejercicio} disabled onChange={handleChange} className="w-full
+                              rounded-lg
+                              border
+                              px-3
+                              py-2.5
+                              transition
+                              focus:border-[#8B1538]
+                              focus:ring-2
+                              focus:ring-[#8B1538]/20
+                              outline-none">
+                              <option value="">Seleccionar tipo de ejercicio</option>
+                              <option value="2024">2024</option>
+                              <option value="2025">2025</option>
+                              <option value="2026">2026</option>
+                            </select>
+                          </div>
                         </div>
 
+                         {/* DATOS GENERALES */}
                         <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de documento *</label>
-                          <input type="date" name="fechaDocumento"   value={documentoEditar?.fechaDocumento || ""}
-                              disabled
-                              className="w-full
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="h-px flex-1 bg-gray-300" />
+
+                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                              Datos generales
+                            </h2>
+
+                            <div className="h-px flex-1 bg-gray-300" />
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-4 items-end mb-5">
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">No. de documento *</label>
+                              <input  name="noDocumento" value={documentoEditar?.noDocumento || ""} disabled className="w-full
                                 rounded-lg
                                 border
                                 px-3
@@ -2415,69 +2926,27 @@ outline-none"
                                 focus:ring-2
                                 focus:ring-[#8B1538]/20
                                 outline-none bg-gray-100" />
-                        </div>
+                            </div>
 
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de acuse *</label>
-                          <input type="date" name="fechaAcuse" value={documentoEditar?.fechaAcuse || ""} disabled className="w-full
-                            rounded-lg
-                            border
-                            px-3
-                            py-2
-                            transition
-                            focus:border-[#8B1538]
-                            focus:ring-2
-                            focus:ring-[#8B1538]/20
-                            outline-none bg-gray-100" />
-                        </div>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de documento *</label>
+                              <input type="date" name="fechaDocumento"   value={documentoEditar?.fechaDocumento || ""}
+                                  disabled
+                                  className="w-full
+                                    rounded-lg
+                                    border
+                                    px-3
+                                    py-2
+                                    transition
+                                    focus:border-[#8B1538]
+                                    focus:ring-2
+                                    focus:ring-[#8B1538]/20
+                                    outline-none bg-gray-100" />
+                            </div>
 
-                        <div className="hidden">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de registro *</label>
-                          <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full
-                            rounded-lg
-                            border
-                            px-3
-                            py-2
-                            transition
-                            focus:border-[#8B1538]
-                            focus:ring-2
-                            focus:ring-[#8B1538]/20
-                            outline-none bg-gray-100 cursor-not-allowed" />
-                        </div>
-
-                      </div>
-                    </div>
-                
-
-                    <div>
-                      <h2 className="text-sm font-semibold text-gray-600 mt-2">Remitente</h2>
-                      <div className="grid grid-cols-6 gap-4 items-end">
-                        <div className="col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de remitente *</label>
-                          <select name="tipoRemitente" value={formEditar.tipoRemitente} disabled className="w-full
-                              rounded-lg
-                              border
-                              px-3
-                              py-2
-                              transition
-                              focus:border-[#8B1538]
-                              focus:ring-2
-                              focus:ring-[#8B1538]/20
-                              outline-none bg-gray-100 cursor-not-allowed">
-                            <option value="">Seleccionar</option>
-                            <option value="interno">Interno</option>
-                            <option value="externo">Externo</option>
-                          </select>
-                        </div>
-
-                        {formEditar.tipoRemitente === "interno" && (
-                          <div className="col-span-4">
-                            <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario / Área *</label>
-                            <select 
-                              name="remitenteInterno" 
-                              onChange={handleChange} 
-                              disabled
-                              className="w-full
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de acuse *</label>
+                              <input type="date" name="fechaAcuse" value={documentoEditar?.fechaAcuse || ""} disabled className="w-full
                                 rounded-lg
                                 border
                                 px-3
@@ -2486,163 +2955,284 @@ outline-none"
                                 focus:border-[#8B1538]
                                 focus:ring-2
                                 focus:ring-[#8B1538]/20
-                                outline-none bg-gray-100 cursor-not-allowed"
-                              value={obtenerLabel(usuariosInstitucion, documentoEditar?.remitenteInterno)}
-                            >
-                              <option value="">{
-                                remitentes.map((remitente) => remitente.value === documentoEditar?.remitenteInterno && remitente.label ? remitente.label : "") }</option>
-                            </select>
-                          </div>
-                        )}
+                                outline-none bg-gray-100" />
+                            </div>
 
-                        {formEditar.tipoRemitente === "externo" && (
-                          <div className="col-span-4">
-                            <label className="mb-1 block text-sm font-medium text-gray-700">Selecciona remitente externo *</label>
-                            <div className="flex items-center gap-3">
-                              <div ref={refRemitenteExt} className="flex-1 relative">
-                                <div className={`flex items-center
+                            <div className="hidden">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de registro *</label>
+                              <input type="datetime-local" name="fechaRegistro" value={formEditar.fechaRegistro} disabled className="w-full
+                                rounded-lg
+                                border
+                                px-3
+                                py-2
+                                transition
+                                focus:border-[#8B1538]
+                                focus:ring-2
+                                focus:ring-[#8B1538]/20
+                                outline-none bg-gray-100 cursor-not-allowed" />
+                            </div>
+
+                          </div>
+                        </div>
+                        
+                        {/* REMITENTE */}
+                        <div>
+                          
+                          <div className="flex items-center gap-3 mb-1">
+                            <div className="h-px flex-1 bg-gray-300" />
+
+                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                              Remitente
+                            </h2>
+
+                            <div className="h-px flex-1 bg-gray-300" />
+                          </div>
+                          
+                          <div className="grid grid-cols-6 gap-4 items-end">
+                            <div className="col-span-2">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Tipo de remitente *</label>
+                              <select name="tipoRemitente" value={formEditar.tipoRemitente} disabled className="w-full
+                                  rounded-lg
+                                  border
+                                  px-3
+                                  py-2
+                                  transition
+                                  focus:border-[#8B1538]
+                                  focus:ring-2
+                                  focus:ring-[#8B1538]/20
+                                  outline-none bg-gray-100 cursor-not-allowed">
+                                <option value="">Seleccionar</option>
+                                <option value="interno">Interno</option>
+                                <option value="externo">Externo</option>
+                              </select>
+                            </div>
+
+                            {formEditar.tipoRemitente === "interno" && (
+                              <div className="col-span-4">
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario / Área *</label>
+                                <select 
+                                  name="remitenteInterno" 
+                                  onChange={handleChange} 
+                                  disabled
+                                  className="w-full
                                     rounded-lg
                                     border
                                     px-3
-                                    py-2.5
+                                    py-2
                                     transition
-                                    focus-within:border-[#8B1538]
-                                    focus-within:ring-2
-                                    focus-within:ring-[#8B1538]/20${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
+                                    focus:border-[#8B1538]
+                                    focus:ring-2
+                                    focus:ring-[#8B1538]/20
+                                    outline-none bg-gray-100 cursor-not-allowed"
+                                  value={obtenerLabel(usuariosInstitucion, documentoEditar?.remitenteInterno)}
+                                >
+                                  <option value="">{
+                                    remitentes.map((remitente) => remitente.value === documentoEditar?.remitenteInterno && remitente.label ? remitente.label : "") }</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {formEditar.tipoRemitente === "externo" && (
+                              <div className="col-span-4">
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Selecciona remitente externo *</label>
+                                <div className="flex items-center gap-3">
+                                  <div ref={refRemitenteExt} className="flex-1 relative">
+                                    <div className={`flex items-center
+                                        rounded-lg
+                                        border
+                                        px-3
+                                        py-2.5
+                                        transition
+                                        focus-within:border-[#8B1538]
+                                        focus-within:ring-2
+                                        focus-within:ring-[#8B1538]/20${errores.remitenteExterno ? "border-red-500 bg-red-50" : ""}`}>
+                                      {/* <Search size={16} className="text-gray-400" /> */}
+                                      <input
+                                        value={busquedaRemitenteExt}
+                                        disabled
+                                        onFocus={() => setMostrarOpcionesRemitenteExt(true)}
+                                        className="w-full outline-none bg-transparent text-sm"
+                                        placeholder="Buscar y seleccionar opción"
+                                      />
+                                    </div>
+
+                                    {mostrarOpcionesRemitenteExt && (
+                                      <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                                        {remitentesFiltrados.length > 0 ? (
+                                          remitentesFiltrados.map((r) => (
+                                            <div
+                                              key={r.id}
+                                              onClick={() => {
+                                                setFormEditar((p) => ({ ...p, remitenteExterno: r.nombre }));
+                                                setBusquedaRemitenteExt(r.nombre);
+                                                setMostrarOpcionesRemitenteExt(false);
+                                              }}
+                                              className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                                            >
+                                              {r.nombre}
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="px-2 py-1 text-gray-400">Sin resultados</div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* DATOS ESPECÍFICOS */}
+                        <div>
+                          <div className="flex items-center gap-3 mb-1 mt-3">
+                            <div className="h-px flex-1 bg-gray-300" />
+
+                            <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                              Datos específicos
+                            </h2>
+
+                            <div className="h-px flex-1 bg-gray-300" />
+                          </div>
+
+                          <div className="grid grid-cols-6 gap-4 items-end">
+
+                            {/* Tipo documento con buscador */}
+                            <div ref={refTipoDoc} className="col-span-2 relative">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Selecciona tipo de documento *
+                              </label>
+                              <div
+                                className={`flex items-center border rounded px-2 ${
+                                  errores.tipoDocumento ? "border-red-500 bg-red-50" : ""
+                                }`}
+                              >
+                                {/* <Search size={16} className="text-gray-400" /> */}
+                                <input
+                                  value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento && !formEditar.tipoOtro)?.label || ( formEditar.tipoOtro ? formEditar.tipoOtro : "")}
+                                  disabled
+                                  className="w-full
+                                    rounded-lg
+                                    border
+                                    px-3
+                                    py-2
+                                    transition
+                                    focus:border-[#8B1538]
+                                    focus:ring-2
+                                    focus:ring-[#8B1538]/20
+                                    outline-none bg-gray-100"
+                                />
+                              </div>
+
+                            </div>
+
+                            {/* Relacionado */}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="mb-1 block text-sm font-medium text-gray-700">Relacionado con:</span>
+                              <Toggle
+                                checked={formEditar.relacionadoCon}
+                                onChange={(v) => {
+                                  setFormEditar({ ...formEditar, relacionadoCon: v });
+
+                                  if (v) {
+                                    setMostrarModalRelacionado(true);
+                                  } else {
+                                    setMostrarModalRelacionado(false);
+
+                                    // 👇 LIMPIAR ASUNTO
+                                    setAsuntoSeleccionado(null);
+                                    setBusquedaAsunto("");
+                                  }
+                                }}
+                              />
+                            </div>
+
+                            {/* Asunto */}
+                            <div className="col-span-2">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Anexos</label>
+                              <textarea
+                                value={asuntoSeleccionado?.descripcion || ""}
+                                disabled
+                                className="w-full
+                                rounded-lg
+                                border
+                                px-3
+                                py-2
+                                transition
+                                focus:border-[#8B1538]
+                                focus:ring-2
+                                focus:ring-[#8B1538]/20
+                                outline-none h-[34px] resize-none bg-gray-100 cursor-not-allowed"
+                              />
+                            </div>
+
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2 mt-2">
+
+                            {/* Tema */}
+                            <div>
+
+                              <div ref={refTemaPrincipal} className="relative">
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                  Selecciona asunto *
+                                </label>
+
+                                <div className={`flex items-center border rounded px-2 ${errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
+                                  }`}>
                                   {/* <Search size={16} className="text-gray-400" /> */}
                                   <input
-                                    value={busquedaRemitenteExt}
+                                    value={busquedaTemaPrincipal}
                                     disabled
-                                    onFocus={() => setMostrarOpcionesRemitenteExt(true)}
-                                    className="w-full outline-none bg-transparent text-sm"
+                                    onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
+                                    className="w-full
+                                      rounded-lg
+                                      border
+                                      px-3
+                                      py-2
+                                      transition
+                                      focus:border-[#8B1538]
+                                      focus:ring-2
+                                      focus:ring-[#8B1538]/20
+                                      outline-none bg-gray-100 cursor-not-allowed"
                                     placeholder="Buscar y seleccionar opción"
                                   />
                                 </div>
 
-                                {mostrarOpcionesRemitenteExt && (
-                                  <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                    {remitentesFiltrados.length > 0 ? (
-                                      remitentesFiltrados.map((r) => (
-                                        <div
-                                          key={r.id}
-                                          onClick={() => {
-                                            setFormEditar((p) => ({ ...p, remitenteExterno: r.nombre }));
-                                            setBusquedaRemitenteExt(r.nombre);
-                                            setMostrarOpcionesRemitenteExt(false);
-                                          }}
-                                          className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                                        >
-                                          {r.nombre}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <div className="px-2 py-1 text-gray-400">Sin resultados</div>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* DATOS ESPECÍFICOS */}
-                    <div>
-                      <h2 className="text-sm font-semibold text-gray-600 mt-2">
-                        Datos específicos
-                      </h2>
-
-                      <div className="grid grid-cols-6 gap-4 items-end">
-
-                        {/* Tipo documento con buscador */}
-                        <div ref={refTipoDoc} className="col-span-2 relative">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Selecciona tipo de documento *
-                          </label>
-                          <div
-                            className={`flex items-center border rounded px-2 ${
-                              errores.tipoDocumento ? "border-red-500 bg-red-50" : ""
-                            }`}
-                          >
-                            {/* <Search size={16} className="text-gray-400" /> */}
-                            <input
-                              value={tiposFiltrados.find(t => t.value === formEditar.tipoDocumento && !formEditar.tipoOtro)?.label || ( formEditar.tipoOtro ? formEditar.tipoOtro : "")}
-                              disabled
-                              className="w-full
-                                rounded-lg
-                                border
-                                px-3
-                                py-2
-                                transition
-                                focus:border-[#8B1538]
-                                focus:ring-2
-                                focus:ring-[#8B1538]/20
-                                outline-none bg-gray-100"
-                            />
-                          </div>
-
-                        </div>
-
-                        {/* Relacionado */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="mb-1 block text-sm font-medium text-gray-700">Relacionado con:</span>
-                          <Toggle
-                            checked={formEditar.relacionadoCon}
-                            onChange={(v) => {
-                              setFormEditar({ ...formEditar, relacionadoCon: v });
-
-                              if (v) {
-                                setMostrarModalRelacionado(true);
-                              } else {
-                                setMostrarModalRelacionado(false);
-
-                                // 👇 LIMPIAR ASUNTO
-                                setAsuntoSeleccionado(null);
-                                setBusquedaAsunto("");
-                              }
-                            }}
-                          />
-                        </div>
-
-                        {/* Asunto */}
-                        <div className="col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Anexos</label>
-                          <textarea
-                            value={asuntoSeleccionado?.descripcion || ""}
-                            disabled
-                            className="w-full
-                            rounded-lg
-                            border
-                            px-3
-                            py-2
-                            transition
-                            focus:border-[#8B1538]
-                            focus:ring-2
-                            focus:ring-[#8B1538]/20
-                            outline-none h-[34px] resize-none bg-gray-100 cursor-not-allowed"
-                          />
-                        </div>
-
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2 mt-2">
-
-                        {/* Tema */}
-                        <div>
-
-                          <div ref={refTemaPrincipal} className="relative">
-                            <label className="mb-1 block text-sm font-medium text-gray-700">
-                              Selecciona asunto *
-                            </label>
-
-                            <div className={`flex items-center border rounded px-2 ${errores.temaPrincipal ? "border-red-500 bg-red-50" : ""
-                              }`}>
-                              {/* <Search size={16} className="text-gray-400" /> */}
-                              <input
-                                value={busquedaTemaPrincipal}
+                            <div className="flex items-center gap-10">
+                              <div className="flex items-center gap-2">
+                                <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between">
+                                <span>Material adicional</span>
+                                </label>
+                                <Toggle
+                                  checked={form.materialAdicional}
+                                  onChange={(value) => setForm({ ...form, materialAdicional: value })}
+                                  disabled
+                                />
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                              <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
+                              <Toggle
+                                checked={form.electronica}
+                                onChange={(value) => setForm({ ...form, electronica: value })}
                                 disabled
-                                onFocus={() => setMostrarOpcionesTemaPrincipal(true)}
+                              />
+                              </div>
+                            </div>
+
+                            <div className="col-span-4">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Síntesis del asunto *
+                              </label>
+                              <textarea
+                                name="sintesis"
+                                value={formEditar.sintesis}
+                                onChange={handleChange}
+                                disabled
                                 className="w-full
                                   rounded-lg
                                   border
@@ -2653,566 +3243,736 @@ outline-none"
                                   focus:ring-2
                                   focus:ring-[#8B1538]/20
                                   outline-none bg-gray-100 cursor-not-allowed"
-                                placeholder="Buscar y seleccionar opción"
+                              />
+                            </div>
+
+                            <div className="col-span-4">
+                              <label className="mb-1 block text-sm font-medium text-gray-700">Observaciones</label>
+                              <textarea 
+                                value={formEditar.observaciones}
+                                onChange={handleChange}
+                                disabled
+                                className="w-full
+                                  rounded-lg
+                                  border
+                                  px-3
+                                  py-2
+                                  transition
+                                  focus:border-[#8B1538]
+                                  focus:ring-2
+                                  focus:ring-[#8B1538]/20
+                                  outline-none bg-gray-100 cursor-not-allowed"
                               />
                             </div>
 
                           </div>
-                        </div>
-                        <div className="flex items-center gap-10">
-                          <div className="flex items-center gap-2">
-                            <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between">
-                            <span>Soporte adicional</span>
-                            </label>
-                            <Toggle
-                              checked={form.materialAdicional}
-                              onChange={(value) => setForm({ ...form, materialAdicional: value })}
-                              disabled
-                            />
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                          <label className="mb-1 block text-sm font-medium text-gray-700 flex items-center justify-between"><span>Correspondencia electronica:</span></label>
-                          <Toggle
-                            checked={form.electronica}
-                            onChange={(value) => setForm({ ...form, electronica: value })}
-                            disabled
-                          />
-                          </div>
-                        </div>
 
-                        <div className="col-span-4">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Síntesis del asunto *
-                          </label>
-                          <textarea
-                            name="sintesis"
-                            value={formEditar.sintesis}
-                            onChange={handleChange}
-                            disabled
-                            className="w-full
-                              rounded-lg
-                              border
-                              px-3
-                              py-2
-                              transition
-                              focus:border-[#8B1538]
-                              focus:ring-2
-                              focus:ring-[#8B1538]/20
-                              outline-none bg-gray-100 cursor-not-allowed"
-                          />
-                        </div>
 
-                        <div className="col-span-4">
-                          <label className="mb-1 block text-sm font-medium text-gray-700">Observaciones</label>
-                          <textarea 
-                            value={formEditar.observaciones}
-                            onChange={handleChange}
-                            disabled
-                            className="w-full
-                              rounded-lg
-                              border
-                              px-3
-                              py-2
-                              transition
-                              focus:border-[#8B1538]
-                              focus:ring-2
-                              focus:ring-[#8B1538]/20
-                              outline-none bg-gray-100 cursor-not-allowed"
-                          />
                         </div>
 
                       </div>
 
-
                     </div>
+                  </motion.div>
+                )}
 
-                  </div>
+                {tabActiva === "anexo" && (
+                  <motion.div
+                    key="anexo"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                  
+                  <div className="space-y-4">
 
-                </div>
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="h-px flex-1 bg-gray-300" />
 
-              )}
+                        <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                            Anexos
+                        </h2>
 
-              {tabActiva === "anexo" && (
-                <div className="space-y-4">
-
-                <div className="flex items-center gap-2 mb-2">
-
-                    {/* Botón */}
-                    <button
-                      onClick={() => setMostrarModalSubirAnexo(true)}
-                      className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
-                    >
-                      Subir anexo
-                    </button>
-
-                    {/* 🔍 Buscador */}
-                    <div className="flex-1 flex items-center border rounded px-2">
-                      <Search size={16} className="text-gray-400" />
-                      <input
-                        value={busquedaSubirAnexo}
-                        onChange={(e) => setBusquedaSubirAnexo(e.target.value)}
-                        className="w-full px-2 py-2 outline-none text-sm"
-                        placeholder="Buscar anexo..."
-                      />
-
+                        <div className="h-px flex-1 bg-gray-300" />
                     </div>
-
-                  </div>
-
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                  Sube archivos de anexos.
-                </h3>
-                
-                  {/* Tabla de subir anexos */}                        
-                  <div className="overflow-x-auto">
-                    <table className="min-w-[900px] w-full text-xs border border-gray-200">
-
-                      {/* 🔴 HEADER */}
-                      <thead className="bg-[#8B1538] text-white">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Eliminar</th>
-                          <th className="px-3 py-2 text-left">Registrador del anexo y mensaje</th>
-                          <th className="px-3 py-2 text-left">Mensaje</th>
-                          <th className="px-3 py-2 text-left">Documento anexo</th>
-                          <th className="px-3 py-2 text-left">Número del documento</th>
-                        </tr>
-                      </thead>
-
-                      {/* 🧾 BODY */}
-                      <tbody>
-                        {documentoAnexosFiltrados.length > 0 ? (
-                          documentoAnexosFiltrados.map((anexo) => (console.log(anexo),
-                            <tr
-                              key={anexo._id || anexo.nombre}
-                              className="border-t hover:bg-gray-50"
-                            >
-                              {/* 🗑 ELIMINAR */}
-                              <td className="px-3 py-2">
-                                <button
-                                onClick={() => handleRemoveAnexo(anexo._id)} 
-                                className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
-                                  <Trash2 size={14} />
-                                </button>
-                              </td>
-
-                              {/* 👤 REGISTRADOR */}
-                              <td className="px-3 py-2 text-gray-700">
-                                {anexo.registrador.nombre ? anexo.registrador.nombre : "N/A"}
-                              </td>
-
-                              {/* 💬 MENSAJE */}
-                              <td className="px-3 py-2 text-gray-700">
-                                {anexo.mensaje || "Sin mensaje"}
-                              </td>
-
-                              {/* 📄 BOTÓN ARCHIVO */}
-                              <td className="px-3 py-2">
-                                <button
-                                  onClick={() => {
-                                    setArchivoVista(`${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta}`); // o la ruta/url del archivo
-                                    setMostrarVisor(true);
-                                  }}
-                                  className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
-                                >
-                                  Ver Archivo
-                                </button>
-                              </td>
-
-                              {/* 📑 NOMBRE */}
-                              <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
-                                {anexo.nombre}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={5} className="text-center py-4 text-gray-400">
-                              Sin resultados
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-
-                    </table>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-
-                    {/* Botón */}
-                    <button
-                      onClick={() => {
-                        setDocumentoSeleccionado([]);
-                        setMostrarModalRelacionado(true);
-                      }}
-                      className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
-                    >
-                      Añadir documento relacionado
-                    </button>
-
-                    {/* 🔍 Buscador */}
-                    <div className="flex-1 flex items-center border rounded px-2">
-                      <Search size={16} className="text-gray-400" />
-                      <input
-                        value={busquedaVerTurnos}
-                        onChange={(e) => setBusquedaVerTurnos(e.target.value)}
-                        className="w-full px-2 py-2 outline-none text-sm"
-                        placeholder="Buscar turno..."
-                      />
-                    </div>
-
-                  </div>
-
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                  Documentos relacionados con este registro.
-                </h3>
-                  {/* Tabla de anexos */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border border-gray-200">
-                      <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">Folio</th>
-                                <th className="px-4 py-2 text-left">DocId</th>
-                                <th className="px-4 py-2 text-left">Remitente</th>
-                                <th className="px-4 py-2 text-left">Asunto</th>
-                                <th className="px-4 py-2 text-left">Eliminar</th>
-                              </tr>
-                            </thead>
-
-                      <tbody>
-                        {relacionadosFiltrados.length > 0 ? (
-                          relacionadosFiltrados.map((relacionado) => (
-                            <tr
-                            key={relacionado.value}
-                                className="border-t hover:bg-gray-50"
-                                >
-                                <td className="px-4 py-2 text-gray-700">{relacionado.folio || 'Sin folio'}</td>
-                                  <td className="px-4 py-2 text-gray-700">{relacionado.docId || 'Sin docId'}</td>
-                                  <td className="px-4 py-2 text-gray-700">{relacionado.remitente || 'N/A'}</td>
-                                  <td className="px-4 py-2 text-gray-700">{relacionado.asunto || 'Sin asunto'}</td>
-                                  <td className="px-4 py-2">
-                                   <button
-                                    onClick={() => handleRemoveRelacionado(relacionado.value)}
-                                    className="text-red-500 hover:text-red-700 transition"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                               ))
-                              ) : (
-                              <tr>
-                               <td colSpan={5} className="text-center py-4 text-gray-400">
-                      |          Sin documentos relacionados
-                                </td>
-                            </tr>
-                        )}
-                      </tbody>
-
-                    </table>
-                  </div>
-
-                  {/* Paginación estilo pequeño */}
-                  <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
-                    <div className="flex gap-2">
-                      <button className="px-2 py-1 border rounded disabled:opacity-40">
-                        &lt;
-                      </button>
-                      <button className="px-2 py-1 border rounded bg-gray-100">
-                        1
-                      </button>
-                      <button className="px-2 py-1 border rounded disabled:opacity-40">
-                        &gt;
-                      </button>
-                    </div>
-                  </div>
-
-                {/* MODAL SUBIR ANEXO */}
-                <AnimatePresence>
-                  {mostrarModalSubirAnexo && (
-                    <motion.div
-                      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        className="bg-white w-[500px] rounded-lg shadow-lg p-6"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                      >
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-4">
-                          <h2 className="text-lg font-semibold">Agregar anexo</h2>
-
-                          <button
-                            onClick={() => setMostrarModalSubirAnexo(false)}
-                            className="bg-[#79142A]  text-white hover:bg-[#79142A]/80 rounded-full p-1 transition"
-                          >
-                            <Minus size={18} />
-                          </button>
-                        </div>
-
-                        {/* Mensaje */}
-                        <div className="mb-4">
-                          <label className="block text-sm mb-1">Mensaje:</label>
-                          <textarea
-                            value={mensaje}
-                            onChange={(e) => setMensaje(e.target.value)}
-                            className={`w-full border rounded p-2 ${
-                              erroresAnexos.mensaje ? "border-red-500 bg-red-50" : ""
-                            }`}
-                            rows="3"
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="relative group inline-flex">
+                        {/* Botón */}
+                        <button
+                          onClick={() => setMostrarModalSubirAnexo(true)}
+                          title="Agregar anexo"
+                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                        >
+                          <Plus
+                            size={22}
+                            className="group-hover:rotate-90 transition-transform duration-300"
                           />
-                        </div>
-
-                        {/* Documento */}
-                        <div className="mb-4">
-                          <label className="block text-sm mb-2 font-medium">
-                            Documento anexo:
-                          </label>
-
-                          {/* Input oculto */}
+                        </button>
+                      </div>
+                      
+                        {/* Buscador */}
+                        <div className="relative flex-1">
+                          <Search
+                            size={18}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          />
                           <input
-                            ref={inputRef}
-                            type="file"
-                            id="fileUpload"
-                            className="hidden"
-                            onChange={(e) => setArchivo(e.target.files[0])}
-                          />
-
-                          {/* Zona Drag & Drop */}
-                          <label
-                            htmlFor="fileUpload"
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setDragActivo(true);
-                            }}
-                            onDragLeave={() => setDragActivo(false)}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              setDragActivo(false);
-                              const file = e.dataTransfer.files[0];
-                              if (file) setArchivo(file);
-                            }}
-                            className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition  ${
-                              erroresAnexos.archivo
-                                ? "border-red-500 bg-red-50"
-                                : dragActivo
-                                ? "border-[#8B1538] bg-red-50"
-                                : "border-gray-300 hover:border-[#8B1538] hover:bg-gray-50"
-                            }`}
-                          >
-                            {/* Botón eliminar */}
-                            {archivo && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault(); // evita abrir el file picker
-                                  eliminarArchivo();
-                                }}
-                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                              >
-                                <X size={14} />
-                              </button>
-                            )}
-
-                            <Upload size={28} className="text-[#8B1538]" />
-
-                            <p className="text-sm text-gray-600">
-                              {archivo ? archivo.name : "Haz clic o arrastra un archivo aquí"}
-                            </p>
-
-                            <span className="text-xs text-gray-400">
-                              PDF, DOC, JPG (máx. 5MB)
-                            </span>
-                          </label>
-                        </div>
-
-                        {/* Nombre */}
-                        <div className="mb-4">
-                          <label className="block text-sm mb-1">Nombre del documento:</label>
-                          <input
-                            type="text"
-                            value={nombreDoc}
-                            onChange={(e) => setNombreDoc(e.target.value)}
-                            className={`w-full border rounded p-2 ${
-                              erroresAnexos.nombreDoc ? "border-red-500 bg-red-50" : ""
-                            }`}
-                          />
-                        </div>
-
-                        {/* Botones */}
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setMostrarModalSubirAnexo(false)}
-                            className="px-4 py-2 bg-gray-300 rounded"
-                          >
-                            Cancelar
-                          </button>
-
-                          <button
-                            onClick={handleUploadAnexo}
-                            className="bg-[#8B1538]
-                              text-white
-                              font-medium
-                              px-10
-                              py-3
-                              rounded-lg
-                              hover:bg-[#6f102c]
+                            value={busquedaSubirAnexo}
+                            onChange={(e) => setBusquedaSubirAnexo(e.target.value)}
+                            className="
+                              w-full
+                              pl-10
+                              pr-4
+                              py-2.5
+                              rounded-xl
+                              border
+                              border-gray-200
+                              bg-gray-50
+                              focus:bg-white
+                              focus:border-[#8B1538]
+                              focus:ring-4
+                              focus:ring-[#8B1538]/10
                               transition
-                              shadow-md
-                              hover:shadow-lg"
-                          >
-                            Guardar
-                          </button>
+                            "
+                            placeholder="Buscar anexo..."
+                          />
 
                         </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
-                <AnimatePresence>
-                  {mostrarModalAnexos && (
-                    <motion.div
-                      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        className="bg-white w-[600px] rounded-lg shadow-lg p-6"
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0.8 }}
-                      >
-                        {/* Header */}
-                        <div className="flex justify-between items-center mb-4">
-                          <h2 className="text-lg font-semibold">Seleccionar anexos</h2>
+                      </div>
 
-                          <button
-                            onClick={() => setMostrarModalAnexos(false)}
-                            className="bg-[#8B1538] text-white rounded-full p-1"
-                          >
-                              <Minus size={16} />
-                          </button>
-                        </div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        Sube archivos de anexos.
+                      </h3>
+                    
+                      {/* Tabla de subir anexos */}                        
+                      <div className="overflow-x-auto">
+                        <table className="min-w-[900px] w-full text-xs border border-gray-200">
 
-                        {/* Lista */}
-                        <div className="max-h-[300px] overflow-y-auto border rounded">
-                          {anexosDisponibles.map((anexo) => (
-                            <div
-                              key={anexo.id}
-                              className="flex items-center justify-between px-4 py-2 border-b hover:bg-gray-50"
-                            >
-                              <div>
-                                <p className="text-sm font-medium">{anexo.nombre}</p>
-                                <p className="mb-1 block text-sm font-medium text-gray-700">{anexo.folio}</p>
+                          {/* HEADER */}
+                          <thead className="bg-[#8B1538] text-white">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Eliminar</th>
+                              <th className="px-3 py-2 text-left">Registrador del anexo y mensaje</th>
+                              <th className="px-3 py-2 text-left">Mensaje</th>
+                              <th className="px-3 py-2 text-left">Documento anexo</th>
+                              <th className="px-3 py-2 text-left">Número del documento</th>
+                            </tr>
+                          </thead>
+
+                          {/* BODY */}
+                          <tbody>
+                            {anexosPaginados.length > 0 ? (
+                              anexosPaginados.map((anexo) => (console.log(anexo),
+                                <tr
+                                  key={anexo._id || anexo.nombre}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  {/* ELIMINAR */}
+                                  <td className="px-3 py-2">
+                                    <button
+                                    onClick={() => handleRemoveAnexo(anexo._id)} 
+                                    className="p-2 rounded hover:bg-red-100 text-gray-500 hover:text-red-600 transition">
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+
+                                  {/* REGISTRADOR */}
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {anexo.registrador.nombre ? anexo.registrador.nombre : "N/A"}
+                                  </td>
+
+                                  {/* MENSAJE */}
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {anexo.mensaje || "Sin mensaje"}
+                                  </td>
+
+                                  {/* BOTÓN ARCHIVO */}
+                                  <td className="px-3 py-2">
+                                    <button
+                                      onClick={() => {
+                                        setArchivoVista(`${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta}`); // o la ruta/url del archivo
+                                        setMostrarVisor(true);
+                                      }}
+                                      className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs hover:opacity-90"
+                                    >
+                                      Ver Archivo
+                                    </button>
+                                  </td>
+
+                                  {/* NOMBRE */}
+                                  <td className="px-3 py-2 text-gray-700 truncate max-w-[300px]">
+                                    {anexo.nombre}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={5} className="text-center py-4 text-gray-400">
+                                  Sin resultados
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+
+                        </table>
+
+                        {documentoAnexosFiltrados.length > 3 && totalPaginasAnexos > 1 && (
+                          <div className="border-t border-gray-100 px-3 py-3 bg-white">
+                            <div className="flex items-center justify-center gap-2">
+
+                              <button
+                                onClick={() =>
+                                  setPaginaAnexos((prev) => Math.max(prev - 1, 1))
+                                }
+                                disabled={paginaAnexos === 1}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
+                              >
+                                <ChevronLeft size={16}/>
+                              </button>
+
+                              <div className="flex items-center gap-2">
+                                {(() => {
+
+                                  const maxVisible = 3;
+
+                                  let inicio = Math.max(1, paginaAnexos - 1);
+                                  let fin = inicio + maxVisible - 1;
+
+                                  if (fin > totalPaginasAnexos) {
+                                    fin = totalPaginasAnexos;
+                                    inicio = Math.max(1, fin - maxVisible + 1);
+                                  }
+
+                                  return Array.from(
+                                    { length: fin - inicio + 1 },
+                                    (_, i) => {
+
+                                      const numeroPagina = inicio + i;
+
+                                      return (
+                                        <button
+                                          key={numeroPagina}
+                                          onClick={() => setPaginaAnexos(numeroPagina)}
+                                          className={`w-8 h-8 rounded-xl text-xs transition ${
+                                            paginaAnexos === numeroPagina
+                                              ? "bg-[#79142A] text-white"
+                                              : "bg-gray-50 hover:bg-gray-100"
+                                          }`}
+                                        >
+                                          {numeroPagina}
+                                        </button>
+                                      );
+                                    }
+                                  );
+
+                                })()}
                               </div>
 
                               <button
-                                onClick={() => {
-                                  // evitar duplicados
-                                  const existe = anexosSeleccionados.some(
-                                    (a) => a.id === anexo.id
-                                  );
-
-                                  if (!existe) {
-                                    setAnexosSeleccionados([
-                                      ...anexosSeleccionados,
-                                      anexo,
-                                    ]);
-                                  }
-                                }}
-                                className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs"
+                                onClick={() =>
+                                  setPaginaAnexos((prev) =>
+                                    Math.min(prev + 1, totalPaginasAnexos)
+                                  )
+                                }
+                                disabled={paginaAnexos === totalPaginasAnexos}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
                               >
-                                Añadir
+                                <ChevronRight size={16}/>
                               </button>
+
                             </div>
-                          ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex justify-end mt-4">
-                          <button
-                            onClick={() => setMostrarModalAnexos(false)}
-                            className="bg-gray-300 px-4 py-2 rounded"
-                          >
-                            Cerrar
-                          </button>
-                        </div>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                  {/* Modal ver archivo */}
-                <AnimatePresence>
-                  {mostrarVisor && (
-                    <motion.div
-                      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <motion.div
-                        className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0.8 }}
-                      >
-                        {/* Botón cerrar */}
-                        <button
-                          onClick={() => setMostrarVisor(false)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                        >
-                          ✕
-                        </button>
-
-                        {/* Contenido */}
-                      <div className="w-full h-full flex items-center justify-center">
-                        {typeof archivoVista === "string" ? (
-                          archivoVista.endsWith(".pdf") ? (
-                            <iframe
-                              src={archivoVista}
-                              className="w-full h-full rounded"
-                            />
-                          ) : (
-                            <img
-                              src={archivoVista}
-                              alt="preview"
-                              className="max-h-full rounded"
-                            />
-                          )
-                        ) : archivoVista?.type?.includes("image") ? (
-                          <img
-                            src={URL.createObjectURL(archivoVista)}
-                            alt="preview"
-                            className="max-h-full rounded"
-                          />
-                        ) : archivoVista?.type === "application/pdf" ? (
-                          <iframe
-                            src={URL.createObjectURL(archivoVista)}
-                            className="w-full h-full rounded"
-                          />
-                        ) : (
-                          <p className="text-gray-500">
-                            No se puede previsualizar este archivo
-                          </p>
+                          </div>
                         )}
                       </div>
 
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <div className="flex items-center gap-3 mb-3">
+                          <div className="h-px flex-1 bg-gray-300" />
 
-                </div>
-                                    
-              )}
+                          <h2 className="text-sm font-semibold text-[#8B1538] uppercase tracking-wide">
+                              Documentos relacionados
+                          </h2>
 
+                          <div className="h-px flex-1 bg-gray-300" />
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="relative group inline-flex">
+                          {/* Botón */}
+                          <button
+                            onClick={() => {
+                              setDocumentoSeleccionado([]);
+                              setMostrarModalRelacionado(true);
+                            }}
+                            title="Agregar documento relacionado"
+                            className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                          >
+                            <Plus
+                              size={22}
+                              className="group-hover:rotate-90 transition-transform duration-300"
+                            />
+                          </button>
+                        </div>
+
+                        {/* Buscador */}
+                        <div className="relative flex-1">
+                          <Search
+                            size={18}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          />
+                          <input
+                            value={busquedaVerTurnos}
+                            onChange={(e) => setBusquedaVerTurnos(e.target.value)}
+                            className="
+                                w-full
+                                pl-10
+                                pr-4
+                                py-2.5
+                                rounded-xl
+                                border
+                                border-gray-200
+                                bg-gray-50
+                                focus:bg-white
+                                focus:border-[#8B1538]
+                                focus:ring-4
+                                focus:ring-[#8B1538]/10
+                                transition
+                              "
+                            placeholder="Buscar turno..."
+                          />
+                        </div>
+
+                      </div>
+
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                        Documentos relacionados con este registro.
+                      </h3>
+                      
+                      {/* Tabla de anexos */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border border-gray-200">
+                          <thead className="bg-[#8B1538] text-white">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Folio</th>
+                              <th className="px-4 py-2 text-left">DocId</th>
+                              <th className="px-4 py-2 text-left">Remitente</th>
+                              <th className="px-4 py-2 text-left">Asunto</th>
+                              <th className="px-4 py-2 text-left">Eliminar</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {relacionadosFiltrados.length > 0 ? (
+                              relacionadosFiltrados.map((relacionado) => (
+                                <tr
+                                key={relacionado.value}
+                                    className="border-t hover:bg-gray-50"
+                                    >
+                                    <td className="px-4 py-2 text-gray-700">{relacionado.folio || 'Sin folio'}</td>
+                                      <td className="px-4 py-2 text-gray-700">{relacionado.docId || 'Sin docId'}</td>
+                                      <td className="px-4 py-2 text-gray-700">{relacionado.remitente || 'N/A'}</td>
+                                      <td className="px-4 py-2 text-gray-700">{relacionado.asunto || 'Sin asunto'}</td>
+                                      <td className="px-4 py-2">
+                                      <button
+                                        onClick={() => handleRemoveRelacionado(relacionado.value)}
+                                        className="text-red-500 hover:text-red-700 transition"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                  ))
+                                  ) : (
+                                  <tr>
+                                  <td colSpan={5} className="text-center py-4 text-gray-400">
+                                     Sin documentos relacionados
+                                    </td>
+                                </tr>
+                            )}
+                          </tbody>
+
+                        </table>
+
+                        {relacionadosFiltrados.length > 3 &&
+                          totalPaginasRelacionados > 1 && (
+                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
+                              <div className="flex items-center justify-center gap-2">
+
+                                <button
+                                  onClick={() =>
+                                    setPaginaRelacionados((prev) =>
+                                      Math.max(prev - 1, 1)
+                                    )
+                                  }
+                                  disabled={paginaRelacionados === 1}
+                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
+                                >
+                                  <ChevronLeft size={16}/>
+                                </button>
+
+                                <div className="flex items-center gap-2">
+
+                                  {(() => {
+
+                                    const maxVisible = 3;
+
+                                    let inicio = Math.max(
+                                      1,
+                                      paginaRelacionados - 1
+                                    );
+
+                                    let fin = inicio + maxVisible - 1;
+
+                                    if (fin > totalPaginasRelacionados) {
+
+                                      fin = totalPaginasRelacionados;
+
+                                      inicio = Math.max(
+                                        1,
+                                        fin - maxVisible + 1
+                                      );
+
+                                    }
+
+                                    return Array.from(
+                                      { length: fin - inicio + 1 },
+                                      (_, i) => {
+
+                                        const numeroPagina = inicio + i;
+
+                                        return (
+                                          <button
+                                            key={numeroPagina}
+                                            onClick={() =>
+                                              setPaginaRelacionados(numeroPagina)
+                                            }
+                                            className={`w-8 h-8 rounded-xl text-xs transition ${
+                                              paginaRelacionados === numeroPagina
+                                                ? "bg-[#79142A] text-white"
+                                                : "bg-gray-50 hover:bg-gray-100"
+                                            }`}
+                                          >
+                                            {numeroPagina}
+                                          </button>
+                                        );
+
+                                      }
+                                    );
+
+                                  })()}
+
+                                </div>
+
+                                <button
+                                  onClick={() =>
+                                    setPaginaRelacionados((prev) =>
+                                      Math.min(
+                                        prev + 1,
+                                        totalPaginasRelacionados
+                                      )
+                                    )
+                                  }
+                                  disabled={
+                                    paginaRelacionados === totalPaginasRelacionados
+                                  }
+                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white transition disabled:opacity-30"
+                                >
+                                  <ChevronRight size={16}/>
+                                </button>
+
+                              </div>
+                            </div>
+                          )}
+                      </div>
+
+                    {/* MODAL SUBIR ANEXO */}
+                    <AnimatePresence>
+                      {mostrarModalSubirAnexo && (
+                        <motion.div
+                          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <motion.div
+                            className="bg-white w-[500px] rounded-lg shadow-lg p-6"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                          >
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-4">
+                              <h2 className="text-lg font-semibold">Agregar anexo</h2>
+
+                              <button
+                                onClick={() => setMostrarModalSubirAnexo(false)}
+                                className="bg-[#79142A]  text-white hover:bg-[#79142A]/80 rounded-full p-1 transition"
+                              >
+                                <Minus size={18} />
+                              </button>
+                            </div>
+
+                            {/* Mensaje */}
+                            <div className="mb-4">
+                              <label className="block text-sm mb-1">Mensaje:</label>
+                              <textarea
+                                value={mensaje}
+                                onChange={(e) => setMensaje(e.target.value)}
+                                className={`w-full border rounded p-2 ${
+                                  erroresAnexos.mensaje ? "border-red-500 bg-red-50" : ""
+                                }`}
+                                rows="3"
+                              />
+                            </div>
+
+                            {/* Documento */}
+                            <div className="mb-4">
+                              <label className="block text-sm mb-2 font-medium">
+                                Documento anexo:
+                              </label>
+
+                              {/* Input oculto */}
+                              <input
+                                ref={inputRef}
+                                type="file"
+                                id="fileUpload"
+                                className="hidden"
+                                onChange={(e) => setArchivo(e.target.files[0])}
+                              />
+
+                              {/* Zona Drag & Drop */}
+                              <label
+                                htmlFor="fileUpload"
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  setDragActivo(true);
+                                }}
+                                onDragLeave={() => setDragActivo(false)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragActivo(false);
+                                  const file = e.dataTransfer.files[0];
+                                  if (file) setArchivo(file);
+                                }}
+                                className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-6 cursor-pointer transition  ${
+                                  erroresAnexos.archivo
+                                    ? "border-red-500 bg-red-50"
+                                    : dragActivo
+                                    ? "border-[#8B1538] bg-red-50"
+                                    : "border-gray-300 hover:border-[#8B1538] hover:bg-gray-50"
+                                }`}
+                              >
+                                {/* Botón eliminar */}
+                                {archivo && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault(); // evita abrir el file picker
+                                      eliminarArchivo();
+                                    }}
+                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
+
+                                <Upload size={28} className="text-[#8B1538]" />
+
+                                <p className="text-sm text-gray-600">
+                                  {archivo ? archivo.name : "Haz clic o arrastra un archivo aquí"}
+                                </p>
+
+                                <span className="text-xs text-gray-400">
+                                  PDF, DOC, JPG
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Nombre */}
+                            <div className="mb-4">
+                              <label className="block text-sm mb-1">Nombre del documento:</label>
+                              <input
+                                type="text"
+                                value={nombreDoc}
+                                onChange={(e) => setNombreDoc(e.target.value)}
+                                className={`w-full border rounded p-2 ${
+                                  erroresAnexos.nombreDoc ? "border-red-500 bg-red-50" : ""
+                                }`}
+                              />
+                            </div>
+
+                            {/* Botones */}
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => setMostrarModalSubirAnexo(false)}
+                                className="px-4 py-2 bg-gray-300 rounded"
+                              >
+                                Cancelar
+                              </button>
+
+                              <button
+                                onClick={handleUploadAnexo}
+                                className="bg-[#8B1538]
+                                  text-white
+                                  font-medium
+                                  px-10
+                                  py-3
+                                  rounded-lg
+                                  hover:bg-[#6f102c]
+                                  transition
+                                  shadow-md
+                                  hover:shadow-lg"
+                              >
+                                Guardar
+                              </button>
+
+                            </div>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                      {mostrarModalAnexos && (
+                        <motion.div
+                          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <motion.div
+                            className="bg-white w-[600px] rounded-lg shadow-lg p-6"
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                          >
+                            {/* Header */}
+                            <div className="flex justify-between items-center mb-4">
+                              <h2 className="text-lg font-semibold">Seleccionar anexos</h2>
+
+                              <button
+                                onClick={() => setMostrarModalAnexos(false)}
+                                className="bg-[#8B1538] text-white rounded-full p-1"
+                              >
+                                  <Minus size={16} />
+                              </button>
+                            </div>
+
+                            {/* Lista */}
+                            <div className="max-h-[300px] overflow-y-auto border rounded">
+                              {anexosDisponibles.map((anexo) => (
+                                <div
+                                  key={anexo.id}
+                                  className="flex items-center justify-between px-4 py-2 border-b hover:bg-gray-50"
+                                >
+                                  <div>
+                                    <p className="text-sm font-medium">{anexo.nombre}</p>
+                                    <p className="mb-1 block text-sm font-medium text-gray-700">{anexo.folio}</p>
+                                  </div>
+
+                                  <button
+                                    onClick={() => {
+                                      // evitar duplicados
+                                      const existe = anexosSeleccionados.some(
+                                        (a) => a.id === anexo.id
+                                      );
+
+                                      if (!existe) {
+                                        setAnexosSeleccionados([
+                                          ...anexosSeleccionados,
+                                          anexo,
+                                        ]);
+                                      }
+                                    }}
+                                    className="bg-[#8B1538] text-white px-3 py-1 rounded text-xs"
+                                  >
+                                    Añadir
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex justify-end mt-4">
+                              <button
+                                onClick={() => setMostrarModalAnexos(false)}
+                                className="bg-gray-300 px-4 py-2 rounded"
+                              >
+                                Cerrar
+                              </button>
+                            </div>
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                      {/* Modal ver archivo */}
+                    <AnimatePresence>
+                      {mostrarVisor && (
+                        <motion.div
+                          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        >
+                          <motion.div
+                            className="bg-white w-[80%] h-[80%] rounded-lg shadow-lg p-4 relative"
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                          >
+                            {/* Botón cerrar */}
+                            <button
+                              onClick={() => setMostrarVisor(false)}
+                              className="bg-[#79142A]  text-white hover:bg-[#79142A]/80 rounded-full p-1 transition"
+                            >
+                              <Minus size={18} />
+                            </button>
+
+                            {/* Contenido */}
+                          <div className="w-full h-full flex items-center justify-center">
+                            {typeof archivoVista === "string" ? (
+                              archivoVista.endsWith(".pdf") ? (
+                                <iframe
+                                  src={archivoVista}
+                                  className="w-full h-full rounded"
+                                />
+                              ) : (
+                                <img
+                                  src={archivoVista}
+                                  alt="preview"
+                                  className="max-h-full rounded"
+                                />
+                              )
+                            ) : archivoVista?.type?.includes("image") ? (
+                              <img
+                                src={URL.createObjectURL(archivoVista)}
+                                alt="preview"
+                                className="max-h-full rounded"
+                              />
+                            ) : archivoVista?.type === "application/pdf" ? (
+                              <iframe
+                                src={URL.createObjectURL(archivoVista)}
+                                className="w-full h-full rounded"
+                              />
+                            ) : (
+                              <p className="text-gray-500">
+                                No se puede previsualizar este archivo
+                              </p>
+                            )}
+                          </div>
+
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    </div>
+                  </motion.div>
+                                      
+                )}
 
                 {tabActiva === "materialAdicional" && (
                     <motion.div
@@ -3225,19 +3985,23 @@ outline-none"
 
                     <div className="space-y-4">
 
-                      {/* 🔥 HEADER */}
-                      <div className="flex items-center gap-2 mb-2">
+                      {/* HEADER */}
+                      <div className="flex justify-start">
 
                         {/* Botón añadir */}
                         <button
                           onClick={() => setMostrarModalMaterial(true)}
-                          className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
+                          title="Agregar material adicional"
+                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
                         >
-                          Añadir material adicional
+                          <Plus
+                            size={22}
+                            className="group-hover:rotate-90 transition-transform duration-300"
+                          />
                         </button>
                       </div>
 
-                      {/* 🧾 TABLA */}
+                      {/* TABLA */}
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm border border-gray-200">
 
@@ -3252,10 +4016,10 @@ outline-none"
 
                           <tbody>
                             {materialesAdicionales.length > 0 ? (
-                              materialesAdicionales.map((material) => (
+                              materialesPaginados.map((material) => (
                                 <tr key={material._id} className="border-t hover:bg-gray-50">
 
-                                  {/* 🗑 ELIMINAR */}
+                                  {/* ELIMINAR */}
                                   <td className="px-4 py-2">
                                     <button
                                       onClick={async () => {
@@ -3333,6 +4097,95 @@ outline-none"
                           </tbody>
 
                         </table>
+
+                        {materialesAdicionales.length > registrosPorPaginaMateriales &&
+                          totalPaginasMateriales > 1 && (
+                            <div className="border-t border-gray-100 px-3 py-3 bg-white">
+                              <div className="flex items-center justify-center gap-2">
+
+                                {/* ANTERIOR */}
+                                <button
+                                  onClick={() =>
+                                    setPaginaMateriales((prev) =>
+                                      Math.max(prev - 1, 1)
+                                    )
+                                  }
+                                  disabled={paginaMateriales === 1}
+                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
+                                >
+                                  <ChevronLeft size={16} />
+                                </button>
+
+                                {/* NÚMEROS */}
+                                <div className="flex items-center gap-2">
+                                  {(() => {
+
+                                    const maxVisible = 3;
+
+                                    let inicio = Math.max(
+                                      1,
+                                      paginaMateriales - 1
+                                    );
+
+                                    let fin = inicio + maxVisible - 1;
+
+                                    if (fin > totalPaginasMateriales) {
+                                      fin = totalPaginasMateriales;
+                                      inicio = Math.max(
+                                        1,
+                                        fin - maxVisible + 1
+                                      );
+                                    }
+
+                                    return Array.from(
+                                      { length: fin - inicio + 1 },
+                                      (_, i) => {
+
+                                        const numeroPagina = inicio + i;
+
+                                        return (
+                                          <button
+                                            key={numeroPagina}
+                                            onClick={() =>
+                                              setPaginaMateriales(numeroPagina)
+                                            }
+                                            className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
+                                              paginaMateriales === numeroPagina
+                                                ? "bg-[#79142A] text-white shadow-md scale-105"
+                                                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                            }`}
+                                          >
+                                            {numeroPagina}
+                                          </button>
+                                        );
+
+                                      }
+                                    );
+
+                                  })()}
+                                </div>
+
+                                {/* SIGUIENTE */}
+                                <button
+                                  onClick={() =>
+                                    setPaginaMateriales((prev) =>
+                                      Math.min(
+                                        prev + 1,
+                                        totalPaginasMateriales
+                                      )
+                                    )
+                                  }
+                                  disabled={
+                                    paginaMateriales === totalPaginasMateriales
+                                  }
+                                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
+                                >
+                                  <ChevronRight size={16} />
+                                </button>
+
+                              </div>
+                            </div>
+                        )}
                       </div>
 
                       <AnimatePresence>
@@ -3483,19 +4336,29 @@ outline-none"
                     </div>
                   
                     </motion.div>
-                  )}
-
-                    
-                  {tabActiva === "turnar" && (
+                )}
+      
+                {tabActiva === "turnar" && (
+                  <motion.div
+                    key="turnar"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <div className="space-y-4">
                       
                       {/* Botón agregar */}
                       <div className="flex justify-start">
                         <button
                           onClick={() => setMostrarModalCopias(true)}
-                          className="bg-[#8B1538] text-white w-10 h-10 rounded-full text-xl flex items-center justify-center shadow hover:opacity-90"
+                          title="Agregar turno"
+                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
                         >
-                          +
+                          <Plus
+                            size={22}
+                            className="group-hover:rotate-90 transition-transform duration-300"
+                          />
                         </button>
                       </div>
 
@@ -3539,523 +4402,650 @@ outline-none"
                       </div>
 
                     </div>
-                  )}
-                  
-                   {tabActiva === "verTurnos" && (
-                      <div className="space-y-4">
-                        <div className="overflow-x-auto">
-                          <div className="flex items-center gap-2 mb-4">
-
-                          {/* BOTÓN AÑADIR TURNO */}
-                          <button
-                            onClick={() => setMostrarModalTurno(true)}
-                            className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
-                          >
-                            Añadir turno
-                          </button>
-
-                          {/* 🔍 BUSCADOR */}
-                          <div className="flex-1 flex items-center border rounded px-2">
-                            <Search size={16} className="text-gray-400" />
-                            <input
-                              value={busquedaVerTurnos}
-                              onChange={(e) => setBusquedaVerTurnos(e.target.value)}
-                              className="w-full px-2 py-2 outline-none"
-                              placeholder="Buscar turno..."
-                            />
-                          </div>
-
+                  </motion.div>
+                )}
+                    
+                {tabActiva === "verTurnos" && (
+                  <motion.div
+                    key="verTurnos"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="space-y-4">
+                      <div className="overflow-x-auto">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="relative group inline-flex">
+                            {/* BOTÓN AÑADIR TURNO */}
+                            <button
+                              onClick={() => setMostrarModalTurno(true)}
+                              title="Agregar turno"
+                            className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                            >
+                               <Plus
+                                size={22}
+                                className="group-hover:rotate-90 transition-transform duration-300"
+                              />
+                            </button>
                         </div>
-                          <table className="min-w-[1200px] w-full text-xs border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-3 py-2 text-left">
-                                  Instrucción
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Funcionario que turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Área de destino
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Prioridad
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Fecha compromiso
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Área que turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Quién lo turna
-                                </th>
-                                <th className="px-3 py-2 text-left">
-                                  Estatus
-                                </th>
-                              </tr>
-                            </thead>
 
-                            <tbody>
-                              {turnosVerFiltrados.length > 0 ? (
-                                turnosVerFiltrados.map((turno, index) => (
-                                  <tr
-                                    key={index}
-                                    className="border-t hover:bg-gray-50"
-                                  >
-                                    
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.instruccion?.descripcion || turno.instruccion?.label || turno.instruccion || "Sin instrucción"}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.dirigido?.nombre || turno.remitente?.label || turno.remitente || "-"}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.areaDestino?.nombre || turno.areaDestino?.label || turno.areaDestino || "Sin área"}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">{turno.prioridad || "-"}</td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.dirigido?.area || "-"}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                      {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
-                                    </td>
-                                    <td className="px-3 py-2 font-medium">{turno.status || "Pendiente"}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td
-                                    colSpan={8}
-                                    className="text-center py-4 text-gray-400"
-                                  >
-                                    Sin datos en la tabla.
+                        {/* BUSCADOR */}
+                        <div className="relative flex-1">
+                          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                          <input
+                            value={busquedaVerTurnos}
+                            onChange={(e) => setBusquedaVerTurnos(e.target.value)}
+                            className="
+                                w-full
+                                pl-10
+                                pr-4
+                                py-2.5
+                                rounded-xl
+                                border
+                                border-gray-200
+                                bg-gray-50
+                                focus:bg-white
+                                focus:border-[#8B1538]
+                                focus:ring-4
+                                focus:ring-[#8B1538]/10
+                                transition
+                              "
+                            placeholder="Buscar turno..."
+                          />
+                        </div>
+
+                      </div>
+                        <table className="min-w-[1200px] w-full text-xs border border-gray-200">
+                          <thead className="bg-[#8B1538] text-white">
+                            <tr>
+                              <th className="px-3 py-2 text-left">
+                                Instrucción
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Funcionario que turna
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Área de destino
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Prioridad
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Fecha compromiso
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Área que turna
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Quién lo turna
+                              </th>
+                              <th className="px-3 py-2 text-left">
+                                Estatus
+                              </th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {turnosVerFiltrados.length > 0 ? (
+                              turnosPaginados.map((turno, index) => (
+                                <tr
+                                  key={index}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.instruccion?.descripcion || turno.instruccion?.label || turno.instruccion || "Sin instrucción"}
                                   </td>
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.dirigido?.nombre || turno.remitente?.label || turno.remitente || "-"}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.areaDestino?.nombre || turno.areaDestino?.label || turno.areaDestino || "Sin área"}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-700">{turno.prioridad || "-"}</td>
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.compromiso ? formatDateValue(turno.compromiso) : turno.fechaTurnado ? formatDateValue(turno.fechaTurnado) : "-"}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.dirigido?.area || "-"}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-700">
+                                    {turno.turna?.nombre || turno.turna?.label || turno.turna || "-"}
+                                  </td>
+                                  <td className="px-3 py-2 font-medium">{turno.status || "Pendiente"}</td>
                                 </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
+                              ))
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={8}
+                                  className="text-center py-4 text-gray-400"
+                                >
+                                  Sin datos en la tabla.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
 
-                        {/* Paginación pequeña inferior */}
-                        <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
-                          <div className="flex gap-2">
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &lt;
-                            </button>
-                            <button className="px-2 py-1 border rounded bg-gray-100">
-                              1
-                            </button>
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &gt;
-                            </button>
-                          </div>
-                        </div>
+                      {/* Paginación pequeña inferior */}
+                      {turnosVerFiltrados.length > registrosPorPaginaTurnos &&
+                        totalPaginasTurnos > 1 && (
+                          <div className="border-t border-gray-100 px-3 py-3 bg-white">
+                            <div className="flex items-center justify-center gap-2">
 
-                        {mostrarModalTurno && (
-                          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                            <div className="bg-white w-[900px] max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 relative">
-
-                              {/* Cerrar */}
+                              {/* ANTERIOR */}
                               <button
-                                onClick={() => setMostrarModalTurno(false)}
-                                className="absolute top-3 right-3 bg-[#8B1538] text-white p-2 rounded-full shadow hover:opacity-90 transition"
+                                onClick={() =>
+                                  setPaginaTurnos((prev) => Math.max(prev - 1, 1))
+                                }
+                                disabled={paginaTurnos === 1}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
                               >
-                                <Minus size={16} />
+                                <ChevronLeft size={16} />
                               </button>
 
-                              <h2 className="text-lg font-semibold mb-4">Alta de instrucción</h2>
+                              {/* NÚMEROS */}
+                              <div className="flex items-center gap-2">
+                                {(() => {
 
-                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                  const maxVisible = 3;
 
-                                {/* Instrucción */}
-                                <div className="col-span-2">
-                                  <label>Instrucción*</label>
-                                  <select
-                                    value={formTurno.instruccion}
-                                    onChange={(e) => setFormTurno({ ...formTurno, instruccion: e.target.value })}
-                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.instruccion ? "border-red-500" : "border-gray-300"}`}
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {instrucciones.map((inst) => (
-                                      <option key={inst.value} value={inst.value}>
-                                        {inst.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                  let inicio = Math.max(1, paginaTurnos - 1);
+                                  let fin = inicio + maxVisible - 1;
 
-                                {/* Área destino */}
-                                <div>
-                                  <label>Área de destino*</label>
-                                  <select
-                                    value={formTurno.areaDestino}
-                                    onChange={(e) => setFormTurno({ ...formTurno, areaDestino: e.target.value })}
-                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.areaDestino ? "border-red-500" : "border-gray-300"}`}
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {areas.map((area) => (
-                                      <option key={area.value} value={area.value}>
-                                        {area.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                  if (fin > totalPaginasTurnos) {
+                                    fin = totalPaginasTurnos;
+                                    inicio = Math.max(1, fin - maxVisible + 1);
+                                  }
 
-                                {/* Dirigido a */}
-                                <div className="col-span-2">
-                                  <label>Dirigido a</label>
-                                  <select
-                                    value={formTurno.dirigido}
-                                    onChange={(e) => setFormTurno({ ...formTurno, dirigido: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    {usuarios.map((user) => ( formTurno.areaDestino === user.areaId && (
-                                      <option key={user.value} value={user.value}>
-                                        {user.label}
-                                      </option>
-                                    )))}
-                                  </select>
-                                </div>
+                                  return Array.from(
+                                    { length: fin - inicio + 1 },
+                                    (_, i) => {
 
-                                {/* Prioridad */}
-                                <div>
-                                  <label>Prioridad*</label>
-                                  <select
-                                    value={formTurno.prioridad}
-                                    onChange={(e) => setFormTurno({ ...formTurno, prioridad: e.target.value })}
-                                    className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
-                                  >
-                                    <option value="">Seleccionar</option>
-                                    <option value="Urgente">Con fecha de termino</option>
-                                    <option value="Normal">Normal</option>
-                                  </select>
-                                </div>
+                                      const numeroPagina = inicio + i;
 
-                                {/* Fecha */}
-                                {formTurno.prioridad === "Urgente" && (
-                                <div>
-                                  <label>Fecha de termino*</label>
-                                  <input
-                                    type="date"
-                                    value={formTurno.fecha}
-                                    onChange={(e) =>
-                                      setFormTurno({ ...formTurno, fecha: e.target.value })
+                                      return (
+                                        <button
+                                          key={numeroPagina}
+                                          onClick={() => setPaginaTurnos(numeroPagina)}
+                                          className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
+                                            paginaTurnos === numeroPagina
+                                              ? "bg-[#79142A] text-white shadow-md scale-105"
+                                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                          }`}
+                                        >
+                                          {numeroPagina}
+                                        </button>
+                                      );
+
                                     }
-                                    className={`w-full border rounded px-3 py-2 ${
-                                      errores.fecha ? "border-red-500" : "border-gray-300"
-                                    }`}
-                                  />
+                                  );
 
-                                </div>) || null}
-
-                                {/* Notas */}
-                                <div className="col-span-2">
-                                  <label>Notas</label>
-                                  <textarea
-                                    value={formTurno.notas}
-                                    onChange={(e) => setFormTurno({ ...formTurno, notas: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                  />
-                                </div>
-
+                                })()}
                               </div>
 
-                              {/* Botón guardar */}
-                              <div className="flex justify-end mt-6">
+                              {/* SIGUIENTE */}
+                              <button
+                                onClick={() =>
+                                  setPaginaTurnos((prev) =>
+                                    Math.min(prev + 1, totalPaginasTurnos)
+                                  )
+                                }
+                                disabled={paginaTurnos === totalPaginasTurnos}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
+                              >
+                                <ChevronRight size={16} />
+                              </button>
+
+                            </div>
+                          </div>
+                      )}
+
+                      {mostrarModalTurno && (
+                        <motion.div
+                          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <motion.div
+                            className="bg-white w-[900px] max-h-[90vh] overflow-y-auto rounded-lg shadow-lg p-6 relative"
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{
+                              duration: 0.25,
+                              ease: "easeOut",
+                            }}
+                          >
+                            {/* Cerrar */}
+                            <button
+                              onClick={() => setMostrarModalTurno(false)}
+                              className="absolute top-3 right-3 bg-[#8B1538] text-white p-2 rounded-full shadow hover:opacity-90 transition"
+                            >
+                              <Minus size={16} />
+                            </button>
+
+                            <h2 className="text-lg font-semibold mb-4">Alta de instrucción</h2>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+
+                              {/* Instrucción */}
+                              <div className="col-span-2">
+                                <label>Instrucción*</label>
+                                <select
+                                  value={formTurno.instruccion}
+                                  onChange={(e) => setFormTurno({ ...formTurno, instruccion: e.target.value })}
+                                  className={`w-full border rounded px-3 py-2 ${erroresTurno.instruccion ? "border-red-500" : "border-gray-300"}`}
+                                >
+                                  <option value="">Seleccionar</option>
+                                  {instrucciones.map((inst) => (
+                                    <option key={inst.value} value={inst.value}>
+                                      {inst.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Área destino */}
+                              <div>
+                                <label>Área de destino*</label>
+                                <select
+                                  value={formTurno.areaDestino}
+                                  onChange={(e) => setFormTurno({ ...formTurno, areaDestino: e.target.value })}
+                                  className={`w-full border rounded px-3 py-2 ${erroresTurno.areaDestino ? "border-red-500" : "border-gray-300"}`}
+                                >
+                                  <option value="">Seleccionar</option>
+                                  {areas.map((area) => (
+                                    <option key={area.value} value={area.value}>
+                                      {area.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Dirigido a */}
+                              <div className="col-span-2">
+                                <label>Dirigido a</label>
+                                <select
+                                  value={formTurno.dirigido}
+                                  onChange={(e) => setFormTurno({ ...formTurno, dirigido: e.target.value })}
+                                  className="w-full border rounded px-3 py-2"
+                                >
+                                  <option value="">Seleccionar</option>
+                                  {usuarios.map((user) => ( formTurno.areaDestino === user.areaId && (
+                                    <option key={user.value} value={user.value}>
+                                      {user.label}
+                                    </option>
+                                  )))}
+                                </select>
+                              </div>
+
+                              {/* Prioridad */}
+                              <div>
+                                <label>Prioridad*</label>
+                                <select
+                                  value={formTurno.prioridad}
+                                  onChange={(e) => setFormTurno({ ...formTurno, prioridad: e.target.value })}
+                                  className={`w-full border rounded px-3 py-2 ${erroresTurno.prioridad ? "border-red-500" : "border-gray-300"}`}
+                                >
+                                  <option value="">Seleccionar</option>
+                                  <option value="Urgente">Con fecha de termino</option>
+                                  <option value="Normal">Normal</option>
+                                </select>
+                              </div>
+
+                              {/* Fecha */}
+                              {formTurno.prioridad === "Urgente" && (
+                              <div>
+                                <label>Fecha de termino*</label>
+                                <input
+                                  type="date"
+                                  value={formTurno.fecha}
+                                  onChange={(e) =>
+                                    setFormTurno({ ...formTurno, fecha: e.target.value })
+                                  }
+                                  className={`w-full border rounded px-3 py-2 ${
+                                    errores.fecha ? "border-red-500" : "border-gray-300"
+                                  }`}
+                                />
+
+                              </div>) || null}
+
+                              {/* Notas */}
+                              <div className="col-span-2">
+                                <label>Notas</label>
+                                <textarea
+                                  value={formTurno.notas}
+                                  onChange={(e) => setFormTurno({ ...formTurno, notas: e.target.value })}
+                                  className="w-full border rounded px-3 py-2"
+                                />
+                              </div>
+
+                            </div>
+
+                            {/* Botón guardar */}
+                            <div className="flex justify-end mt-6">
+                              <button
+                                onClick={handleGuardarAltaInstruccion}
+                                className="bg-[#8B1538] text-white px-6 py-2 rounded hover:opacity-90"
+                              >
+                                Guardar
+                              </button>
+
+                            </div>
+
+                          </motion.div>
+                        </motion.div>
+                      )}
+
+                    </div>
+                  </motion.div>
+                )}
+
+                {tabActiva === "copias" && (
+                  <motion.div
+                    key="copias"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                  >  
+                    <div className="space-y-4">
+                      {/* Botón agregar */}
+                      <div className="flex justify-start">
+                        <button
+                          onClick={() => {setMostrarModalCopias(true);
+                            setBusquedaFuncionario("");
+                            setSelectedCopiaUsuario(null);}
+
+                          }
+                          title="Agregar funcionario"
+                          className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                        >
+                         <Plus
+                            size={22}
+                            className="group-hover:rotate-90 transition-transform duration-300"
+                          />
+                        </button>
+                      </div>
+
+                      {/* TABLA */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border border-gray-200">
+                          <thead className="bg-[#8B1538] text-white">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Eliminar</th>
+                              <th className="px-4 py-2 text-left">Funcionario</th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {copiasDocumento.length > 0 ? (
+                              copiasPaginadas.map((copia, index) => (
+                              <tr
+                                key={copia._id || index }
+                                className="border-t hover:bg-gray-50"
+                              >
+                                <td className="px-4 py-2">
+                                    <button
+                                      onClick={() => {
+                                        setCopiasDocumento((prev) => prev.filter((_, i) => i !== index));
+                                      }}
+                                      className="text-red-500 hover:text-red-700 transition"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </td>
+
+                                  <td className="px-4 py-2 text-gray-700">
+                                    {copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "Sin funcionario"}
+                                  </td>
+                              </tr>
+                            ))
+                            ) : (
+                              <tr>
+                                <td colSpan={2} className="text-center py-4 text-gray-400">
+                                  Sin copias registradas
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <AnimatePresence>
+                        {mostrarModalCopias && (
+                          <motion.div
+                            className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <motion.div
+                              initial={{ scale: 0.9, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0.9, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-white w-[600px] rounded shadow-lg overflow-visible"
+                            >
+                              {/* HEADER */}
+                              <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
+                                <span className="text-white text-sm">
+                                  Destinatario de la copia
+                                </span>
+              
                                 <button
-                                  onClick={handleGuardarAltaInstruccion}
-                                  className="bg-[#8B1538] text-white px-6 py-2 rounded hover:opacity-90"
+                                  onClick={() => setMostrarModalCopias(false)}
+                                  className="bg-[#8B1538] text-white p-2 rounded-full flex items-center justify-center"
+                                >
+                                  <Minus size={16} />
+                                </button>
+                              </div>
+              
+                              {/* BODY */}
+                              <div className="p-6 space-y-4">
+                                <div className="relative">
+                                  <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario:</label>
+              
+                                  <div className="flex items-center border rounded px-2">
+                                    <Search size={16} className="text-gray-400" />
+                                    <input
+                                      value={busquedaFuncionario}
+                                      onChange={(e) => {
+                                        setBusquedaFuncionario(e.target.value);
+                                        setMostrarOpcionesFuncionario(true);
+                                      }}
+                                      onFocus={() => setMostrarOpcionesFuncionario(true)}
+                                      className="w-full px-2 py-2 outline-none"
+                                      placeholder="Buscar y seleccionar opción"
+                                    />
+                                  </div>
+              
+                                  {/* Dropdown */}
+                                  {mostrarOpcionesFuncionario && (
+                                    <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
+                                      {funcionariosFiltrados.length > 0 ? (
+                                        funcionariosFiltrados.map((e) => (
+                                          <div
+                                            key={e.value}
+                                            onClick={() => {
+                                              setBusquedaFuncionario(e.label);
+                                              setSelectedCopiaUsuario(e);
+                                              setMostrarOpcionesFuncionario(false);
+                                            }}
+                                            className="px-2 py-2 hover:bg-gray-100 cursor-pointer"
+                                          >
+                                            {e.label}
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="px-2 py-2 text-gray-400">
+                                          Sin resultados
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+              
+                              {/* FOOTER */}
+                              <div className="flex justify-end p-4">
+                                <button
+                                  onClick={handleGuardarCopia}
+                                  className="bg-[#C53030] text-white px-6 py-2 rounded"
                                 >
                                   Guardar
                                 </button>
-
                               </div>
-
-                            </div>
-                          </div>
+                            </motion.div>
+                          </motion.div>
                         )}
+                      </AnimatePresence>
 
-                      </div>
-                      
-                    )}
+                      {/* PAGINACIÓN */}
+                      {copiasDocumento.length > registrosPorPaginaCopias &&
+                        totalPaginasCopias > 1 && (
+                          <div className="border-t border-gray-100 px-3 py-3 bg-white">
+                            <div className="flex items-center justify-center gap-2">
 
-                  {tabActiva === "copias" && (
-                      <div className="space-y-4">
-                        {/* Botón agregar */}
-                        <div className="flex justify-start">
-                          <button
-                            onClick={() => {setMostrarModalCopias(true);
-                              setBusquedaFuncionario("");
-                              setSelectedCopiaUsuario(null);}
-
-                            }
-                             className="bg-[#8B1538] text-white px-4 py-2 rounded flex items-center gap-2 shadow hover:opacity-90"
-                          >
-                            Añadir funcionario
-                          </button>
-                        </div>
-                        {/* TABLA */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm border border-gray-200">
-                            <thead className="bg-[#8B1538] text-white">
-                              <tr>
-                                <th className="px-4 py-2 text-left">Eliminar</th>
-                                <th className="px-4 py-2 text-left">Funcionario</th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {copiasDocumento.length > 0 ? (
-                                copiasDocumento.map((copia, index) => (
-                                <tr
-                                  key={copia._id || index }
-                                  className="border-t hover:bg-gray-50"
-                                >
-                                  <td className="px-4 py-2">
-                                      <button
-                                        onClick={() => {
-                                          setCopiasDocumento((prev) => prev.filter((_, i) => i !== index));
-                                        }}
-                                        className="text-red-500 hover:text-red-700 transition"
-                                        title="Eliminar"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </td>
-
-                                    <td className="px-4 py-2 text-gray-700">
-                                      {copia.funcionario?.nombre || copia.funcionario?.label || copia.funcionario || "Sin funcionario"}
-                                    </td>
-                                </tr>
-                              ))
-                              ) : (
-                                <tr>
-                                  <td colSpan={2} className="text-center py-4 text-gray-400">
-                                    Sin copias registradas
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                        
-                                <AnimatePresence>
-                                  {mostrarModalCopias && (
-                                    <motion.div
-                                      className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      exit={{ opacity: 0 }}
-                                    >
-                                      <motion.div
-                                        initial={{ scale: 0.9, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0.9, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="bg-white w-[600px] rounded shadow-lg overflow-visible"
-                                      >
-                                        {/* HEADER */}
-                                        <div className="flex justify-between items-center bg-gray-400 px-4 py-2">
-                                          <span className="text-white text-sm">
-                                            Destinatario de la copia
-                                          </span>
-                        
-                                          <button
-                                            onClick={() => setMostrarModalCopias(false)}
-                                            className="bg-[#8B1538] text-white p-2 rounded-full flex items-center justify-center"
-                                          >
-                                            <Minus size={16} />
-                                          </button>
-                                        </div>
-                        
-                                        {/* BODY */}
-                                        <div className="p-6 space-y-4">
-                                          <div className="relative">
-                                            <label className="mb-1 block text-sm font-medium text-gray-700">Funcionario:</label>
-                        
-                                            <div className="flex items-center border rounded px-2">
-                                              <Search size={16} className="text-gray-400" />
-                                              <input
-                                                value={busquedaFuncionario}
-                                                onChange={(e) => {
-                                                  setBusquedaFuncionario(e.target.value);
-                                                  setMostrarOpcionesFuncionario(true);
-                                                }}
-                                                onFocus={() => setMostrarOpcionesFuncionario(true)}
-                                                className="w-full px-2 py-2 outline-none"
-                                                placeholder="Buscar y seleccionar opción"
-                                              />
-                                            </div>
-                        
-                                            {/* Dropdown */}
-                                            {mostrarOpcionesFuncionario && (
-                                              <div className="absolute bg-white border w-full mt-1 max-h-40 overflow-y-auto z-10">
-                                                {funcionariosFiltrados.length > 0 ? (
-                                                  funcionariosFiltrados.map((e) => (
-                                                    <div
-                                                      key={e.value}
-                                                      onClick={() => {
-                                                        setBusquedaFuncionario(e.label);
-                                                        setSelectedCopiaUsuario(e);
-                                                        setMostrarOpcionesFuncionario(false);
-                                                      }}
-                                                      className="px-2 py-2 hover:bg-gray-100 cursor-pointer"
-                                                    >
-                                                      {e.label}
-                                                    </div>
-                                                  ))
-                                                ) : (
-                                                  <div className="px-2 py-2 text-gray-400">
-                                                    Sin resultados
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                        
-                                        {/* FOOTER */}
-                                        <div className="flex justify-end p-4">
-                                          <button
-                                            onClick={handleGuardarCopia}
-                                            className="bg-[#C53030] text-white px-6 py-2 rounded"
-                                          >
-                                            Guardar
-                                          </button>
-                                        </div>
-                                      </motion.div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-
-                        {/* PAGINACIÓN */}
-                        <div className="flex justify-between items-center mb-1 block text-sm font-medium text-gray-700">
-                          <div className="flex gap-2">
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &lt;
-                            </button>
-
-                            <button className="px-2 py-1 border rounded bg-[#8B1538] text-white">
-                              1
-                            </button>
-
-                            <button className="px-2 py-1 border rounded disabled:opacity-40">
-                              &gt;
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  
-                    {tabActiva === "bitacora" && (
-                      <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
-                        <div className="w-full max-w-4xl">
-                    
-                          {/* Barra visor */}
-                          <div className="bg-[#3a3a3a] text-white px-4 py-2 flex items-center justify-between rounded-t-lg no-print">
-                    
-                            <div className="flex items-center gap-3">
-                              <button onClick={descargarBitacora}
-                                  className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm" >
-                                 ⬇ Descargar
-                              </button>
+                              {/* ANTERIOR */}
                               <button
-                                onClick={handlePrint}
-                                className="bg-[#8B1538] hover:bg-[#a61c45] px-3 py-1 rounded text-sm"
+                                onClick={() =>
+                                  setPaginaCopias((prev) => Math.max(prev - 1, 1))
+                                }
+                                disabled={paginaCopias === 1}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
                               >
-                                 🖨 Imprimir Bitácora
+                                <ChevronLeft size={16} />
                               </button>
-                            </div>
-                    
-                            <div className="flex items-center gap-3 text-sm">
-                              <button className="px-2">◀</button>
-                              <span>Página 1 de 2</span>
-                              <button className="px-2">▶</button>
-                            </div>
-                    
-                            <div className="flex items-center gap-2">
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➖</button>
-                              <button className="bg-[#8B1538] px-2 py-1 rounded text-sm">➕</button>
+
+                              {/* NÚMEROS */}
+                              <div className="flex items-center gap-2">
+                                {(() => {
+
+                                  const maxVisible = 3;
+
+                                  let inicio = Math.max(1, paginaCopias - 1);
+                                  let fin = inicio + maxVisible - 1;
+
+                                  if (fin > totalPaginasCopias) {
+                                    fin = totalPaginasCopias;
+                                    inicio = Math.max(1, fin - maxVisible + 1);
+                                  }
+
+                                  return Array.from(
+                                    { length: fin - inicio + 1 },
+                                    (_, i) => {
+
+                                      const numeroPagina = inicio + i;
+
+                                      return (
+                                        <button
+                                          key={numeroPagina}
+                                          onClick={() => setPaginaCopias(numeroPagina)}
+                                          className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
+                                            paginaCopias === numeroPagina
+                                              ? "bg-[#79142A] text-white shadow-md scale-105"
+                                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                          }`}
+                                        >
+                                          {numeroPagina}
+                                        </button>
+                                      );
+
+                                    }
+                                  );
+
+                                })()}
+                              </div>
+
+                              {/* SIGUIENTE */}
+                              <button
+                                onClick={() =>
+                                  setPaginaCopias((prev) =>
+                                    Math.min(prev + 1, totalPaginasCopias)
+                                  )
+                                }
+                                disabled={paginaCopias === totalPaginasCopias}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm hover:bg-[#79142A] hover:text-white hover:border-[#79142A] transition-all duration-200 disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-400"
+                              >
+                                <ChevronRight size={16} />
+                              </button>
+
                             </div>
                           </div>
+                      )}
+
+                    </div>
+                  </motion.div> 
+                )}
                     
-                          {/* Hoja */}
-                          <div ref={bitacoraRef} className="zona-impresion">
-                            <div className="bg-white shadow-xl rounded-b-lg overflow-hidden">
-                      
-                              <div className="text-center py-6 border-b">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                  Bitácora
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Folio: {documentoSeleccionado?.folio}
-                                </p>
-                              </div>
-                      
-                              <div className="p-6 space-y-4">
-                      
-                                {bitacoraDocumento.length ? (
-                                  bitacoraDocumento.map((movimiento, index) => {
-                                    const esPrincipal =
-                                      movimiento.importancia === "Alta";
-                      
-                                    return (
-                                      <div
-                                        key={index}
-                                        className={`rounded-xl px-4 py-3 text-sm flex justify-between items-start
-                                        ${esPrincipal
-                                          ? "bg-[#79142A] text-white"
-                                          : "bg-[#CDB19C] text-gray-800"
-                                        }`}
-                                      >
-                                        <div>
-                                          <p className="font-semibold">
-                                            {movimiento.user.nombre}
-                                          </p>
-                      
-                                          <p className={`text-xs mt-1 ${esPrincipal ? "opacity-90" : ""}`}>
-                                            {movimiento.descripcion}
-                                          </p>
-                                        </div>
-                      
-                                        <div className="text-right text-xs whitespace-nowrap">
-                                          <p>Fecha: {formatDateValue(movimiento.fecha)}</p>
-                                          <p>Hora: {// Obtener solo la hora en formato HH:mm
-                                            new Date(movimiento.fecha).toLocaleTimeString([], {
-                                              hour: "2-digit",
-                                              minute: "2-digit",
-                                            })
-                                          }</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                ) : (
-                                  <div className="text-center text-gray-500 text-sm">
-                                    No hay movimientos registrados.
-                                  </div>
-                                )}
-                              </div>
-                            </div>
- 
-                          </div>
-                    
+                {tabActiva === "bitacora" && (
+                  <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
+                    <div className="w-full max-w-4xl">
+                
+                      {/* Barra visor */}
+                      <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-4 py-3 mb-4 shadow-sm">
+
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">
+                            Vista previa
+                          </span>
+
+                          <span className="text-sm font-semibold text-gray-700">
+                            {`Bitacora_${documentoSeleccionado?.folio || "SAGASE"}.pdf`}
+                          </span>
                         </div>
+
+                        <button
+                          onClick={descargarBitacora}
+                          className="
+                            flex items-center gap-2
+                            bg-[#E8EEF8]
+                            hover:bg-[#D8E4F5]
+                            text-[#2D4A73]
+                            border border-[#C9D8EE]
+                            px-4 py-2
+                            rounded-lg
+                            text-sm
+                            font-semibold
+                            transition-all
+                            duration-200
+                          "
+                        >
+                          Descargar PDF
+                        </button>
+
                       </div>
-                    )}
-
-
-
-              
+                                            
+                      {/* Hoja (estilo idéntico al PDF de Exportar PDF) */}
+                      <div className="flex justify-center mt-4">
+                        <iframe
+                          title="Vista previa bitácora"
+                          src={pdfBitacora}
+                          style={{
+                            width: "850px",
+                            height: "1100px",
+                            border: "none",
+                            background: "#fff",
+                            boxShadow: "0 10px 25px rgba(0,0,0,.15)",
+                          }}
+                        />
+                      </div>
+                
+                    </div>
+                  </div>
+                )}
+              </AnimatePresence>
+            
             </div>
             
-
             </motion.div>
           </motion.div>
       )}

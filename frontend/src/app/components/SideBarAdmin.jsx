@@ -44,13 +44,13 @@ const generalTasks = [
   },
   {
     label: "Solicitudes de Usuarios",
-    color: "text-[#79142A]",
+    color: "text-[#60595D]",
     view: "solicitudes-usuarios-admin",
     icon: UserRoundCog,
   },
   {
     label: "Asignación de Roles",
-    color: "text-[#60595D]",
+    color: "text-[#79142A]",
     view: "asignacion-roles-admin",
     icon: KeyRound,
   },
