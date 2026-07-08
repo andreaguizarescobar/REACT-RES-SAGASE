@@ -4327,7 +4327,7 @@ useEffect(() => {
                   )}
 
                   {tabActiva === "bitacora" && (
-                      <div className="w-full flex justify-center bg-[#2f2f2f] py-6">
+                      <motion.div className="w-full flex justify-center bg-[#2f2f2f] py-6">
                         <div className="w-full max-w-4xl">
                     
                           {/* Barra visor */}
@@ -4380,8 +4380,6 @@ useEffect(() => {
                           </div>
                     
                         </div>
-                      </div>
-<<<<<<< HEAD
                   
                     </motion.div>
                   )}
@@ -4461,11 +4459,6 @@ useEffect(() => {
                       </div>
                     </motion.div>
                   )}
-=======
-                    )}
->>>>>>> 5c1b1370a4a31a64b80e7d71ca998c06c6f2fae2
-                  
-                  </AnimatePresence>
 
                   {/* Modal ver archivo respuesta */}
                   <AnimatePresence>
@@ -4516,7 +4509,8 @@ useEffect(() => {
                     )}
                   </AnimatePresence>
 
-                  </div>
+                  </AnimatePresence>
+              </div>
               </motion.div>
 
             </motion.div>

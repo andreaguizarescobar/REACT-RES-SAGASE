@@ -7,13 +7,8 @@ import {
 } from "recharts";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-<<<<<<< HEAD
-import { Minus, FileText, FileSpreadsheet } from "lucide-react";
 import { getDocuments, getEliminados } from "../../services/document.service";
-=======
 import { Minus, FileText, FileSpreadsheet, ChevronLeft, ChevronRight,} from "lucide-react";
-import { getDocuments } from "../../services/document.service";
->>>>>>> 5c1b1370a4a31a64b80e7d71ca998c06c6f2fae2
 import { getAreas } from "../../services/catalogos.service";
 
 import jsPDF from "jspdf";
