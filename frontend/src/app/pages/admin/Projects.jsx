@@ -1,26 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  PieChart,
-  Route,     
-  Coins,     
+import { 
   Boxes,
-  ListChecks,
-  KeyRound,
-  Info,
-  Clock,
-  List,
-  FileText,
   FileUp,
   Settings,
-  FileOutput,
-  LogOut,
-  Mail,
-  Undo,
   Minus,
   Search,
-  Trash2,
   Pencil,
-  History,
+  Plus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
@@ -154,7 +140,7 @@ export function Projects() {
       id: 1,
       nombre: "Sistema Automatizado de Gestión de Archivos",
       clave: "SAGA_AGN",
-      fecha: "2021-04-12",
+      fecha: "2026-07",
     },
   ]);
 
@@ -1019,7 +1005,8 @@ const handleSaveRemitente = async (tipo) => {
                       <div className="space-y-4">
                         {/* 🔥 HEADER */}
                         <div className="flex items-center gap-2 mb-2">
-  
+
+                        <div className="relative group inline-flex">
                           {/* Botón añadir */}
                           <button
                             onClick={() => {
@@ -1037,18 +1024,38 @@ const handleSaveRemitente = async (tipo) => {
 
                               setMostrarModalFondo(true);
                             }}
-                            className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
+                            className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                            title="Agregar remitente"
                           >
-                            Añadir fondo
+                            <Plus size={22} className="group-hover:rotate-90 transition-transform duration-300"/>
+                            
                           </button>
   
+                        </div>
+                        
                           {/* 🔍 Buscador */}
-                          <div className="flex-1 flex items-center border rounded px-2">
-                            <Search size={16} className="text-gray-400" />
+                          <div className="relative flex-1">
+                            <Search 
+                              size={18}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
                             <input
                               value={busquedaFondo}
                               onChange={(e) => setBusquedaFondo(e.target.value)}
-                              className="w-full px-2 py-2 outline-none text-sm"
+                              className="
+                                w-full
+                                pl-10
+                                pr-4
+                                py-2.5
+                                rounded-xl
+                                border
+                                border-gray-200
+                                bg-gray-50
+                                focus:bg-white
+                                focus:border-[#8B1538]
+                                focus:ring-4
+                                focus:ring-[#8B1538]/10
+                                transition
+                                "
                               placeholder="Buscar fondos..."
                             />
                           </div>
@@ -1059,7 +1066,7 @@ const handleSaveRemitente = async (tipo) => {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border border-gray-200">
   
-                            <thead className="bg-[#8B1538] text-white">
+                            <thead className="bg-gradient-to-r from-[#8B1538] to-[#6E0E2C] text-white">
                               <tr>
                                 <th className="px-4 py-2 text-left">Editar</th>
                                 <th className="px-4 py-2 text-left">Nombre Fondo</th>
@@ -1074,9 +1081,14 @@ const handleSaveRemitente = async (tipo) => {
                             <tbody>
                               {fondosFiltrados.length > 0 ? (
                                 fondosFiltrados.map((fondosTabla) => (
-                                  <tr key={fondosTabla.id || fondosTabla._id} className="border-t hover:bg-gray-50">
+                                  <tr key={fondosTabla.id || fondosTabla._id} className="
+                                    hover:bg-[#8B1538]/5
+                                    transition
+                                    duration-200
+                                    border-b
+                                    ">
   
-                                    {/* 🗑 ELIMINAR */}
+                                    {/* EDITAR */}
                                     <td className="px-4 py-2">
                                       <button
                                         onClick={() => {
@@ -1095,6 +1107,7 @@ const handleSaveRemitente = async (tipo) => {
 
                                           setMostrarModalFondo(true);
                                         }}
+                                        title="Editar fondo"
                                         className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                       >
                                         <Pencil size={16} />
@@ -1126,7 +1139,13 @@ const handleSaveRemitente = async (tipo) => {
                                         type="checkbox"
                                         checked={fondosTabla.activo}
                                         onChange={(e) => handleActivoFondo(e, fondosTabla.id || fondosTabla._id)}
-                                        className="cursor-pointer w-5 h-5"
+                                        className="
+                                        w-5
+                                        h-5
+                                        rounded
+                                        accent-[#8B1538]
+                                        cursor-pointer
+                                        "
                                       />
                                     </td>
 
@@ -1331,37 +1350,56 @@ const handleSaveRemitente = async (tipo) => {
 
                           {/* 🔥 HEADER */}
                           <div className="flex items-center gap-2 mb-2">
+                            <div className="relative group inline-flex">
+                              {/* Botón añadir */}
+                              <button
+                                onClick={() => {
+                                  setModoEdicion(false);
 
-                            {/* Botón añadir */}
-                            <button
-                              onClick={() => {
-                                setModoEdicion(false);
+                                  setRemitenteEditando({
+                                    id: null,
+                                    name: "",
+                                    cargo: "",
+                                    area: "",
+                                    dependencia: "",
+                                    tipo: "Interno",
+                                    activo: true,
+                                  });
 
-                                setRemitenteEditando({
-                                  id: null,
-                                  name: "",
-                                  cargo: "",
-                                  area: "",
-                                  dependencia: "",
-                                  tipo: "Interno",
-                                  activo: true,
-                                });
-
-                                setMostrarModalRemitenteInterno(true);
-                              }}
-                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
-                            >
-                              Añadir remitente
-                            </button>
-
+                                  setMostrarModalRemitenteInterno(true);
+                                }}
+                                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                                title="Agregar remitente"
+                              >
+                                <Plus
+                                  size={22}
+                                  className="group-hover:rotate-90 transition-transform duration-300"
+                                />
+                              </button>
+                            </div>
+                            
                             {/* 🔍 Buscador */}
-                            <div className="flex-1 flex items-center border rounded px-2">
-                              <Search size={16} className="text-gray-400" />
+                            <div className="relative flex-1">
+                              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 
                               <input
                                 value={busquedaInterno}
                                 onChange={(e) => setBusquedaInterno(e.target.value)}
-                                className="w-full px-2 py-2 outline-none text-sm"
+                                className="
+                                  w-full
+                                  pl-10
+                                  pr-4
+                                  py-2.5
+                                  rounded-xl
+                                  border
+                                  border-gray-200
+                                  bg-gray-50
+                                  focus:bg-white
+                                  focus:border-[#8B1538]
+                                  focus:ring-4
+                                  focus:ring-[#8B1538]/10
+                                  transition
+                                "
                                 placeholder="Buscar remitente..."
                               />
                             </div>
@@ -1372,7 +1410,7 @@ const handleSaveRemitente = async (tipo) => {
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-sm">
 
-                              <thead className="bg-[#8B1538] text-white">
+                              <thead className="bg-gradient-to-r from-[#8B1538] to-[#6E0E2C] text-white">
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
                                   <th className="px-4 py-3 text-left">Nombre completo</th>
@@ -1387,10 +1425,15 @@ const handleSaveRemitente = async (tipo) => {
                                   remitentesInternosFiltrados.map((remitente) => (
                                     <tr
                                       key={remitente.id || remitente._id}
-                                      className="border-t hover:bg-gray-50 transition"
+                                      className="
+                                      hover:bg-[#8B1538]/5
+                                      transition
+                                      duration-200
+                                      border-b
+                                      "
                                     >
 
-                                      {/* ✏️ EDITAR */}
+                                      {/* EDITAR */}
                                       <td className="px-4 py-3">
                                         <button
                                           onClick={() => {
@@ -1406,9 +1449,10 @@ const handleSaveRemitente = async (tipo) => {
                                               tipo: "Interno",
                                               activo: remitente.activo !== undefined ? remitente.activo : true,
                                             });
-
+                                            t
                                             setMostrarModalRemitenteInterno(true);
                                           }}
+                                          title="Editar remitente interno"
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
                                           <Pencil size={16} />
@@ -1435,7 +1479,13 @@ const handleSaveRemitente = async (tipo) => {
                                           type="checkbox"
                                           checked={remitente.activo}
                                           onChange={(e) => handleActivoRemitente(e, remitente.remId)}
-                                          className="cursor-pointer w-5 h-5"
+                                          className="
+                                          w-5
+                                          h-5
+                                          rounded
+                                          accent-[#8B1538]
+                                          cursor-pointer
+                                          "
                                         />
                                       </td>
 
@@ -1631,50 +1681,73 @@ const handleSaveRemitente = async (tipo) => {
 
                         <div className="space-y-4">
 
-                          {/* 🔥 HEADER */}
+                          {/* HEADER */}
                           <div className="flex items-center gap-2 mb-2">
 
-                            {/* Botón añadir */}
-                            <button
-                              onClick={() => {
-                                setModoEdicion(false);
+                            <div className="relative group inline-flex">
+                              {/* Botón añadir */}
+                              <button
+                                onClick={() => {
+                                  setModoEdicion(false);
 
-                                setRemitenteEditando({
-                                  id: null,
-                                  name: "",
-                                  cargo: "",
-                                  area: "",
-                                  dependencia: "",
-                                  tipo: "Externo",
-                                  activo: true,
-                                });
+                                  setRemitenteEditando({
+                                    id: null,
+                                    name: "",
+                                    cargo: "",
+                                    area: "",
+                                    dependencia: "",
+                                    tipo: "Externo",
+                                    activo: true,
+                                  });
 
-                                setMostrarModalRemitenteExterno(true);
-                              }}
-                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
-                            >
-                              Añadir remitente
-                            </button>
+                                  setMostrarModalRemitenteExterno(true);
+                                }}
+                                title="Agregar remitente"
+                                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                              >
+                                <Plus
+                                  size={22}
+                                  className="group-hover:rotate-90 transition-transform duration-300"
+                                />
+                              </button>
+                            </div>
 
-                            {/* 🔍 Buscador */}
-                            <div className="flex-1 flex items-center border rounded px-2">
-                              <Search size={16} className="text-gray-400" />
+                            {/* Buscador */}
+                            <div className="relative flex-1">
+                              <Search
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                              />
 
                               <input
                                 value={busquedaExterno}
                                 onChange={(e) => setBusquedaExterno(e.target.value)}
-                                className="w-full px-2 py-2 outline-none text-sm"
+                                className="
+                                  w-full
+                                  pl-10
+                                  pr-4
+                                  py-2.5
+                                  rounded-xl
+                                  border
+                                  border-gray-200
+                                  bg-gray-50
+                                  focus:bg-white
+                                  focus:border-[#8B1538]
+                                  focus:ring-4
+                                  focus:ring-[#8B1538]/10
+                                  transition
+                                "
                                 placeholder="Buscar remitente..."
                               />
                             </div>
 
                           </div>
 
-                          {/* 🧾 TABLA */}
+                          {/* TABLA */}
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-sm">
 
-                              <thead className="bg-[#8B1538] text-white">
+                              <thead className="bg-gradient-to-r from-[#8B1538] to-[#6E0E2C] text-white">
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
                                   <th className="px-4 py-3 text-left">Nombre completo</th>
@@ -1690,10 +1763,15 @@ const handleSaveRemitente = async (tipo) => {
                                   remitentesExternosFiltrados.map((remitenteExt) => (
                                     <tr
                                       key={remitenteExt.id || remitenteExt._id}
-                                      className="border-t hover:bg-gray-50 transition"
+                                      className="
+                                      hover:bg-[#8B1538]/5
+                                      transition
+                                      duration-200
+                                      border-b
+                                      "
                                     >
 
-                                      {/* ✏️ EDITAR */}
+                                      {/* EDITAR */}
                                       <td className="px-4 py-3">
                                         <button
                                           onClick={() => {
@@ -1712,6 +1790,7 @@ const handleSaveRemitente = async (tipo) => {
 
                                             setMostrarModalRemitenteExterno(true);
                                           }}
+                                          title="Editar remitente externo"
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
                                           <Pencil size={16} />
@@ -1743,7 +1822,13 @@ const handleSaveRemitente = async (tipo) => {
                                           type="checkbox"
                                           checked={remitenteExt.activo}
                                           onChange={(e) => handleActivoRemitente(e, remitenteExt.remId)}
-                                          className="cursor-pointer w-5 h-5"
+                                          className="
+                                          w-5
+                                          h-5
+                                          rounded
+                                          accent-[#8B1538]
+                                          cursor-pointer
+                                          "
                                         />
                                       </td>
 
@@ -1922,39 +2007,59 @@ const handleSaveRemitente = async (tipo) => {
 
                         <div className="space-y-4">
 
-                          {/* 🔥 HEADER */}
+                          {/* HEADER */}
                           <div className="flex items-center gap-2 mb-2">
+                            <div className="relative group inline-flex">
+                              {/* AÑADIR */}
+                              <button
+                                onClick={() => {
 
-                            {/* ➕ AÑADIR */}
-                            <button
-                              onClick={() => {
+                                  setModoEdicion(false);
 
-                                setModoEdicion(false);
+                                  setTipoDocumentoEditando({
+                                    id: null,
+                                    nombre: "",
+                                    descripcion: "",
+                                    activo: true
+                                  });
 
-                                setTipoDocumentoEditando({
-                                  id: null,
-                                  nombre: "",
-                                  descripcion: "",
-                                  activo: true
-                                });
+                                  setMostrarModalTipoDocumento(true);
+                                }}
+                                title="Agregar tipo de documento"
+                                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                              >
+                                <Plus
+                                  size={22}
+                                  className="group-hover:rotate-90 transition-transform duration-300"
+                                />
+                              </button>
+                            </div>
 
-                                setMostrarModalTipoDocumento(true);
-                              }}
-                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
-                            >
-                              Añadir tipo de documento
-                            </button>
-
-                            {/* 🔍 BUSCADOR */}
-                            <div className="flex-1 flex items-center border rounded px-2">
-                              <Search size={16} className="text-gray-400" />
+                            {/* BUSCADOR */}
+                            <div className="relative flex-1">
+                              <Search size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
 
                               <input
                                 value={busquedaTipoDocumento}
                                 onChange={(e) =>
                                   setBusquedaTipoDocumento(e.target.value)
                                 }
-                                className="w-full px-2 py-2 outline-none text-sm"
+                                className="
+                                  w-full
+                                  pl-10
+                                  pr-4
+                                  py-2.5
+                                  rounded-xl
+                                  border
+                                  border-gray-200
+                                  bg-gray-50
+                                  focus:bg-white
+                                  focus:border-[#8B1538]
+                                  focus:ring-4
+                                  focus:ring-[#8B1538]/10
+                                  transition
+                                "
                                 placeholder="Buscar tipo de documento..."
                               />
                             </div>
@@ -1978,10 +2083,15 @@ const handleSaveRemitente = async (tipo) => {
                                   tiposDocumentoFiltrados.map((tipo) => (
                                     <tr
                                       key={tipo.id || tipo._id}
-                                      className="border-t hover:bg-gray-50 transition"
+                                      className="
+                                      hover:bg-[#8B1538]/5
+                                      transition
+                                      duration-200
+                                      border-b
+                                      "
                                     >
 
-                                      {/* ✏️ EDITAR */}
+                                      {/* EDITAR */}
                                       <td className="px-4 py-3">
                                         <button
                                           onClick={() => {
@@ -1997,6 +2107,7 @@ const handleSaveRemitente = async (tipo) => {
 
                                             setMostrarModalTipoDocumento(true);
                                           }}
+                                          title="Editar tipo de documento"
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
                                           <Pencil size={16} />
@@ -2015,7 +2126,13 @@ const handleSaveRemitente = async (tipo) => {
                                         onChange={(e) => {
                                           handleActivoTipoDocumento(e, tipo.id || tipo._id);
                                         }}
-                                        className="cursor-pointer w-5 h-5"
+                                        className="
+                                        w-5
+                                        h-5
+                                        rounded
+                                        accent-[#8B1538]
+                                        cursor-pointer
+                                        "
                                       />
                                     </td>
 
@@ -2165,53 +2282,76 @@ const handleSaveRemitente = async (tipo) => {
 
                         <div className="space-y-4">
 
-                          {/* 🔥 HEADER */}
+                          {/* HEADER */}
                           <div className="flex items-center gap-2 mb-2">
 
-                            {/* ➕ AÑADIR */}
-                            <button
-                              onClick={() => {
+                            <div className="relative group inline-flex">
+                              {/* AÑADIR */}
+                              <button
+                                onClick={() => {
 
-                                setModoEdicion(false);
+                                  setModoEdicion(false);
 
-                                setTemaPrincipalEditando({
-                                  id: null,
-                                  descripcion: "",
-                                  activo: true,
-                                });
+                                  setTemaPrincipalEditando({
+                                    id: null,
+                                    descripcion: "",
+                                    activo: true,
+                                  });
 
-                                setMostrarModalTemaPrincipal(true);
-                              }}
-                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
-                            >
-                              Añadir tema principal
-                            </button>
+                                  setMostrarModalTemaPrincipal(true);
+                                }}
+                                title="Agregar asunto"
+                                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                              >
+                                <Plus
+                                    size={22}
+                                    className="group-hover:rotate-90 transition-transform duration-300"
+                                />
+                              </button>
+                            </div>
 
-                            {/* 🔍 BUSCADOR */}
-                            <div className="flex-1 flex items-center border rounded px-2">
-                              <Search size={16} className="text-gray-400" />
+                            {/* BUSCADOR */}
+                            <div className="relative flex-1">
+                              <Search
+                                  size={18}
+                                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                              />
 
                               <input
                                 value={busquedaTemaPrincipal}
                                 onChange={(e) =>
                                   setBusquedaTemaPrincipal(e.target.value)
                                 }
-                                className="w-full px-2 py-2 outline-none text-sm"
+                                className="
+                                    w-full
+                                    pl-10
+                                    pr-4
+                                    py-2.5
+                                    rounded-xl
+                                    border
+                                    border-gray-200
+                                    bg-gray-50
+                                    focus:bg-white
+                                    focus:border-[#8B1538]
+                                    focus:ring-4
+                                    focus:ring-[#8B1538]/10
+                                    transition
+                                "
                                 placeholder="Buscar tema principal..."
                               />
                             </div>
 
                           </div>
 
-                          {/* 🧾 TABLA */}
+                          {/* TABLA */}
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-sm border border-gray-200">
 
-                              <thead className="bg-[#8B1538] text-white">
+                              <thead className="bg-gradient-to-r from-[#8B1538] to-[#6E0E2C] text-white">
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
                                   <th className="px-4 py-3 text-left">
-                                    Descripción del tema principal
+                                    Descripción del asunto
                                   </th>
 
                                   <th className="px-4 py-3 text-center">
@@ -2225,10 +2365,15 @@ const handleSaveRemitente = async (tipo) => {
                                   temasPrincipalesFiltrados.map((tema) => (
                                     <tr
                                       key={tema.id || tema._id}
-                                      className="border-t hover:bg-gray-50 transition"
+                                      className="
+                                      border-b
+                                      hover:bg-[#8B1538]/5
+                                      transition
+                                      duration-200
+                                      "
                                     >
 
-                                      {/* ✏️ EDITAR */}
+                                      {/* EDITAR */}
                                       <td className="px-4 py-3">
                                         <button
                                           onClick={() => {
@@ -2244,12 +2389,13 @@ const handleSaveRemitente = async (tipo) => {
 
                                             setMostrarModalTemaPrincipal(true);
                                           }}
+                                          title="Editar asunto"
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
                                           <Pencil size={16} />
                                         </button>
                                       </td>
-                                      {/* 📝 DESCRIPCIÓN */}
+                                      {/* DESCRIPCIÓN */}
                                       <td className="px-4 py-3 text-gray-700">
                                         {tema.descripcion}
                                       </td>
@@ -2261,7 +2407,13 @@ const handleSaveRemitente = async (tipo) => {
                                         onChange={(e) => {
                                           handleActivoTemaPrincipal(e, tema.id || tema._id);
                                         }}
-                                        className="cursor-pointer w-5 h-5"
+                                        className="
+                                        w-5
+                                        h-5
+                                        rounded
+                                        accent-[#8B1538]
+                                        cursor-pointer
+                                        "
                                       />
                                     </td>
 
@@ -2324,7 +2476,7 @@ const handleSaveRemitente = async (tipo) => {
 
                                     <div className="space-y-5">
 
-                                      {/* 📝 DESCRIPCIÓN */}
+                                      {/* DESCRIPCIÓN */}
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Descripción del tema principal
@@ -2380,7 +2532,7 @@ const handleSaveRemitente = async (tipo) => {
                       </motion.div>
                     )}
 
-                  {configTab === "Instrucciones" && (
+                    {configTab === "Instrucciones" && (
 
                       <motion.div
                         key="Instrucciones"
@@ -2392,49 +2544,71 @@ const handleSaveRemitente = async (tipo) => {
 
                         <div className="space-y-4">
 
-                          {/* 🔥 HEADER */}
+                          {/* HEADER */}
                           <div className="flex items-center gap-2 mb-2">
+                            <div className="relative group inline-flex">
+                              {/* AÑADIR */}
+                              <button
+                                onClick={() => {
 
-                            {/* ➕ AÑADIR */}
-                            <button
-                              onClick={() => {
+                                  setModoEdicion(false);
 
-                                setModoEdicion(false);
+                                  setInstruccionEditando({
+                                    id: null,
+                                    descripcion: "",
+                                    activo: true,
+                                  });
 
-                                setInstruccionEditando({
-                                  id: null,
-                                  descripcion: "",
-                                  activo: true,
-                                });
+                                  setMostrarModalInstruccion(true);
+                                }}
+                                title="Agregar instrucción"
+                                className="w-11 h-11 rounded-xl bg-[#8B1538] text-white flex items-center justify-center shadow-lg hover:scale-110 transition"
+                              >
+                                <Plus
+                                  size={22}
+                                  className="group-hover:rotate-90 transition-transform duration-300"
+                                />
+                              </button>
+                            </div>
 
-                                setMostrarModalInstruccion(true);
-                              }}
-                              className="bg-[#8B1538] text-white px-4 py-2 rounded shadow hover:opacity-90"
-                            >
-                              Añadir instrucción
-                            </button>
-
-                            {/* 🔍 BUSCADOR */}
-                            <div className="flex-1 flex items-center border rounded px-2">
-                              <Search size={16} className="text-gray-400" />
+                            {/* BUSCADOR */}
+                            <div className="relative flex-1">
+                              <Search
+                                size={18}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                              />
 
                               <input
                                 value={busquedaInstruccion}
                                 onChange={(e) =>
                                   setBusquedaInstruccion(e.target.value)
                                 }
-                                className="w-full px-2 py-2 outline-none text-sm"
+                                className="
+                                  w-full
+                                  pl-10
+                                  pr-4
+                                  py-2.5
+                                  rounded-xl
+                                  border
+                                  border-gray-200
+                                  bg-gray-50
+                                  focus:bg-white
+                                  focus:border-[#8B1538]
+                                  focus:ring-4
+                                  focus:ring-[#8B1538]/10
+                                  transition
+                                "
                                 placeholder="Buscar instrucción..."
                               />
                             </div>
 
                           </div>
 
-                          {/* 🧾 TABLA */}
+                          {/* TABLA */}
                           <div className="overflow-x-auto rounded-lg border border-gray-200">
                             <table className="w-full text-sm">
 
-                              <thead className="bg-[#8B1538] text-white">
+                              <thead className="bg-gradient-to-r from-[#8B1538] to-[#6E0E2C] text-white">
                                 <tr>
                                   <th className="px-4 py-3 text-left">Editar</th>
 
@@ -2454,10 +2628,15 @@ const handleSaveRemitente = async (tipo) => {
                                   instruccionesFiltrados.map((instruccion) => (
                                     <tr
                                       key={instruccion.id || instruccion._id}
-                                      className="border-t hover:bg-gray-50 transition"
+                                      className="
+                                      border-b
+                                      hover:bg-[#8B1538]/5
+                                      transition
+                                      duration-200
+                                      "
                                     >
 
-                                      {/* ✏️ EDITAR */}
+                                      {/* EDITAR */}
                                       <td className="px-4 py-3">
                                         <button
                                           onClick={() => {
@@ -2472,13 +2651,14 @@ const handleSaveRemitente = async (tipo) => {
 
                                             setMostrarModalInstruccion(true);
                                           }}
+                                          title="Editar instrucción"
                                           className="p-2 rounded hover:bg-blue-100 text-gray-500 hover:text-blue-600 transition"
                                         >
                                           <Pencil size={16} />
                                         </button>
                                       </td>
 
-                                      {/* 📝 DESCRIPCIÓN */}
+                                      {/* DESCRIPCIÓN */}
                                       <td className="px-4 py-3 text-gray-700">
                                         {instruccion.descripcion}
                                       </td>
@@ -2490,7 +2670,13 @@ const handleSaveRemitente = async (tipo) => {
                                         onChange={(e) => {
                                           handleActivoInstruccion(e, instruccion.id || instruccion._id);
                                         }}
-                                        className="cursor-pointer w-5 h-5"
+                                        className="
+                                        w-5
+                                        h-5
+                                        rounded
+                                        accent-[#8B1538]
+                                        cursor-pointer
+                                        "
                                       />
                                     </td>
 
@@ -2585,7 +2771,13 @@ const handleSaveRemitente = async (tipo) => {
                                               activo: e.target.checked,
                                             })
                                           }
-                                          className="w-4 h-4 accent-[#8B1538]"
+                                          className="
+                                          w-5
+                                          h-5
+                                          rounded
+                                          accent-[#8B1538]
+                                          cursor-pointer
+                                          "
                                         />
 
                                         <label className="text-sm font-medium text-gray-700">

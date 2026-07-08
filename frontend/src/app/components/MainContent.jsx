@@ -12,6 +12,8 @@ import { ControlOficios } from "../pages/user/ControlOficios";
 import { SalidaCorrespondencia } from "../pages/user/SalidaCorrespondencia";
 import { ConsultaSalidaCorrespondencia } from "../pages/user/ConsultaSalidaCorrespondencia";
 import { ReporteSalidaCorrespondencia } from "../pages/user/ReporteSalidaCorrespondencia";
+// import { TableroControlSalidaCorrespondencia } from "../pages/user/TableroControlSalidaCorrespondencia";
+// import { RegistraInstruccionesSolicitudesNotificacionesInt } from "../pages/user/RegistraInstruccionesSolicitudesNotificacionesInt";
 import { ReporteAcuerdos } from "../pages/user/ReporteAcuerdos";
 import { VisualizaDocumento } from "../pages/user/VisualizaDocumento";
 
@@ -43,7 +45,9 @@ export default function MainContent({ currentView }) {
       const userId = JSON.parse(user).userId;
       const tareas = await getTareas(userId, token);
       const tareasData = await tareas.json();
-      const tareasLista = tareasData?.tareas || [];
+      const tareasLista = (tareasData?.tareas || []).filter(
+        (tarea) => tarea.documento
+      );
       const entradas = [];
       const salidas = [];
       const pendientes = [];
@@ -1506,14 +1510,44 @@ useEffect(() => {
       default:
         return (
           <main className="flex-1 flex flex-col bg-white overflow-hidden">
-            {/* Header secciones */}
-            <div className="border-b border-gray-200 flex items-stretch">
-              <div className="flex-1 px-4 py-3 flex items-center gap-2 border-r border-gray-200">
+            {/* Header secciones
+            <div className="
+              border-b
+              border-gray-200
+              flex
+              flex-col
+              md:flex-row
+            ">
+              <div
+                className="
+                  flex-1
+                  min-w-0
+                  px-2
+                  sm:px-4
+                  py-3
+                  flex
+                  flex-wrap
+                  items-center
+                  gap-2
+                "
+              >
                 <Inbox size={16} className="text-[#8B1538]" />
                 <span className="text-xs text-gray-700">Entrada</span>
               </div>
 
-              <div className="flex-1 px-4 py-3 flex items-center justify-between border-r border-gray-200">
+              <div
+                className="
+                  flex-1
+                  min-w-0
+                  px-2
+                  sm:px-4
+                  py-3
+                  flex
+                  flex-wrap
+                  items-center
+                  gap-2
+                "
+              >
                 <div className="flex items-center gap-2">
                   <ListTodo size={16} className="text-[#8B1538]" />
                   <span className="text-xs text-gray-700">
@@ -1532,360 +1566,626 @@ useEffect(() => {
                 </div>
               </div>
 
-              <div className="flex-1 px-4 py-3 flex items-center gap-2">
+              <div
+                className="
+                  flex-1
+                  min-w-0
+                  px-2
+                  sm:px-4
+                  py-3
+                  flex
+                  flex-wrap
+                  items-center
+                  gap-2
+                "
+              >
                 <Send size={16} className="text-[#8B1538]" />
                 <span className="text-xs text-gray-700">Salida</span>
               </div>
-            </div>
+            </div> */}
 
             {/* Contenido columnas */}
-            <div className="flex-1 flex overflow-hidden">
-
-              <div className="flex-1 overflow-y-auto border-r border-gray-200">
-                <div className="flex items-start justify-center pt-8 px-4 min-h-full">
-                    <div className="w-full flex flex-col gap-3">
-                  {entradas.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="relative bg-white border rounded-lg shadow p-3 text-xs hover:shadow-md transition"
-                    >
-                      {/* ICONOS SUPERIORES */}
-                      <div className="absolute top-2 right-2 flex gap-2">
-
-                        {/* VISUALIZAR */}
-                        <button
-                          onClick={async () => { 
-                            try { 
-                              const token = localStorage.getItem("token"); 
-                              const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio; 
-                              
-                              if (!docId) { 
-                                setDocSeleccionado(doc); 
-                                setMostrarModal(true); 
-                                
-                                return; 
-                              } 
-                              const response = await getDocumentById(docId, token); 
-                              if (!response.ok) { 
-                                throw new Error("No se pudo obtener el documento"); 
-                              } 
-                              
-                              const data = await response.json(); 
-                              const fullDoc = data.documento || data; setDocSeleccionado(fullDoc); 
-                              setDocumentoAnexos(fullDoc.anexos || []); 
-                              setTurnosDocumento(fullDoc.turnados || []); 
-                              setCopiasDocumento(fullDoc.copias || []); 
-                              setBitacoraDocumento(fullDoc.bitacora || []); 
-                              setRelacionadosDocumento( (fullDoc.relacionados || []) .map(normalizeRelacionadoItem) .filter(Boolean) ); 
-                              setMostrarModal(true); } catch (error) { 
-                                console.error("Error cargando documento:", error); 
-                                Swal.fire({ icon: "error", title: "Error", text: "No se pudo cargar el documento completo.", confirmButtonColor: "#8B1538", }); } 
-                              }
-                            }
-                          className="p-1 rounded hover:bg-gray-100 text-[#8B1538]"
-                          title="Visualizar documento"
-                        >
-                          <Eye size={16} />
-                        </button>
-
-                      {/* TURNAR SOLO SI ES VALIDADOR */}
-                      {(esValidador || esEjecutor) && (
-                        <button
-                          onClick={() => handleTomarAsunto(doc)}
-                          className="p-1 rounded hover:bg-green-100 text-green-600"
-                          title="Tomar asunto"
-                        >
-                          <ThumbsUp size={16} />
-                        </button>
-                      )}
-                      </div>
-
-                      {/* 🔹 CONTENIDO */}
-                      <p className="font-semibold text-gray-800 pr-10">
-                        { doc.documento.docId || doc.documento.folio || "Documento sin folio"}
-                      </p>
-                      <p className="text-gray-500">{doc.descripcion}</p>
-
-                      <div className="mt-2 space-y-1">
-                        <p>
-                          <span className="font-medium">Síntesis Asunto:</span> { doc.documento.asunto || "Sin síntesis disponible"}
-                        </p>
-                        <p>
-                          <span className="font-medium">Folio:</span> {doc.documento.folio}
-                        </p>
-                        <p>
-                          <span className="font-medium">Dirigido a:</span> {doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}
-                        </p>
-                        <p className="text-gray-400">{doc.documento.fechaTurnado}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                </div>
-
-              </div>
-
-              <div className="flex-1 overflow-y-auto border-r border-gray-200">
-                <div className="flex items-start justify-center pt-8 px-4 min-h-full">
-                  <div className="w-full flex flex-col gap-4">
-
-                  {pendientes.map((doc) => (
-                    <motion.div
-                      key={doc._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white border rounded-xl shadow-sm p-4 text-xs hover:shadow-md transition"
-                    >
-                      {/* HEADER */}
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
-                          </p>
-                              <p className="text-gray-500 text-[11px]">
-                                {safeText(doc.documento.tipoOtro || doc.documento.tipo?.tipo, "No disponible")} / {doc.tarea}
-                              </p>
-                        </div>
-                        { doc.documento.turnados && doc.documento.turnados.length > 0 && (
-                          <div className="text-right" >
-                            {(() => {
-                              const prioridad = (doc.documento.turnados?.at(-1)?.prioridad || '').toLowerCase();
-                              let colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
-                              
-                              if (prioridad.includes('extra-urgente')) {
-                                colorClass = 'bg-red-100 text-red-800 border-red-300';
-                              } else if (prioridad.includes('urgente')) {
-                                colorClass = 'bg-orange-100 text-orange-800 border-orange-300';
-                              } else if (prioridad.includes('normal')) {
-                                colorClass = 'bg-blue-100 text-green-800 border-green-300';
-                              }
-                              
-                              return (
-                                <span className={`text-[11px] px-3 py-1 rounded border font-medium ${colorClass}`}>
-                                  {doc.documento.turnados?.at(-1)?.prioridad}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        )}
-                        {/* ICONOS LATERALES */}
-                        <div className="flex flex-col gap-2">
-                          {/* Ver documento */}
-                          {/* <button
-                            onClick={() => {
-                              setDocSeleccionadoPendientes(doc);
-                              setMostrarModal(true);
-                            }}
-                            className="w-6 h-6 bg-blue-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
-                            title="Visualizar documento"
-                          >
-                            <Eye size={12} />
-                          </button> */}
-
-                          {/* No mostrar botón "Eye" si el usuario es validador */}
-                          {!esValidador && (
-                            <button
-                              onClick={() => seleccionarDocPendiente(doc)}
-                              className="w-6 h-6 bg-blue-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
-                              title="Visualizar documento"
-                            >
-                              <Eye size={12} />
-                            </button>
-                          )}
-                          {/* Concluir turno */}
-                          {/* <button
-                            onClick={() => alert("Turno concluido correctamente")}
-                            className="w-6 h-6 bg-green-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
-                            title="Concluir turno"
-                          >
-                            <Check size={12} />
-                          </button> */}
-                        </div>
-
-                      </div>
-
-                      {/* TABLA INFO */}
-                      <div className="mt-3 border rounded overflow-hidden">
-                        <div className="grid grid-cols-4 bg-gray-100 text-[10px] font-semibold text-gray-600">
-                          <div className="p-1">Síntesis Asunto</div>
-                          <div className="p-1">Folio</div>
-                          <div className="p-1">Dirigido a</div>
-                          <div className="p-1">Remitente</div>
-                        </div>
-
-                        <div className="grid grid-cols-4 text-[10px] text-gray-700">
-                          <div className="p-1">{doc.documento.asunto || "Sin síntesis disponible"}</div>
-                          <div className="p-1">{doc.documento.folio}</div>
-                          {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
-                            <><div className="p-1">{doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}</div><div className="p-1">{doc.documento.turnados.at(-1).remitente?.name}</div></>
-                          ) : (
-                            <><div className="p-1 text-gray-400">Sin información de turno</div><div className="p-1 text-gray-400">Sin información de turno</div></>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* FOOTER */}
-                      <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
-                        {doc.documento.turnados?.at(-1)?.prioridad==="Urgente" ? (
-                          <span>{tiempoRestante(doc.documento.turnados?.at(-1).compromiso)}</span>
-                        ) : (
-                          <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
-                        )}
-
-                        <div className="flex gap-2 mt-2">
-                          {/* Atiende asunto */}
-                          {!esValidador && (
-                            <button
-                              type="button"
-                              title="Atender asunto"
-                              onClick={() => seleccionarDocPendiente(doc)}
-                              className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
-                            >
-                              <ClipboardCheck size={14} />
-                              Atiende
-                            </button>
-                          )}
-
-                          {/* VALIDAR RESPUESTA */}
-                          {esValidador && (
-                            <button
-                              onClick={() => seleccionarDocPendiente(doc)}
-                              className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition"
-                            >
-                              <Check size={14} />
-                              Validar respuesta
-                            </button>
-                          )}
-
-                          {/* Ubica asunto
-                          <button
-                            className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200 transition"
-                            title="Ubicar asunto"
-                          >
-                            <MapPin size={14} />
-                            Ubica
-                          </button> */}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                <div className="flex items-start justify-center pt-8 px-4 min-h-full">
-
-                  {salidas.length === 0 ? (
-
-                    <div className="text-xs text-gray-400">
-                      No hay instancias en esta bandeja.
-                    </div>
-
-                  ) : (
-
-                    <div className="w-full flex flex-col gap-4">
-
-                      {salidas.map((doc) => (
-
-                        <motion.div
-                          key={doc.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-white border rounded-xl shadow-sm p-4 text-xs hover:shadow-md transition"
-                        >
-                          {/* HEADER */}
-                          <div className="flex justify-between items-start">
+          <div className="flex-1 overflow-x-auto">
+            <div
+              className="
+                grid
+                grid-cols-1
+                xl:grid-cols-3
+                gap-4
+                p-4
+                h-full
+              "
+            >
+              
+              {/* Entradas*/}
+                <div
+                  className="
+                    bg-white
+                    border
+                    border-gray-200
+                    rounded-xl
+                    overflow-hidden
+                    flex
+                    flex-col
+                    min-w-0
+                  "
+                >
+                
+                  {/* HEADER */}
+                   <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+                      
+                      <div className="h-1 bg-[#8B1538]" />
+                          
+                          <div className="px-3 sm:px-4 lg:px-5 py-3">
                             
-                            <div>
-                              <p className="font-semibold text-gray-800">
-                                {doc.documento?.docId || "Sin título disponible"}
-                              </p>
+                            <div className="flex items-center gap-2">
 
-                              <p className="text-gray-500 text-[11px]">
-                                {safeText(doc.documento?.tipoOtro || doc.documento?.tipo?.tipo, "No disponible")} / Documento atendido
-                              </p>
+                              <Inbox className="w-5 h-5 text-[#8B1538]" />
+                              <span
+                                className="
+                                  font-semibold
+                                  text-sm
+                                  sm:text-base
+                                  text-gray-800
+                                "
+                              >
+                                Entradas
+                              </span>
+
+                              <span
+                                className="
+                                  ml-auto
+                                  text-[0.7rem]
+                                  sm:text-xs
+                                  font-medium
+                                  bg-[#8B1538]/10
+                                  text-[#8B1538]
+                                  px-2
+                                  py-1
+                                  rounded-full
+                                "
+                              >
+                                {entradas.length}
+                              </span>
+
                             </div>
+                          </div>
+                      </div>
 
-                            {/* VISUALIZAR DOCUMENTO */}
-                            <div className="flex flex-col gap-2">
+                      {/* CONTENIDO */}
+                      <div className="flex-1 overflow-y-auto p-4">
+
+                        {entradas.length === 0 ? (
+                          <div className="text-center text-sm text-gray-400 mt-10">
+                            No hay documentos en esta bandeja
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-4">
+
+                            {entradas.map((doc) => (
+                              <div
+                                key={doc.id}
+                                className="
+                                  relative
+                                  bg-white
+                                  border
+                                  rounded-xl
+                                  shadow-sm
+                                  p-4
+                                  text-xs
+                                  hover:shadow-md
+                                  transition
+                                  min-w-0
+                                "
+                            >
+                            {/* ICONOS SUPERIORES */}
+                            <div className="absolute top-2 right-2 flex gap-2">
+
+                              {/* VISUALIZAR */}
                               <button
-                                onClick={async () => {
-                                  try {
-                                    const token = localStorage.getItem("token");
-                                    const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio;
-                                    if (!docId) return;
-
-                                    const response = await getDocumentById(docId, token);
-                                    if (!response.ok) return;
-
-                                    const data = await response.json();
-                                    const fullDoc = data.documento || data;
-                                    setDocSeleccionado(fullDoc);
-                                    setDocumentoAnexos(fullDoc.anexos || []);
-                                    setTurnosDocumento(fullDoc.turnados || []);
-                                    setCopiasDocumento(fullDoc.copias || []);
-                                    setBitacoraDocumento(fullDoc.bitacora || []);
-                                    setRelacionadosDocumento(
-                                      (fullDoc.relacionados || [])
-                                        .map(normalizeRelacionadoItem)
-                                        .filter(Boolean)
-                                    );
-                                    setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
-                                    setMostrarModal(true);
-                                  } catch (error) {
-                                    console.error("Error cargando documento:", error);
+                                onClick={async () => { 
+                                  try { 
+                                    const token = localStorage.getItem("token"); 
+                                    const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio; 
+                                    
+                                    if (!docId) { 
+                                      setDocSeleccionado(doc); 
+                                      setMostrarModal(true); 
+                                      
+                                      return; 
+                                    } 
+                                    const response = await getDocumentById(docId, token); 
+                                    if (!response.ok) { 
+                                      throw new Error("No se pudo obtener el documento"); 
+                                    } 
+                                    
+                                    const data = await response.json(); 
+                                    const fullDoc = data.documento || data; setDocSeleccionado(fullDoc); 
+                                    setDocumentoAnexos(fullDoc.anexos || []); 
+                                    setTurnosDocumento(fullDoc.turnados || []); 
+                                    setCopiasDocumento(fullDoc.copias || []); 
+                                    setBitacoraDocumento(fullDoc.bitacora || []); 
+                                    setRelacionadosDocumento( (fullDoc.relacionados || []) .map(normalizeRelacionadoItem) .filter(Boolean) ); 
+                                    setMostrarModal(true); } catch (error) { 
+                                      console.error("Error cargando documento:", error); 
+                                      Swal.fire({ icon: "error", title: "Error", text: "No se pudo cargar el documento completo.", confirmButtonColor: "#8B1538", }); } 
+                                    }
                                   }
-                                }}
                                 className="p-1 rounded hover:bg-gray-100 text-[#8B1538]"
                                 title="Visualizar documento"
                               >
                                 <Eye size={16} />
                               </button>
+
+                            {/* TURNAR SOLO SI ES VALIDADOR */}
+                            {(esValidador || esEjecutor) && (
+                              <button
+                                onClick={() => handleTomarAsunto(doc)}
+                                className="p-1 rounded hover:bg-green-100 text-green-600"
+                                title="Tomar asunto"
+                              >
+                                <ThumbsUp size={16} />
+                              </button>
+                            )}
+                            </div>
+
+                            {/* 🔹 CONTENIDO */}
+                            <p className="font-semibold text-gray-800 pr-10">
+                              { doc.documento.docId || doc.documento.folio || "Documento sin folio"}
+                            </p>
+                            <p className="text-gray-500">{doc.descripcion}</p>
+
+                            <div className="mt-2 space-y-1">
+                              <p>
+                                <span className="font-medium break-words whitespace-normal">Síntesis Asunto:</span> { doc.documento.asunto || "Sin síntesis disponible"}
+                              </p>
+                              <p>
+                                <span className="font-medium">Folio:</span> {doc.documento.folio}
+                              </p>
+                              <p>
+                                <span className="font-medium">Dirigido a:</span> {doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}
+                              </p>
+                              <p className="text-gray-400">{doc.documento.fechaTurnado}</p>
                             </div>
 
                           </div>
+                        ))}
+                 
+                    </div>
+                  )}
+                  </div>
 
-                          {/* TABLA INFO */}
-                          <div className="mt-3 border rounded overflow-hidden">
+                </div>
+              
+              {/* Pendientes */}
+                <div
+                  className="
+                    bg-white
+                    border
+                    border-gray-200
+                    rounded-xl
+                    overflow-hidden
+                    flex
+                    flex-col
+                    min-w-0
+                  "
+                >
+                  
+                   <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
 
-                            <div className="grid grid-cols-4 bg-gray-100 text-[10px] font-semibold text-gray-600">
-                              <div className="p-1">Síntesis Asunto</div>
-                              <div className="p-1">Folio</div>
-                              <div className="p-1">Dirigido a</div>
-                              <div className="p-1">Remitente</div>
-                            </div>
+                    <div className="h-1 bg-amber-500" />
 
-                            <div className="grid grid-cols-4 text-[10px] text-gray-700">
-                              <div className="p-1">{doc.documento?.asunto}</div>
-                              <div className="p-1">{doc.documento?.folio}</div>
-                              <div className="p-1">{doc.documento?.turnados?.at(-1)?.dirigido ? doc.documento.turnados?.at(-1).dirigido.nombre : "No disponible"}</div>
-                              <div className="p-1">{doc.documento?.turnados?.at(-1)?.remitente?.name}</div>
-                            </div>
+                    <div className="px-3 sm:px-4 lg:px-5 py-3">
 
-                          </div>
+                      <div className="flex items-center gap-2">
 
-                          {/* FOOTER */}
-                          <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
+                      <ListTodo className="w-5 h-5 text-[#8B1538]" />
 
-                            <span>Concluido {tiempoTranscurrido(doc.fecha)}</span>
+                      <span
+                          className="
+                            font-semibold
+                            text-sm
+                            sm:text-base
+                            text-gray-800
+                          "
+                        >
+                        Mis pendientes
+                      </span>
 
-                          </div>
-
-                        </motion.div>
-
-                      ))}
+                      <span
+                        className="
+                          ml-auto
+                          text-[0.7rem]
+                          sm:text-xs
+                          font-medium
+                          bg-amber-100
+                          text-amber-700
+                          px-2
+                          py-1
+                          rounded-full
+                        "
+                      >
+                        {pendientes.length}
+                      </span>
 
                     </div>
 
-                  )}
+                    <div className="mt-3 flex items-center gap-2">
 
+                      <span className="text-xs text-gray-500">
+                        Sólo no turnados
+                      </span>
+
+                      <Switch
+                        checked={soloTurnados}
+                        onCheckedChange={setSoloTurnados}
+                      />
+                    </div>
+
+                    </div>
+                  </div>
+
+                    <div className="flex-1 overflow-y-auto p-4">
+                      
+                      {pendientes.length === 0 ? (
+
+                        <div className="text-center text-sm text-gray-400 mt-2">
+                          No hay documentos en esta bandeja
+                        </div>
+
+                      ) : (
+
+                      <div className="flex flex-col gap-4">
+                        {pendientes.map((doc) => (
+                          <motion.div
+                            key={doc._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="
+                              bg-white
+                              border
+                              rounded-xl
+                              shadow-sm
+                              p-3
+                              sm:p-4
+                              min-w-0
+                            "
+                          >
+                            {/* HEADER */}
+                            <div
+                              className="
+                                flex
+                                flex-col
+                                sm:flex-row
+                                sm:justify-between
+                                gap-2
+                              "
+                            >
+                              <div>
+                                <p className="font-semibold text-gray-800">
+                                  {doc.documento.noDocumento || doc.documento.docId || doc.documento.folio || "Documento sin folio"}
+                                </p>
+                                    <p className="text-gray-500 text-[11px]">
+                                      {safeText(doc.documento.tipoOtro || doc.documento.tipo?.tipo, "No disponible")} / {doc.tarea}
+                                    </p>
+                              </div>
+                              { doc.documento.turnados && doc.documento.turnados.length > 0 && (
+                                <div className="text-right" >
+                                  {(() => {
+                                    const prioridad = (doc.documento.turnados?.at(-1)?.prioridad || '').toLowerCase();
+                                    let colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
+                                    
+                                    if (prioridad.includes('extra-urgente')) {
+                                      colorClass = 'bg-red-100 text-red-800 border-red-300';
+                                    } else if (prioridad.includes('urgente')) {
+                                      colorClass = 'bg-orange-100 text-orange-800 border-orange-300';
+                                    } else if (prioridad.includes('normal')) {
+                                      colorClass = 'bg-blue-100 text-green-800 border-green-300';
+                                    }
+                                    
+                                    return (
+                                      <span className={`text-[11px] px-3 py-1 rounded border font-medium ${colorClass}`}>
+                                        {doc.documento.turnados?.at(-1)?.prioridad}
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                              {/* ICONOS LATERALES */}
+                              <div className="flex flex-col gap-2">
+                                {/* Ver documento */}
+                                {/* <button
+                                  onClick={() => {
+                                    setDocSeleccionadoPendientes(doc);
+                                    setMostrarModal(true);
+                                  }}
+                                  className="w-6 h-6 bg-blue-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
+                                  title="Visualizar documento"
+                                >
+                                  <Eye size={12} />
+                                </button> */}
+
+                                {/* No mostrar botón "Eye" si el usuario es validador */}
+                                {!esValidador && (
+                                  <button
+                                    onClick={() => seleccionarDocPendiente(doc)}
+                                    className="w-6 h-6 bg-blue-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
+                                    title="Visualizar documento"
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                )}
+                                {/* Concluir turno */}
+                                {/* <button
+                                  onClick={() => alert("Turno concluido correctamente")}
+                                  className="w-6 h-6 bg-green-500 text-white flex items-center justify-center rounded-full hover:scale-110 transition"
+                                  title="Concluir turno"
+                                >
+                                  <Check size={12} />
+                                </button> */}
+                              </div>
+
+                            </div>
+
+                            {/* TABLA INFO */}
+                            <div className="mt-3 border rounded overflow-x-auto">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 bg-gray-100 text-[10px] font-semibold text-gray-600">
+                                <div className="p-1 break-words whitespace-normal">Síntesis Asunto</div>
+                                <div className="p-1 break-words whitespace-normal">Folio</div>
+                                <div className="p-1 break-words whitespace-normal">Dirigido a</div>
+                                <div className="p-1 break-words whitespace-normal1">Remitente</div>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 text-[10px] text-gray-700">
+                                <div className="p-1 break-words whitespace-normal">{doc.documento.asunto || "Sin síntesis disponible"}</div>
+                                <div className="p-1 break-words whitespace-normal">{doc.documento.folio}</div>
+                                {doc.documento.turnados && doc.documento.turnados.length > 0 ? (
+                                  <><div className="p-1 break-words whitespace-normal">{doc.documento.turnados?.at(-1).dirigido?.nombre || "Sin información de turno"}</div>
+                                <div className="p-1 break-words whitespace-normal">{doc.documento.turnados.at(-1).remitente?.name}</div></>
+                                ) : (
+                                  <><div className="p-1 break-words whitespace-normal text-gray-400">Sin información de turno</div>
+                                  <div className="p-1 break-words whitespace-normal text-gray-400">Sin información de turno</div></>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* FOOTER */}
+                            <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
+                              {doc.documento.turnados?.at(-1)?.prioridad==="Urgente" ? (
+                                <span>{tiempoRestante(doc.documento.turnados?.at(-1).compromiso)}</span>
+                              ) : (
+                                <span>Creado {tiempoTranscurrido(doc.documento.registro)}</span>
+                              )}
+
+                              <div className="flex gap-2 mt-2">
+                                {/* Atiende asunto */}
+                                {!esValidador && (
+                                  <button
+                                    type="button"
+                                    title="Atender asunto"
+                                    onClick={() => seleccionarDocPendiente(doc)}
+                                    className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
+                                  >
+                                    <ClipboardCheck size={14} />
+                                    Atiende
+                                  </button>
+                                )}
+
+                                {/* VALIDAR RESPUESTA */}
+                                {esValidador && (
+                                  <button
+                                    onClick={() => seleccionarDocPendiente(doc)}
+                                    className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded hover:bg-green-100 transition"
+                                  >
+                                    <Check size={14} />
+                                    Validar respuesta
+                                  </button>
+                                )}
+
+                                {/* Ubica asunto
+                                <button
+                                  className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200 transition"
+                                  title="Ubicar asunto"
+                                >
+                                  <MapPin size={14} />
+                                  Ubica
+                                </button> */}
+                              </div>
+                            </div>
+                          </motion.div>
+                      ))}
+                      </div>
+                      )}
+                  </div>
                 </div>
+              
+              {/* Salidas */}
+              <div
+                className="
+                  bg-white
+                  border
+                  border-gray-200
+                  rounded-xl
+                  overflow-hidden
+                  flex
+                  flex-col
+                  min-w-0
+                "
+              >
+
+                  <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+
+                    <div className="h-1 bg-green-500" />
+
+                        <div className="px-3 sm:px-4 lg:px-5 py-3">
+
+                          <div className="flex items-center gap-2">
+
+                            <Send className="w-5 h-5 text-[#8B1538]" />
+
+                            <span
+                              className="
+                                font-semibold
+                                text-sm
+                                sm:text-base
+                                text-gray-800
+                              "
+                            >
+                              Salida
+                            </span>
+
+                            <span
+                              className="
+                                ml-auto
+                                text-[0.7rem]
+                                sm:text-xs
+                                font-medium
+                                bg-green-100
+                                text-green-700
+                                px-2
+                                py-1
+                                rounded-full
+                              "
+                            >
+                              {salidas.length}
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    <div className="flex-1 overflow-y-auto p-4">
+
+                      {salidas.length === 0 ? (
+
+                        <div className="text-center text-sm text-gray-400 mt-10">
+                          No hay documentos en esta bandeja
+                        </div>
+
+                      ) : (
+
+                      <div className="w-full flex flex-col gap-4">
+
+                        {salidas.map((doc) => (
+
+                          <motion.div
+                            key={doc.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="
+                              bg-white
+                              border
+                              rounded-xl
+                              shadow-sm
+                              p-3
+                              sm:p-4
+                              min-w-0
+                            "
+                          >
+                            {/* HEADER */}
+                             <div
+                                className="
+                                  flex
+                                  flex-col
+                                  sm:flex-row
+                                  sm:justify-between
+                                  gap-2
+                                "
+                              >
+                              
+                              <div>
+                                <p className="font-semibold text-gray-800">
+                                  {doc.documento?.docId || "Sin título disponible"}
+                                </p>
+
+                                <p className="text-gray-500 text-[11px]">
+                                  {safeText(doc.documento?.tipoOtro || doc.documento?.tipo?.tipo, "No disponible")} / Documento atendido
+                                </p>
+                              </div>
+
+                              {/* VISUALIZAR DOCUMENTO */}
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem("token");
+                                      const docId = doc?.documento?.docId || doc?.documento?._id || doc?.documento?.folio;
+                                      if (!docId) return;
+
+                                      const response = await getDocumentById(docId, token);
+                                      if (!response.ok) return;
+
+                                      const data = await response.json();
+                                      const fullDoc = data.documento || data;
+                                      setDocSeleccionado(fullDoc);
+                                      setDocumentoAnexos(fullDoc.anexos || []);
+                                      setTurnosDocumento(fullDoc.turnados || []);
+                                      setCopiasDocumento(fullDoc.copias || []);
+                                      setBitacoraDocumento(fullDoc.bitacora || []);
+                                      setRelacionadosDocumento(
+                                        (fullDoc.relacionados || [])
+                                          .map(normalizeRelacionadoItem)
+                                          .filter(Boolean)
+                                      );
+                                      setMaterialesAdicionales(fullDoc.adicional?.adicionales || []);
+                                      setMostrarModal(true);
+                                    } catch (error) {
+                                      console.error("Error cargando documento:", error);
+                                    }
+                                  }}
+                                  className="p-1 rounded hover:bg-gray-100 text-[#8B1538]"
+                                  title="Visualizar documento"
+                                >
+                                  <Eye size={16} />
+                                </button>
+                              </div>
+
+                            </div>
+
+                            {/* TABLA INFO */}
+                            <div className="mt-3 border rounded overflow-hidden">
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 bg-gray-100 text-[10px] font-semibold text-gray-600">
+                                <div className="p-1 break-words whitespace-normal">Síntesis Asunto</div>
+                                <div className="p-1 break-words whitespace-normal">Folio</div>
+                                <div className="p-1 break-words whitespace-normal">Dirigido a</div>
+                                <div className="p-1 break-words whitespace-normal">Remitente</div>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 text-[10px] text-gray-700">
+                                <div className="p-1 break-words whitespace-normal">{doc.documento?.asunto}</div>
+                                <div className="p-1 break-words whitespace-normal">{doc.documento?.folio}</div>
+                                <div className="p-1 break-words whitespace-normal">{doc.documento?.turnados?.at(-1)?.dirigido ? doc.documento.turnados?.at(-1).dirigido.nombre : "No disponible"}</div>
+                                <div className="p-1 ">{doc.documento?.turnados?.at(-1)?.remitente?.name}</div>
+                              </div>
+
+                            </div>
+
+                            {/* FOOTER */}
+                            <div className="flex justify-between items-center mt-3 text-[10px] text-gray-500">
+
+                              <span>Concluido {tiempoTranscurrido(doc.fecha)}</span>
+
+                            </div>
+
+                          </motion.div>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+                  </div>
               </div>
+              
             </div>
-          </main>
-        );
+
+          </div>
+        </main>
+      );
     }
 
   };
@@ -2161,7 +2461,7 @@ useEffect(() => {
       return;
     }
 
-    // ✅ VALIDACIÓN CORRECTA
+    // VALIDACIÓN CORRECTA
     if (validacionRespuesta === "si") {
       try {
         const response = await validarTarea(tareaId, tokenValue);
@@ -2765,7 +3065,7 @@ const generarDocumentoTurno = async (turno) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* 🔹 BACKDROP */}
+            {/* BACKDROP */}
             <motion.div
               className="absolute inset-0 bg-black/40"
               initial={{ opacity: 0 }}
@@ -2774,7 +3074,7 @@ const generarDocumentoTurno = async (turno) => {
               onClick={() => setDocSeleccionado(null)}
             />
 
-            {/* 🔹 MODAL */}
+            {/* MODAL */}
             <motion.div
               className="relative bg-white w-full max-w-6xl h-[90vh] sm:h-[85vh] rounded-2xl shadow-2xl flex flex-col pt-6"
               initial={{ scale: 0.9, y: 50, opacity: 0 }}
@@ -2783,7 +3083,7 @@ const generarDocumentoTurno = async (turno) => {
               transition={{ duration: 0.25, ease: "easeOut" }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* 🔹 HEADER */}
+              {/* HEADER */}
               <div className="flex justify-between items-start px-6 pb-4 border-b shrink-0">
 
                 {/* TITULOS */}
@@ -2808,7 +3108,7 @@ const generarDocumentoTurno = async (turno) => {
 
               </div>
 
-              {/* 🔹 TABS */}
+              {/* TABS */}
               <div className="flex border-b mb-1 text-sm overflow-x-auto">
                 {[
                   { id: "datosAsunto", label: "Datos del registro" },
@@ -3008,7 +3308,7 @@ const generarDocumentoTurno = async (turno) => {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                            
                             <div className="md:col-span-3">
-                              <label className="block text-gray-500 mb-1">
+                              <label className="block text-gray-500 mb-1 ">
                                 Síntesis del asunto*
                               </label>
                               <textarea
@@ -3517,7 +3817,6 @@ const generarDocumentoTurno = async (turno) => {
                       </div>
                     )}
      
-
                     {tabActiva === "turnoRecibido" && (
                       <div className="border border-gray-300 rounded bg-white overflow-hidden text-xs">
 
@@ -3781,7 +4080,6 @@ const generarDocumentoTurno = async (turno) => {
                         </div>
                         </div>
                     )}
-
                    
                   </motion.div>
                 </AnimatePresence>

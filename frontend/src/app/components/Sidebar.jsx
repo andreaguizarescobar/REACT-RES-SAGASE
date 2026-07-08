@@ -91,12 +91,12 @@ const tareasPorRol = {
       view: "control-oficios",
       icon: FolderOpen,
     },
-    {
-      label: "Registra instrucciones, solicitudes y notificaciones internas",
-      color: "text-[#79142A]",
-      view: "registra-notinternas",
-      icon: Bell,
-    },
+    // {
+    //   label: "Registra instrucciones, solicitudes y notificaciones internas",
+    //   color: "text-[#79142A]",
+    //   view: "registra-notinternas",
+    //   icon: Bell,
+    // },
     {
       label: "Tablero de control",
       color: "text-[#60595D]",
@@ -150,19 +150,19 @@ const tareasPorRol = {
     },
     {
       label: "Consulta Salida de Correspondencia",
-      color: "text-[#60595D]",
+      color: "text-[#79142A]",
       view: "consultaS-correspondencia",
       icon: Eye,
     },
     {
       label: "Reporte Salida de Correspondencia",
-      color: "text-[#79142A]",
+      color: "text-[#60595D]",
       view: "reporteS-correspondencia",
       icon: BarChart3,
     },
     {
       label: "Tablero de control",
-      color: "text-[#60595D]",
+      color: "text-[#79142A]",
       view: "tablero-control",
       icon: LayoutDashboard,
     }
