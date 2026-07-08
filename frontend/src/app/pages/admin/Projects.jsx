@@ -169,10 +169,18 @@ export function Projects() {
 
   const [busquedaFondo, setBusquedaFondo] = useState("");
   
-    const fondosFiltrados = fondos.filter((m) => 
-      m.nombre?.toLowerCase().includes(busquedaFondo.toLowerCase()) ||
-      m.abreviatura?.toLowerCase().includes(busquedaFondo.toLowerCase())
+  const fondosFiltrados = fondos.filter((m) => {
+    if (!m) return false;
+
+    return (
+      (m.nombre || "")
+        .toLowerCase()
+        .includes(busquedaFondo.toLowerCase()) ||
+      (m.abreviatura || "")
+        .toLowerCase()
+        .includes(busquedaFondo.toLowerCase())
     );
+  });
   
   const [mostrarModalFondo, setMostrarModalFondo] = useState(false);
   
@@ -337,64 +345,58 @@ const [remitenteEditando, setRemitenteEditando] = useState({
 
 
 /* ============================= */
-/* 🔍 FILTRADOS */
+/* FILTRADOS */
 /* ============================= */
 
 const remitentesInternosFiltrados =
-  remitentesInternos.filter((item) =>
-    item.name
-      .toLowerCase()
-      .includes(busquedaInterno.toLowerCase()) ||
-    item.cargo
-      .toLowerCase()
-      .includes(busquedaInterno.toLowerCase()) ||
-    item.dependencia
-      .toLowerCase()
-      .includes(busquedaInterno.toLowerCase()) ||
-    item.area
-      .toLowerCase()
-      .includes(busquedaInterno.toLowerCase())
-  );
+  remitentesInternos.filter((item) => {
+    if (!item) return false;
+
+    return (
+      (item.name || "").toLowerCase().includes(busquedaInterno.toLowerCase()) ||
+      (item.cargo || "").toLowerCase().includes(busquedaInterno.toLowerCase()) ||
+      (item.dependencia || "").toLowerCase().includes(busquedaInterno.toLowerCase()) ||
+      (item.area || "").toLowerCase().includes(busquedaInterno.toLowerCase())
+    );
+  });
 
 const remitentesExternosFiltrados =
-  remitentesExternos.filter((item) =>
-    item.name
-      .toLowerCase()
-      .includes(busquedaExterno.toLowerCase()) ||
-    item.cargo
-      .toLowerCase()
-      .includes(busquedaExterno.toLowerCase()) ||
-    item.dependencia
-      .toLowerCase()
-      .includes(busquedaExterno.toLowerCase()) ||
-    item.area
-      .toLowerCase()
-      .includes(busquedaExterno.toLowerCase())
-  );
+  remitentesExternos.filter((item) => {
+    if (!item) return false;
+
+    return (
+      (item.name || "").toLowerCase().includes(busquedaExterno.toLowerCase()) ||
+      (item.cargo || "").toLowerCase().includes(busquedaExterno.toLowerCase()) ||
+      (item.dependencia || "").toLowerCase().includes(busquedaExterno.toLowerCase()) ||
+      (item.area || "").toLowerCase().includes(busquedaExterno.toLowerCase())
+    );
+  });
 
 const tiposDocumentoFiltrados =
-  tiposDocumento.filter((item) =>
-    item.tipo
-      .toLowerCase()
-      .includes(busquedaTipoDocumento.toLowerCase())
-  );
+tiposDocumento.filter((item) =>
+  item && (item.tipo || "")
+    .toLowerCase()
+    .includes(busquedaTipoDocumento.toLowerCase())
+);
 
 const temasPrincipalesFiltrados =
   temasPrincipales.filter((item) =>
-    item.descripcion
+    item &&
+    (item.descripcion || "")
       .toLowerCase()
       .includes(busquedaTemaPrincipal.toLowerCase())
   );
 
 const instruccionesFiltrados =
   instrucciones.filter((item) =>
-    item.descripcion
+    item &&
+    (item.descripcion || "")
       .toLowerCase()
       .includes(busquedaInstruccion.toLowerCase())
   );
 
 /* ============================= */
-/* 🎯 HANDLE ACTIVO TOGGLE */
+/*  HANDLE ACTIVO TOGGLE */
 /* ============================= */
 
 const handleActivoTipoDocumento = async (e, id) => {
@@ -465,6 +467,49 @@ const handleActivoRemitente = async (e, remId) => {
 /* ============================= */
 
 const handleSaveFondo = async () => {
+
+  const errores = {
+    nombre: !fondoEditando.nombre.trim(),
+    encabezado: !fondoEditando.encabezado,
+    pie: !fondoEditando.pie,
+  };
+
+  setErroresFondo(errores);
+
+  if (Object.values(errores).some(Boolean)) {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "warning",
+      title: "Complete los campos obligatorios",
+      text: "Nombre, Encabezado y Pie de página son requeridos.",
+      timer: 3000,
+      showConfirmButton: false,
+      timerProgressBar: true,
+    });
+
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: modoEdicion
+      ? "¿Actualizar fondo?"
+      : "¿Guardar fondo?",
+    text: modoEdicion
+      ? "Se actualizará la información del fondo."
+      : "Se creará un nuevo fondo.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#8B1538",
+    cancelButtonColor: "#6b7280",
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (!result.isConfirmed) {
+    return;
+  }
+
   try {
     const hasFiles = fondoEditando.encabezado instanceof File || 
                      fondoEditando.pie instanceof File || 
@@ -517,7 +562,7 @@ const handleSaveFondo = async () => {
         setFondos(prev => [...prev, updatedData]);
       }
       setMostrarModalFondo(false);
-      Swal.fire("Éxito", modoEdicion ? "Fondo actualizado correctamente" : "Fondo creado correctamente", "success");
+
     } else {
       const err = await response.json();
       Swal.fire("Error", err.error || "Error al guardar fondo", "error");
@@ -529,6 +574,40 @@ const handleSaveFondo = async () => {
 };
 
 const handleSaveTipoDocumento = async () => {
+  // Validación
+  if (!tipoDocumentoEditando.nombre.trim()) {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timerProgressBar: true,
+      icon: "warning",
+      title: "Campo obligatorio",
+      text: "Debe ingresar el nombre del tipo de documento.",
+      timer: 3000,
+
+    });
+    return;
+  }
+
+  // Confirmación
+  const result = await Swal.fire({
+    title: modoEdicion
+      ? "¿Actualizar tipo de documento?"
+      : "¿Guardar tipo de documento?",
+    text: modoEdicion
+      ? "Se actualizará la información del tipo de documento."
+      : "Se creará un nuevo tipo de documento.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#8B1538",
+    cancelButtonColor: "#6b7280",
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (!result.isConfirmed) return;
+  
   try {
     const data = {
       tipo: tipoDocumentoEditando.nombre,
@@ -551,18 +630,70 @@ const handleSaveTipoDocumento = async () => {
         setTiposDocumento(prev => [...prev, updatedData]);
       }
       setMostrarModalTipoDocumento(false);
-      Swal.fire("Éxito", modoEdicion ? "Tipo de documento actualizado" : "Tipo de documento creado", "success");
+       Swal.fire({
+        icon: "success",
+        title: "Éxito",
+        text: modoEdicion
+          ? "Tipo de documento actualizado correctamente."
+          : "Tipo de documento creado correctamente.",
+        confirmButtonColor: "#8B1538",
+      });
+
     } else {
       const err = await response.json();
-      Swal.fire("Error", err.error || "Error al guardar tipo de documento", "error");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.error || "Error al guardar tipo de documento.",
+        confirmButtonColor: "#8B1538",
+      });
     }
   } catch (error) {
     console.error("Error al guardar tipo de documento:", error);
-    Swal.fire("Error", "Error al guardar tipo de documento", "error");
+     Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Error al guardar tipo de documento.",
+      confirmButtonColor: "#8B1538",
+    });
   }
 };
 
 const handleSaveTemaPrincipal = async () => {
+// Validación
+  if (!temaPrincipalEditando.descripcion?.trim()) {
+    return Swal.fire({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timerProgressBar: true,
+      icon: "warning",
+      title: "Campos obligatorios",
+      timer: 2500,
+      text: "Todos los campos son obligatorios.",
+      confirmButtonColor: "#8B1538",
+    });
+  }
+
+  // Confirmación
+  const confirmacion = await Swal.fire({
+    title: modoEdicion
+      ? "¿Actualizar asunto del documento?"
+      : "¿Guardar asunto del documento?",
+    text: modoEdicion
+      ? "Se actualizará el asunto del documento."
+      : "Se guardará el nuevo asunto del documento.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#8B1538",
+    cancelButtonColor: "#6B7280",
+    reverseButtons: true,
+  });
+
+  if (!confirmacion.isConfirmed) return;
+
   try {
     const data = {
       descripcion: temaPrincipalEditando.descripcion,
@@ -584,18 +715,85 @@ const handleSaveTemaPrincipal = async () => {
         setTemasPrincipales(prev => [...prev, updatedData]);
       }
       setMostrarModalTemaPrincipal(false);
-      Swal.fire("Éxito", modoEdicion ? "Tema principal actualizado" : "Tema principal creado", "success");
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 2500,
+        icon: "success",
+        title: "Éxito",
+        text: modoEdicion
+          ? "Asunto del documento actualizado correctamente."
+          : "Asunto del documento creado correctamente.",
+        confirmButtonColor: "#8B1538",
+      });
     } else {
       const err = await response.json();
-      Swal.fire("Error", err.error || "Error al guardar tema principal", "error");
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 2500,
+        icon: "error",
+        title: "Error",
+        text: err.error || "Error al guardar el asunto del documento.",
+        confirmButtonColor: "#8B1538",
+      });
     }
   } catch (error) {
     console.error("Error al guardar tema principal:", error);
-    Swal.fire("Error", "Error al guardar tema principal", "error");
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timerProgressBar: true,
+      timer: 2500,
+      icon: "error",
+      title: "Error",
+      text: "Error al guardar el asunto del documento.",
+      confirmButtonColor: "#8B1538",
+    });
   }
 };
 
 const handleSaveInstruccion = async () => {
+  // Validación
+  if (!instruccionEditando.descripcion?.trim()) {
+    return Swal.fire({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timerProgressBar: true,
+      timer: 2500,
+      icon: "warning",
+      title: "Campos obligatorios",
+      text: "Todos los campos son obligatorios.",
+      confirmButtonColor: "#8B1538",
+    });
+  }
+
+  // Confirmación
+  const confirmacion = await Swal.fire({
+    title: modoEdicion
+      ? "¿Actualizar instrucción?"
+      : "¿Guardar instrucción?",
+    text: modoEdicion
+      ? "Se actualizará la información de la instrucción."
+      : "Se guardará la nueva instrucción.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#8B1538",
+    cancelButtonColor: "#6B7280",
+    reverseButtons: true,
+  });
+
+  if (!confirmacion.isConfirmed) return;
+
   try {
     const data = {
       descripcion: instruccionEditando.descripcion,
@@ -617,18 +815,89 @@ const handleSaveInstruccion = async () => {
         setInstrucciones(prev => [...prev, updatedData]);
       }
       setMostrarModalInstruccion(false);
-      Swal.fire("Éxito", modoEdicion ? "Instrucción actualizada" : "Instrucción creada", "success");
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 2500,
+        icon: "success",
+        title: "Éxito",
+        text: modoEdicion
+          ? "Instrucción actualizada correctamente."
+          : "Instrucción creada correctamente.",
+        confirmButtonColor: "#8B1538",
+      });
     } else {
       const err = await response.json();
-      Swal.fire("Error", err.error || "Error al guardar instrucción", "error");
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timerProgressBar: true,
+        timer: 2500,
+        icon: "error",
+        title: "Error",
+        text: err.error || "Error al guardar la instrucción.",
+        confirmButtonColor: "#8B1538",
+      });
     }
   } catch (error) {
     console.error("Error al guardar instrucción:", error);
-    Swal.fire("Error", "Error al guardar instrucción", "error");
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timerProgressBar: true,
+      timer: 2500,
+      icon: "error",
+      title: "Error",
+      text: "Error al guardar la instrucción.",
+      confirmButtonColor: "#8B1538",
+    });
   }
 };
 
 const handleSaveRemitente = async (tipo) => {
+  // Validación de campos obligatorios
+  if (
+    !remitenteEditando.name?.trim() ||
+    !remitenteEditando.cargo?.trim() ||
+    !remitenteEditando.area?.trim() ||
+    (tipo === "Externo" && !remitenteEditando.dependencia?.trim())
+  ) {
+    return Swal.fire({
+      position: "top-end",
+      toast: true,
+      showConfirmButton: false,
+      timerProgressBar: true,
+      timer: 2500,
+      icon: "warning",
+      title: "Campos obligatorios",
+      text: "Todos los campos son obligatorios.",
+      // confirmButtonColor: "#8B1538",
+    });
+  }
+
+  // Confirmación antes de guardar
+  const confirmacion = await Swal.fire({
+    title: modoEdicion
+      ? "¿Actualizar remitente?"
+      : "¿Guardar remitente?",
+    text: modoEdicion
+      ? "Se actualizará la información del remitente."
+      : "Se guardará el nuevo remitente.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Sí, guardar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#8B1538",
+    cancelButtonColor: "#6B7280",
+    reverseButtons: true,
+  });
+
+  if (!confirmacion.isConfirmed) return;
+
   try {
     const data = {
       name: remitenteEditando.name,
@@ -659,16 +928,44 @@ const handleSaveRemitente = async (tipo) => {
       } else {
         setMostrarModalRemitenteExterno(false);
       }
-      Swal.fire("Éxito", modoEdicion ? "Remitente actualizado" : "Remitente creado", "success");
+      
+      Swal.fire({
+        icon: "success",
+        title: "Éxito",
+        text: modoEdicion
+          ? "Remitente actualizado correctamente."
+          : "Remitente creado correctamente.",
+        confirmButtonColor: "#8B1538",
+      });
     } else {
       const err = await response.json();
-      Swal.fire("Error", err.error || "Error al guardar remitente", "error");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.error || "Error al guardar remitente.",
+        confirmButtonColor: "#8B1538",
+      });
     }
   } catch (error) {
     console.error("Error al guardar remitente:", error);
-    Swal.fire("Error", "Error al guardar remitente", "error");
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Error al guardar remitente.",
+      position: "top-end",
+      toast: true,
+      showConfirmButton: false,
+      timerProgressBar: true,
+      timer: 2500,
+    });
   }
 };
+
+const [erroresFondo, setErroresFondo] = useState({
+  nombre: false,
+  encabezado: false,
+  pie: false,
+});
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -679,8 +976,27 @@ const handleSaveRemitente = async (tipo) => {
         {proyectos.map((p) => (
           <div
             key={p.id}
-            className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition"
+            className="relative bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition"
           >
+
+            {/* Botón Configuración */}
+            <button
+              onClick={() => setOpenConfigModal(true)}
+              className="
+                absolute top-3 right-3
+                w-8 h-8
+                flex items-center justify-center
+                rounded-full
+                text-gray-500
+                hover:text-[#8B1538]
+                hover:bg-[#8B1538]/10
+                transition-all
+              "
+              title="Configurar catálogos"
+            >
+              <Settings size={18} />
+            </button>
+            
             {/* Título */}
             <h2 className="text-sm font-semibold text-gray-800 mb-2">
               {p.nombre}
@@ -695,74 +1011,7 @@ const handleSaveRemitente = async (tipo) => {
               <span className="text-gray-700">{p.fecha}</span>
             </p>
 
-            {/* ICONOS */}
-            <div className="relative">
-             <div className="flex gap-3 text-[#8B1538] mt-2 cursor-pointer">
-                <div className="relative group/boxes">
-                  <Boxes size={16} />
-
-                  {/* MENÚ FLOTANTE */}
-                  <div
-                    className="absolute left-1/2 -translate-x-1/2
-                              bg-white border shadow-md rounded-md px-3 py-2
-                              flex gap-3 text-[#8B1538]
-                              opacity-0 group-hover/boxes:opacity-100
-                              transition-all duration-200
-                              pointer-events-none group-hover/boxes:pointer-events-auto
-                              z-[9999]"
-                  >
-                    <div className="relative group/item">
-                      <FileUp
-                        size={16}
-                        className="hover:scale-110 cursor-pointer"
-                        onClick={() => setOpenModal(true)}
-                      />
-
-                      {/* Tooltip */}
-                     <div
-                        className="absolute -top-10 left-0
-                        bg-gray-800 text-white text-[10px] px-2 py-1 rounded
-                        opacity-0 group-hover/item:opacity-100
-                        transition whitespace-nowrap
-                        z-[99999] shadow-lg"
-                      >
-                        Carga de reportes
-
-                        <div
-                          className="absolute left-1 -bottom-1
-                          w-2 h-2 bg-gray-800 rotate-45"
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="relative group/settings">
-                      <Settings
-                        className="hover:scale-110 cursor-pointer"
-                        size={16}
-                        onClick={() => setOpenConfigModal(true)}
-                      />
-
-                      {/* Tooltip */}
-                      <div
-                        className="absolute -top-10 left-0
-                        bg-gray-800 text-white text-[10px] px-2 py-1 rounded
-                        opacity-0 group-hover/settings:opacity-100
-                        transition whitespace-nowrap
-                        z-[99999] shadow-lg"
-                      >
-                        Configurar catálogos
-
-                        <div
-                          className="absolute left-1 -bottom-1
-                          w-2 h-2 bg-gray-800 rotate-45"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+            
 
           </div>
         ))}
@@ -1003,7 +1252,7 @@ const handleSaveRemitente = async (tipo) => {
                       >
 
                       <div className="space-y-4">
-                        {/* 🔥 HEADER */}
+                        {/* HEADER */}
                         <div className="flex items-center gap-2 mb-2">
 
                         <div className="relative group inline-flex">
@@ -1080,13 +1329,10 @@ const handleSaveRemitente = async (tipo) => {
   
                             <tbody>
                               {fondosFiltrados.length > 0 ? (
-                                fondosFiltrados.map((fondosTabla) => (
-                                  <tr key={fondosTabla.id || fondosTabla._id} className="
-                                    hover:bg-[#8B1538]/5
-                                    transition
-                                    duration-200
-                                    border-b
-                                    ">
+                                fondosFiltrados
+                                .filter(Boolean)
+                                .map((fondosTabla) => (
+                                  <tr key={fondosTabla.id || fondosTabla._id}>
   
                                     {/* EDITAR */}
                                     <td className="px-4 py-2">
@@ -1181,7 +1427,7 @@ const handleSaveRemitente = async (tipo) => {
                                 {/* HEADER */}
                                 <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
                                   <h2 className="text-xl font-semibold text-gray-800">
-                                    {modoEdicion ? "Editar registro" : "Agregar registro"}
+                                    {modoEdicion ? "Editar registro de fondo" : "Agregar registro de fondo"}
                                   </h2>
 
                                   <button
@@ -1209,13 +1455,41 @@ const handleSaveRemitente = async (tipo) => {
                                         <input
                                           type="text"
                                           value={fondoEditando.nombre}
-                                          onChange={(e) =>
+                                          onChange={(e) => {
+                                            const nombre = e.target.value;
+
+                                            const abreviatura = nombre
+                                              .trim()
+                                              .split(" ")
+                                              .filter(Boolean)
+                                              .map((palabra) => palabra[0])
+                                              .join("")
+                                              .toUpperCase();
+
                                             setFondoEditando({
                                               ...fondoEditando,
-                                              nombre: e.target.value,
-                                            })
-                                          }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                              nombre,
+                                              abreviatura,
+                                            });
+
+                                            setErroresFondo((prev) => ({
+                                              ...prev,
+                                              nombre: false,
+                                            }));
+                                          }}
+                                           className={`
+                                            w-full
+                                            border
+                                            border-gray-300
+                                            rounded-lg
+                                            px-3
+                                            py-2
+                                            ${
+                                              erroresFondo.nombre
+                                                ? "border-red-500 bg-red-50"
+                                                : "border-gray-300"
+                                            }
+                                          `}
                                           placeholder="Ingrese nombre del fondo"
                                         />
                                       </div>
@@ -1228,13 +1502,24 @@ const handleSaveRemitente = async (tipo) => {
                                         <input
                                           type="text"
                                           value={fondoEditando.abreviatura}
-                                            onChange={(e) =>
-                                              setFondoEditando({
-                                                ...fondoEditando,
-                                                abreviatura: e.target.value,
-                                              })
-                                            }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
+                                          onChange={(e) =>
+                                            setFondoEditando({
+                                              ...fondoEditando,
+                                              abreviatura: e.target.value,
+                                            })
+                                          }
+                                          disabled
+                                          className="
+                                          w-full
+                                          border
+                                          border-gray-300
+                                          rounded-lg
+                                          px-3
+                                          py-2
+                                          bg-gray-100
+                                          text-gray-500
+                                          cursor-not-allowed
+                                        "
                                           placeholder="Ingrese abreviatura"
                                         />
                                       </div>
@@ -1251,13 +1536,25 @@ const handleSaveRemitente = async (tipo) => {
                                         <input
                                           type="file"
                                           accept="image/*"
-                                          onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              encabezado: e.target.files[0] || null,
-                                            })
+                                           onChange={(e) => {
+                                          setFondoEditando({
+                                            ...fondoEditando,
+                                            encabezado: e.target.files[0] || null,
+                                          });
+
+                                          setErroresFondo((prev) => ({
+                                            ...prev,
+                                            encabezado: false,
+                                          }));
+                                        }}
+                                        className={`
+                                          w-full rounded-lg px-3 py-2 text-sm border
+                                          ${
+                                            erroresFondo.encabezado
+                                              ? "border-red-500 bg-red-50"
+                                              : "border-gray-300"
                                           }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        `}
                                         />
                                         {fondoEditando.encabezado && typeof fondoEditando.encabezado === 'string' && (
                                           <p className="text-xs text-gray-500 mt-1">Archivo actual: {fondoEditando.encabezado.split('/').pop()}</p>
@@ -1271,13 +1568,25 @@ const handleSaveRemitente = async (tipo) => {
                                         <input
                                           type="file"
                                           accept="image/*"
-                                          onChange={(e) =>
-                                            setFondoEditando({
-                                              ...fondoEditando,
-                                              pie: e.target.files[0] || null,
-                                            })
+                                          onChange={(e) => {
+                                          setFondoEditando({
+                                            ...fondoEditando,
+                                            pie: e.target.files[0] || null,
+                                          });
+
+                                          setErroresFondo((prev) => ({
+                                            ...prev,
+                                            pie: false,
+                                          }));
+                                        }}
+                                        className={`
+                                          w-full rounded-lg px-3 py-2 text-sm border
+                                          ${
+                                            erroresFondo.pie
+                                              ? "border-red-500 bg-red-50"
+                                              : "border-gray-300"
                                           }
-                                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        `}
                                         />
                                         {fondoEditando.pie && typeof fondoEditando.pie === 'string' && (
                                           <p className="text-xs text-gray-500 mt-1">Archivo actual: {fondoEditando.pie.split('/').pop()}</p>
@@ -1449,7 +1758,7 @@ const handleSaveRemitente = async (tipo) => {
                                               tipo: "Interno",
                                               activo: remitente.activo !== undefined ? remitente.activo : true,
                                             });
-                                            t
+                                            
                                             setMostrarModalRemitenteInterno(true);
                                           }}
                                           title="Editar remitente interno"
@@ -2114,7 +2423,7 @@ const handleSaveRemitente = async (tipo) => {
                                         </button>
                                       </td>
 
-                                      {/* 📄 NOMBRE */}
+                                      {/* NOMBRE */}
                                       <td className="px-4 py-3 text-gray-700">
                                         {tipo.tipo}
                                       </td>
@@ -2214,7 +2523,7 @@ const handleSaveRemitente = async (tipo) => {
                                       </div>
 
                                       {/* DESCRIPCIÓN */}
-                                      <div>
+                                      {/* <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Descripción del tipo de documento
                                         </label>
@@ -2231,7 +2540,7 @@ const handleSaveRemitente = async (tipo) => {
                                           className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#8B1538]/30 outline-none"
                                           placeholder="Ingrese descripción"
                                         />
-                                      </div>
+                                      </div> */}
 
                                     </div>
 
@@ -2456,8 +2765,8 @@ const handleSaveRemitente = async (tipo) => {
 
                                     <h2 className="text-xl font-semibold text-gray-800">
                                       {modoEdicion
-                                        ? "Editar tema principal"
-                                        : "Agregar tema principal"}
+                                        ? "Editar asunto del documento"
+                                        : "Agregar asunto del documento"}
                                     </h2>
 
                                     <button
@@ -2479,7 +2788,7 @@ const handleSaveRemitente = async (tipo) => {
                                       {/* DESCRIPCIÓN */}
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                          Descripción del tema principal
+                                          Descripción del asunto del documento
                                         </label>
 
                                         <textarea
