@@ -196,6 +196,16 @@ export const approveSolicitud = async (req, res) => {
   }
 };
 
+export const rejectSolicitud = async (req, res) => {
+  try {
+    const solicitudId = req.params.id;
+    const result = await userService.rejectSolicitud(solicitudId);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 export const solicitud = async (req, res) => {
   try {
     const result = await userService.solicitud(req.body);
@@ -274,6 +284,7 @@ export default {
   devolverTarea,
   getSolicitudes,
   approveSolicitud,
+  rejectSolicitud,
   solicitud,
   getNotificaciones,
   marcarNotificacionLeida,

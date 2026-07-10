@@ -110,8 +110,18 @@ export const getSolicitudes = (token) => {
     });
 }
 
-export const approveSolicitud = (id, token) => {
+export const approveSolicitud = (id, ROL, token) => {
     return fetchAPI(`/users/solicitudes/approve/${id}`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify( ROL )
+    });
+}
+
+export const rejectSolicitud = (id, token) => {
+    return fetchAPI(`/users/solicitudes/reject/${id}`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`

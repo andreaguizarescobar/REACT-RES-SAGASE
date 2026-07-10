@@ -5,6 +5,7 @@ import { getAreas } from "../../services/catalogos.service.js";
 import { registerRequest } from "../../services/auth.service.js";
 import Swal from "sweetalert2";
 
+
 export function AltaUsuarios() {
   const [form, setForm] = useState({
     nombre: "",
@@ -52,18 +53,14 @@ export function AltaUsuarios() {
     };
 
     const [showModal, setShowModal] = useState(false);
-    const [credenciales, setCredenciales] = useState({
-    usuario: "",
-    password: "1234",
-    });
+    const [credenciales, setCredenciales] = useState(null);
 
-    const handleGuardar = () => {
+    const handleGuardar = async () => {
     const newErrors = {};
 
     if (!form.nombre) newErrors.nombre = true;
     if (!form.iniciales) newErrors.iniciales = true;
     if (!form.area) newErrors.area = true;
-    if (!form.telefono) newErrors.telefono = true;
     if (!form.correo) newErrors.correo = true;
     if (!form.rol) newErrors.rol = true;
 
@@ -92,20 +89,7 @@ export function AltaUsuarios() {
         return;
     }
 
-    const usuarioGenerado = `AGN-${form.iniciales || "USR"}`;
-
-    setCredenciales({
-        usuario: usuarioGenerado,
-        password: "1234",
-    });
-
-    setShowModal(true);
-    };
-
-
-    const handleRegistrar = async () => {
     const nuevoUsuario = {
-        userId: `user-${form.iniciales}-${Date.now()}`,
         nombre: form.nombre,
         iniciales: form.iniciales,
         sexo: form.sexo,
@@ -116,17 +100,18 @@ export function AltaUsuarios() {
         email: form.correo,
         copia: form.copia,
         roles: [{ rol: form.rol }],
-        username: credenciales.usuario,
-        password: credenciales.password,
     };
 
-    const response = await registerRequest(nuevoUsuario, localStorage.getItem("token"));
+    const token = localStorage.getItem("token");
+    const response = await registerRequest(nuevoUsuario, token);
     if (response.ok) {
         Swal.fire({
         icon: "success",
         title: "Usuario creado",
-        text: `El usuario ${credenciales.usuario} ha sido creado exitosamente.`,
+        text: `El usuario ${form.nombre} ha sido creado exitosamente.`,
         });
+        const credenciales = await response.json();
+        setCredenciales(credenciales.user.credenciales);
     } else {
         Swal.fire({
             icon: "error",
@@ -136,8 +121,7 @@ export function AltaUsuarios() {
         setShowModal(false);
         return;
     }
-    
-    setShowModal(false);
+    setShowModal(true);
     // Limpiar formulario
     setForm({
         nombre: "",
@@ -223,6 +207,7 @@ export function AltaUsuarios() {
             focus:ring-2
             focus:ring-[#8B1538]/20
             outline-none
+            uppercase
             ${
                 errors.nombre
                     ? "border-red-500 bg-red-50"
@@ -384,7 +369,6 @@ export function AltaUsuarios() {
             <div className="md:col-span-2">
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                     Teléfono institucional
-                    <span className="text-red-600"> *</span>
                 </label>
 
                 <input
@@ -572,7 +556,7 @@ export function AltaUsuarios() {
                     <div>
                     <label className="block mb-1">Usuario:</label>
                     <input
-                        value={credenciales.usuario}
+                        value={credenciales.username}
                         readOnly
                         className="w-full border rounded px-2 py-2 bg-gray-100"
                     />
@@ -598,7 +582,7 @@ export function AltaUsuarios() {
                 {/* BOTÓN */}
                 <div className="flex justify-center pt-2">
                     <button
-                    onClick={handleRegistrar}
+                    onClick={() => setShowModal(false)}
                     className="bg-[#8B1538] text-white px-10 py-2 rounded hover:opacity-90"
                     >
                     Aceptar

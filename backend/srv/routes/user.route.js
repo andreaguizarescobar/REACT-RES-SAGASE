@@ -36,6 +36,7 @@ router.post('/devolver-tarea/:tareaId', verifyToken, userController.devolverTare
 // user/solicitudes
 router.get('/solicitudes', userController.getSolicitudes);
 router.post('/solicitudes/approve/:id', verifyToken, authorizeRole('ADMIN'), userController.approveSolicitud);
+router.post('/solicitudes/reject/:id', verifyToken, authorizeRole('ADMIN'), userController.rejectSolicitud);
 
 // user/solicitud
 router.post('/solicitud', userController.solicitud);

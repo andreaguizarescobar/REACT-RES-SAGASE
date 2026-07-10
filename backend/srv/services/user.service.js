@@ -6,19 +6,27 @@ import { sendResetEmail, enviarUsuario } from './mail.service.js';
 import path from 'path';
 
 const registerUser = async (data) => {
-  const userExists = await userModel.findOne({
-    username: data.username
-  });
-  if (userExists && data != null) {
-    throw new Error("El usuario ya existe");
+
+  const baseUserName = `SAGASE-${(data.iniciales || 'USR').replace(/\s+/g, '')}`;
+  let username = baseUserName;
+  let counter = 0;
+
+  while (await userModel.findOne({ username })) {
+    counter += 1;
+    username = `${baseUserName}${counter}`;
   }
-  const hashedPassword = await hash(data.password, 10);
+
+  const password = Math.random().toString(36).slice(-8) || 'Password1';
+  
+  const hashedPassword = await hash(password, 10);
   const user = await userModel.create({
     ...data,
-    password: hashedPassword
+    password: hashedPassword,
+    username,
+    userId: `user-${(solicitud.iniciales || 'USR').replace(/\s+/g, '')}-${Date.now()}`  
   });
-  await enviarUsuario(data.email, data.username, data.password);
-  return user;
+  await enviarUsuario(data.email, username, password);
+  return {...user, credenciales: { username, password }};
 };
 
 const tiempoRestante = (fecha) => {
@@ -397,7 +405,7 @@ export const approveSolicitud = async (solicitudId) => {
     throw new Error('Solicitud no encontrada');
   }
 
-  const baseUserName = `AGN-${(solicitud.iniciales || 'USR').replace(/\s+/g, '')}`;
+  const baseUserName = `SAGASE-${(solicitud.iniciales || 'USR').replace(/\s+/g, '')}`;
   let username = baseUserName;
   let counter = 0;
 
@@ -427,6 +435,8 @@ export const approveSolicitud = async (solicitudId) => {
     roles: []
   });
 
+  await enviarUsuario(solicitud.email, username, password);
+
   solicitud.status = 'Aprobada';
   await solicitud.save();
 
@@ -442,6 +452,16 @@ export const approveSolicitud = async (solicitudId) => {
       email: user.email
     }
   };
+};
+
+export const rejectSolicitud = async (solicitudId) => {
+  const solicitud = await solicitudModel.findById(solicitudId);
+  if (!solicitud) {
+    throw new Error('Solicitud no encontrada');
+  }
+  solicitud.status = 'Rechazada';
+  await solicitud.save();
+  return 'Solicitud rechazada';
 };
 
 export const getNotificaciones = async (userId) => {
@@ -513,6 +533,7 @@ export default {
   solicitud,
   getSolicitudes,
   approveSolicitud,
+  rejectSolicitud,
   getNotificaciones,
   marcarNotificacionLeida,
   marcarTodasNotificacionesLeidas,

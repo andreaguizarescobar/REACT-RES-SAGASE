@@ -62,21 +62,6 @@ export function SidebarAdmin({ isOpen, onSelectView, onSelectArea }) {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const cargarAreas = async () => {
-    try {
-      const response = await fetch("http://localhost:3333/areas/getAll");
-      const data = await response.json();
-      setAreas(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Error al cargar áreas para el sidebar:", error);
-      setAreas([]);
-    }
-  };
-
-  useEffect(() => {
-    cargarAreas();
-  }, []);
-
   const areasHijas = areas.filter((area) => area?.pertenece);
 
   return (

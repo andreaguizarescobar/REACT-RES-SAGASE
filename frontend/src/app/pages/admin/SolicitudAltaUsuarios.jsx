@@ -1,8 +1,9 @@
 import { Minus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getSolicitudes, approveSolicitud } from "../../services/user.service.js";
+import { getSolicitudes, approveSolicitud, rejectSolicitud } from "../../services/user.service.js";
 import Swal from "sweetalert2";
+
 
 export function SolicitudAltaUsuarios() {
   const [criterio, setCriterio] = useState("");
@@ -72,7 +73,7 @@ export function SolicitudAltaUsuarios() {
 
   const handleOpenModal = () => {
     setSelectedRequest(menu.request);
-    setSelectedRol("");
+    setSelectedRol(menu.request.rol);
     setModalVisible(true);
     cerrarMenu();
   };
@@ -81,6 +82,83 @@ export function SolicitudAltaUsuarios() {
     setModalVisible(false);
     setSelectedRequest(null);
     setSelectedRol("");
+  };
+
+  const handleReject = async () => {
+    if (!selectedRequest) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: "Complete los campos obligatorios.",
+        text: "Seleccione una solicitud antes de rechazarla.",
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true,
+        customClass: {
+          popup: "text-sm",
+        },
+        didOpen: (toast) => {
+          toast.onmouseenter = Swal.stopTimer;
+          toast.onmouseleave = Swal.resumeTimer;
+        },
+      });
+      return;
+    }
+    const response = await Swal.fire({
+      title: "¿Rechazar solicitud?",
+      text: `Se rechazará la solicitud de ${selectedRequest.nombre}.`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, rechazar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#8B1538",
+      cancelButtonColor: "#6B7280",
+      reverseButtons: true,
+    });
+
+    if (response.isConfirmed) {
+      const token = localStorage.getItem("token");
+      const response = await rejectSolicitud(selectedRequest._id, token);
+      if (response.ok) {
+        handleCloseModal();
+        await fetchSolicitudes();
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Solicitud rechazada.",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+          customClass: {
+            popup: "text-sm",
+          },
+          didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+          }
+          });
+      } else {
+        await fetchSolicitudes();
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Error al rechazar la solicitud.",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+          customClass: {
+            popup: "text-sm",
+          },
+          didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+          }
+        });
+      }
+    }
   };
 
   const handleApprove = async () => {
@@ -189,7 +267,7 @@ export function SolicitudAltaUsuarios() {
                 <th className="px-3 py-2 text-left">Nombre completo</th>
                 <th className="px-3 py-2 text-left">Sexo</th>
                 <th className="px-3 py-2 text-left">Área</th>
-                <th className="px-3 py-2 text-left">Teléfono institucional</th>
+                <th className="px-3 py-2 text-left">Rol</th>
                 <th className="px-3 py-2 text-left">Correo institucional</th>
               </tr>
             </thead>
@@ -228,7 +306,7 @@ export function SolicitudAltaUsuarios() {
                                 </td>
                                 <td className="px-3 py-2">{areaLabel}</td>
                                 <td className="px-3 py-2">
-                                    {request.telefono || <span className="italic">No disponible</span>}
+                                    {request.rol}
                                 </td>
                                 <td className="px-3 py-2">
                                     {request.email || <span className="italic">No disponible</span>}
@@ -423,9 +501,9 @@ export function SolicitudAltaUsuarios() {
                   <div className="col-span-1">
                     <label className="mb-1 block text-sm font-medium text-gray-700">Rol <span className="text-red-600">*</span></label>
                     <select
-                      value={selectedRol}
-                      onChange={(e) => setSelectedRol(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
+                      value={selectedRequest.rol || ""}
+                      disabled
+                      className="w-full rounded-lg border border-gray-300 bg-gray-100  px-3 py-2.5 transition
                       focus:border-[#8B1538]
                       focus:ring-2
                       focus:ring-[#8B1538]/20
@@ -450,7 +528,22 @@ export function SolicitudAltaUsuarios() {
                   </div> */}
                 </div>
 
-                <div className="flex justify-center pt-2">
+                <div className="flex justify-center pt-2 gap-5">
+                  <button
+                    onClick={handleReject}
+                    className="bg-[#8B1538]
+                      text-white
+                      font-medium
+                      px-10
+                      py-3
+                      rounded-lg
+                      hover:bg-[#6f102c]
+                      transition
+                      shadow-md
+                      hover:shadow-lg"
+                  >
+                    Rechazar alta
+                  </button>
                   <button
                     onClick={handleApprove}
                     className="bg-[#8B1538]

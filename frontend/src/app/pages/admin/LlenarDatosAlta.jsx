@@ -18,6 +18,7 @@ export function LlenarDatosAlta() {
     telefono: "",
     ext: "",
     correo: "",
+    rol: "",
     copia: false,
   });
 
@@ -33,7 +34,7 @@ export function LlenarDatosAlta() {
     const { name, value, type, checked } = e.target;
     const nextForm = {
       ...form,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : name === "nombre" ? value.toUpperCase() : value,
     };
 
     if (name === "nombre") {
@@ -48,10 +49,11 @@ export function LlenarDatosAlta() {
       form.nombre &&
       form.sexo &&
       form.area &&
-      form.telefono &&
-      form.correo
+      form.correo &&
+      form.rol
     );
   };
+
 
   const handleSubmit = async () => {
     if (!validarFormulario()) {
@@ -108,6 +110,7 @@ export function LlenarDatosAlta() {
   
       useEffect(() => {
           const cargarAreas = async () => {
+
               try {
                   const response = await getAreas();
                   if (response.ok) {
@@ -151,7 +154,7 @@ export function LlenarDatosAlta() {
               value={form.nombre}
               placeholder="Nombre completo"
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 uppercase"
             />
 
             <input
@@ -175,7 +178,7 @@ export function LlenarDatosAlta() {
             </select>
 
             <div className="relative">
-                <label className="block mb-1 text-sm">Área de destino:</label>
+                <label className="block mb-1 text-sm">Área:</label>
                 <div className="flex items-center border rounded px-2 py-2">
                     <Search size={16} className="text-gray-400 mr-1" />
                     <input
@@ -202,7 +205,7 @@ export function LlenarDatosAlta() {
                             key={area._id}
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                             onClick={() => {
-                            setForm({...form, area: area.nombre || area._id});
+                            setForm({...form, area: area._id});
                             setBusquedaArea(area.nombre);
                             setMostrarOpcionesArea(false);
                             }}
@@ -241,6 +244,26 @@ export function LlenarDatosAlta() {
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
             />
+
+            <div className="col-span-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Rol <span className="text-red-600">*</span></label>
+                <select
+                  value={form.rol}
+                  onChange={handleChange}
+                  name="rol"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
+                    focus:border-[#8B1538]
+                    focus:ring-2
+                    focus:ring-[#8B1538]/20
+                    outline-none"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="REGISTRADOR">REGISTRADOR</option>
+                  <option value="EJECUTOR">EJECUTOR</option>
+                  <option value="VALIDADOR">VALIDADOR</option>
+              </select>
+            </div>
 
             <button
             onClick={handleSubmit}

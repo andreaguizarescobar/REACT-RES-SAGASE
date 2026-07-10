@@ -100,12 +100,12 @@ export function RegistrarDocumento() {
         const tiposRes = await getTipoDocument();
         if (tiposRes.ok) {
           const tipos = await tiposRes.json();
-          setTiposDocumento(tipos.filter(t => t.activo).map(t => ({ value: t._id, label: t.tipo })));
+          setTiposDocumento(tipos.filter(t => t.activo).sort((a, b) => a.tipo.localeCompare(b.tipo)).map(t => ({ value: t._id, label: t.tipo })));
         }
         const temasRes = await getTemaPrincipal();
         if (temasRes.ok) {
           const temas = await temasRes.json();
-          setTemasPrincipales(temas.filter(t => t.activo).map(t => ({ value: t._id, label: t.descripcion })));
+          setTemasPrincipales(temas.filter(t => t.activo).sort((a, b) => a.descripcion.localeCompare(b.descripcion)).map(t => ({ value: t._id, label: t.descripcion })));
         }
         const remsRes = await getRemitentes();
         if (remsRes.ok) {

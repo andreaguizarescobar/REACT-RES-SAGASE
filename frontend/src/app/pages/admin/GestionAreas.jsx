@@ -36,12 +36,15 @@ function AreaTreeNode({ area, areas, depth, selectedAreaId, onSelect, onEdit, on
                 onClick={() => onToggleExpand(area._id)}
                 className="mt-0.5 rounded border border-gray-300 bg-white px-1.5 py-1 text-xs text-gray-600 hover:border-[#8B1538] hover:text-[#8B1538]"
               >
-              <motion.span
+              <motion.svg
                   animate={{ rotate: isExpanded ? 90 : 0 }}
                   transition={{ duration: .2 }}
-              >
-                  ▶
-              </motion.span>
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                >
+              <path d="M4 2 L12 8 L4 14 Z" fill="currentColor" />
+              </motion.svg>
               </button>
             )}
             <button type="button" onClick={() => onSelect(area)} className="flex-1 text-left">

@@ -9,6 +9,7 @@ const SolicitudSchema = new Schema({
     email: String,
     cargo: String,
     iniciales: String,
+    rol: String,
     status: { type: String, default: "Pendiente" },
 }, { timestamps: true });
 
