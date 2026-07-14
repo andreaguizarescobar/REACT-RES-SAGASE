@@ -515,6 +515,14 @@ export function SolicitudAltaUsuarios() {
                       <option value="EJECUTOR">EJECUTOR</option>
                       <option value="VALIDADOR">VALIDADOR</option>
                     </select>
+                    {selectedRequest && selectedRequest.rol && (
+                      <div className="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+                        {selectedRequest.rol === "REGISTRADOR" && "Registra documentos, genera turnos y administra la correspondencia de salida."}
+                        {selectedRequest.rol === "EJECUTOR" && "Registra las respuestas y acciones de los documentos turnados a su área."}
+                        {selectedRequest.rol === "VALIDADOR" && "Revisa y valida las respuestas antes de finalizar el trámite."}
+                        {selectedRequest.rol === "ADMIN" && "Gestiona usuarios, roles y los catálogos del sistema."}
+                      </div>
+                    )}
                   </div>
 
                   {/* <div className="flex items-center gap-2 mt-5">

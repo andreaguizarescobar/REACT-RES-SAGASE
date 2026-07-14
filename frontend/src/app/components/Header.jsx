@@ -928,10 +928,7 @@ export function Header({ onToggleSidebar, onGoHome }) {
                                             onClick={() => {
                                               const url = anexo.ruta.startsWith("http")
                                                 ? anexo.ruta
-                                                : `${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta.replace(
-                                                    /^\.\.\//,
-                                                    ""
-                                                  )}`;
+                                                : `${import.meta.env.VITE_ARCHIVOS_PATH}${anexo.ruta}`;
                                               setArchivoVistaNotif(url);
                                               setMostrarVisorNotif(true);
                                             }}

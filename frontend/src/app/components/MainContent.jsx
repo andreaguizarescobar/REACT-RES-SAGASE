@@ -2316,7 +2316,7 @@ useEffect(() => {
       setMostrarModalMensaje(true);
     };
 
-    const handleGuardarMensajeModal = async () => {
+    const handleGuardarMensajeModal = async (tareaId) => {
       const documentoActivo = docSeleccionadoPendientes || docSeleccionado;
       const docId = getDocumentoIdForRequest(documentoActivo);
       if (!docId) {
@@ -2327,9 +2327,9 @@ useEffect(() => {
         Swal.fire({ icon: 'warning', title: 'Atención', text: 'Agrega un mensaje o archivo antes de enviar.' });
         return;
       }
-
-      setModalMensajeGuardando(true);
+      
       try {
+        setModalMensajeGuardando(true);
         const token = localStorage.getItem('token');
         const form = new FormData();
         form.append('docId', docId);
@@ -2350,11 +2350,12 @@ useEffect(() => {
         setModalMensajeNombre('');
         setMostrarModalMensaje(false);
 
+        console.log('Mensaje guardado', tareaId);
         const r2 = await getDocumentById(docId, token);
         if (r2.ok) {
           const data = await r2.json();
           const fullDoc = data.documento || data;
-          setDocSeleccionadoPendientes(fullDoc);
+          setDocSeleccionadoPendientes({...fullDoc, tareaId });
         }
       } catch (error) {
         console.error('Error guardando mensaje:', error);
@@ -3941,8 +3942,8 @@ const generarDocumentoTurno = async (turno) => {
                             </thead>
 
                             <tbody>
-                              {(docSeleccionadoPendientes?.respuestas || []).length > 0 ? (
-                                docSeleccionadoPendientes.respuestas.map((respuesta, index) => (
+                              {(docSeleccionadoPendientes?.respuestas || docSeleccionado?.respuestas || []).length > 0 ? (
+                                (docSeleccionadoPendientes?.respuestas || docSeleccionado?.respuestas || []).map((respuesta, index) => (
                                   <tr key={index} className="border-b hover:bg-gray-50">
                                     <td className="px-3 py-3 text-gray-700 align-top">
                                       {respuesta.registrador.nombre || 'Usuario'}
@@ -3950,7 +3951,7 @@ const generarDocumentoTurno = async (turno) => {
                                     <td className="px-3 py-3 align-top">
                                       {respuesta.ruta ? (
                                         <a
-                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta.replace(/^\.\./, '')}`}
+                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta}`}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-[#8B1538]/20 bg-[#8B1538]/5 hover:bg-[#8B1538] transition-all duration-200"
@@ -3997,83 +3998,6 @@ const generarDocumentoTurno = async (turno) => {
                         </div>
                       </div>  
                       
-                        {/* RESPONDER */}
-                        <div className="border-t p-4 bg-white">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Agregar respuesta</label>
-
-                          <textarea
-                            value={respuestaMensaje}
-                            onChange={(e) => setRespuestaMensaje(e.target.value)}
-                            rows={4}
-                            className="w-full border border-gray-300 rounded p-2 text-sm mb-2"
-                            placeholder="Escribe un mensaje de respuesta..."
-                          />
-
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="file"
-                              onChange={(e) => setRespuestaArchivo(e.target.files?.[0] || null)}
-                              className="text-sm"
-                            />
-
-                            <button
-                              onClick={async () => {
-                                const documentoActivo = docSeleccionadoPendientes || docSeleccionado;
-                                const docId = getDocumentoIdForRequest(documentoActivo);
-                                if (!docId) {
-                                  Swal.fire({ icon: 'error', title: 'Error', text: 'No se identificó el documento.' });
-                                  return;
-                                }
-
-                                if (!respuestaMensaje && !respuestaArchivo) {
-                                  Swal.fire({ icon: 'warning', title: 'Atención', text: 'Agrega un mensaje o archivo antes de enviar.' });
-                                  return;
-                                }
-
-                                setEnviandoRespuesta(true);
-                                try {
-                                  const token = localStorage.getItem('token');
-                                  const form = new FormData();
-                                  form.append('docId', docId);
-                                  form.append('mensaje', JSON.stringify({ mensaje: respuestaMensaje, nombre: respuestaArchivo ? respuestaArchivo.name : '' }));
-                                  if (respuestaArchivo) form.append('archivo', respuestaArchivo);
-
-                                  const resp = await enviarRespuesta(form, token);
-                                  if (resp.ok) {
-                                    Swal.fire({ icon: 'success', title: 'Respuesta enviada', timer: 1500, showConfirmButton: false });
-                                    setRespuestaMensaje('');
-                                    setRespuestaArchivo(null);
-
-                                    // refrescar documento completo
-                                    try {
-                                      const r2 = await getDocumentById(docId, token);
-                                      if (r2.ok) {
-                                        const data = await r2.json();
-                                        const fullDoc = data.documento || data;
-                                        setDocSeleccionadoPendientes(fullDoc);
-                                      }
-                                    } catch (e) {
-                                      console.error('Error refrescando documento:', e);
-                                    }
-                                  } else {
-                                    const text = await resp.text();
-                                    console.error('Error enviando respuesta:', text);
-                                    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la respuesta.' });
-                                  }
-                                } catch (error) {
-                                  console.error(error);
-                                  Swal.fire({ icon: 'error', title: 'Error', text: 'Ocurrió un error al enviar la respuesta.' });
-                                } finally {
-                                  setEnviandoRespuesta(false);
-                                }
-                              }}
-                              className="ml-auto bg-[#8B1538] text-white px-4 py-2 rounded hover:bg-[#74112F] transition"
-                              disabled={enviandoRespuesta}
-                            >
-                              {enviandoRespuesta ? 'Enviando...' : 'Enviar respuesta'}
-                            </button>
-                          </div>
-                        </div>
                         </div>
                     )}
                    
@@ -6725,7 +6649,7 @@ const generarDocumentoTurno = async (turno) => {
                                     <td className="px-3 py-3 align-top">
                                       {respuesta.ruta ? (
                                         <a
-                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta.replace(/^\.\./, '')}`}
+                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta}`}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-[#8B1538]/20 bg-[#8B1538]/5 hover:bg-[#8B1538] transition-all duration-200"
@@ -6877,7 +6801,7 @@ const generarDocumentoTurno = async (turno) => {
 
                                   {/* BOTÓN */}
                                   <button
-                                    onClick={handleGuardarMensajeModal}
+onClick={() => handleGuardarMensajeModal(docSeleccionadoPendientes?.tareaId)}
                                     disabled={modalMensajeGuardando}
                                     className="h-[42px] bg-[#C1272D] hover:bg-[#a81f25] text-white rounded-md text-sm font-medium transition disabled:opacity-60 disabled:cursor-not-allowed"
                                   >
@@ -7142,7 +7066,7 @@ const generarDocumentoTurno = async (turno) => {
                                     <td className="px-3 py-3 align-top">
                                       {respuesta.ruta ? (
                                         <a
-                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta.replace(/^\.\./, '')}`}
+                                          href={`${import.meta.env.VITE_ARCHIVOS_PATH}${respuesta.ruta}`}
                                           target="_blank"
                                           rel="noreferrer"
                                           className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-[#8B1538]/20 bg-[#8B1538]/5 hover:bg-[#8B1538] transition-all duration-200"
