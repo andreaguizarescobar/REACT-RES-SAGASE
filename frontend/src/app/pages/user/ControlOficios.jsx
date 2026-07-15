@@ -6,6 +6,11 @@ import jsPDF from "jspdf";
 import { fetchAPI } from "../../services/api";
 import logoGobierno from "../../assets/images/nayaritLogo.png";
 
+import GothamRoundedBold from "../../../styles/fonts/GothamRounded-Bold.ttf";
+import GothamRoundedBook from "../../../styles/fonts/GothamRounded-Book.ttf";
+import MontserratBold from "../../../styles/fonts/Montserrat-Bold.ttf";
+import MontserratRegular from "../../../styles/fonts/Montserrat-Regular.ttf";
+
 export function ControlOficios() {
   const [oficios, setOficios] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -117,6 +122,7 @@ export function ControlOficios() {
   });
 
   const generarReporte = () => {
+
     if (!fechaInicio || !fechaFin) {
       Swal.fire({
         toast: true,
@@ -143,88 +149,333 @@ export function ControlOficios() {
       return;
     }
 
-    const doc = new jsPDF("p", "mm", "a4");
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 10;
-    const contentWidth = pageWidth - margin * 2;
+    const doc = new jsPDF("p", "mm", "letter");
 
-    const hoy = new Date();
-    const fechaHoy = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
+    // Gotham
+    doc.addFont(GothamRoundedBook, "GothamRounded", "normal");
+    doc.addFont(GothamRoundedBold, "GothamRounded", "bold");
 
-    doc.setFillColor(155, 157, 154);
-    doc.rect(margin, 10, contentWidth, 18, "F");
-    doc.addImage(logoGobierno, "PNG", margin + 2, 10, 85, 18);
+    // Montserrat
+    doc.addFont(MontserratRegular, "Montserrat", "normal");
+    doc.addFont(MontserratBold, "Montserrat", "bold");
 
-    doc.setFillColor(96, 89, 93);
-    doc.roundedRect(pageWidth - 60, 15, 25, 8, 2, 2, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
+    const COLORS = {
+      grisPrincipal: [96, 89, 93],
+      grisSecundario: [155, 157, 154],
+      blanco: [255, 255, 255],
+      negro: [0, 0, 0],
+    };
+
+const pageWidth = doc.internal.pageSize.getWidth();
+const pageHeight = doc.internal.pageSize.getHeight();
+
+const margin = 10;
+const contentWidth = pageWidth - margin * 2;
+
+const hoy = new Date();
+
+const fechaHoy =
+  String(hoy.getDate()).padStart(2, "0") +
+  "/" +
+  String(hoy.getMonth() + 1).padStart(2, "0") +
+  "/" +
+  hoy.getFullYear();
+
+const dibujarEncabezadoPagina = () => {
+
+  doc.setLineWidth(0.2);
+
+  doc.setFillColor(...COLORS.grisSecundario);
+
+  doc.rect(
+    margin,
+    12,
+    contentWidth,
+    18,
+    "F"
+  );
+
+  doc.addImage(
+    logoGobierno,
+    "PNG",
+    margin + 2,
+    12,
+    85,
+    18
+  );
+
+  doc.setFillColor(...COLORS.grisPrincipal);
+
+  doc.roundedRect(
+    pageWidth - 60,
+    17,
+    25,
+    8,
+    2,
+    2,
+    "F"
+  );
+
+  doc.setTextColor(...COLORS.blanco);
+
+  doc.setFont("GothamRounded", "bold");
+  doc.setFontSize(9);
+
+  doc.text(
+    "FECHA",
+    pageWidth - 47,
+    22,
+    {
+      align: "center",
+    }
+  );
+
+  doc.setTextColor(...COLORS.grisPrincipal);
+
+  doc.text(
+    fechaHoy,
+    pageWidth - 22,
+    22,
+    {
+      align: "center",
+    }
+  );
+};
+
+dibujarEncabezadoPagina();
+
+let y = 40;
+
+doc.setTextColor(...COLORS.grisPrincipal);
+doc.setFont("GothamRounded", "bold");
+doc.setFontSize(16);
+
+doc.text(
+  "REPORTE DE OFICIOS",
+  pageWidth / 2,
+  y,
+  { align: "center" }
+);
+
+y += 6;
+
+doc.setFont("Montserrat", "normal");
+doc.setFontSize(10);
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return "-";
+
+  const [anio, mes, dia] = fecha.split("-");
+
+  return `${dia}/${mes}/${anio}`;
+};
+
+doc.text(
+  `Periodo: ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFin)}`,
+  pageWidth / 2,
+  y,
+  { align: "center" }
+);
+
+y += 8;
+
+const columnas = [
+  "FOLIO",
+  "TIPO",
+  "ASUNTO",
+  "DESTINATARIO",
+  "REMITENTE",
+  "FECHA",
+];
+
+const anchos = [
+  20,
+  20,
+  58,
+  38,
+  38,
+  20,
+];
+
+const dibujarEncabezadoTabla = () => {
+
+  let x = margin;
+
+  columnas.forEach((titulo, index) => {
+
+    doc.setFillColor(...COLORS.grisPrincipal);
+
+    doc.rect(
+      x,
+      y,
+      anchos[index],
+      10,
+      "F"
+    );
+
+    doc.setTextColor(...COLORS.blanco);
+    doc.setFont("Montserrat", "bold");
     doc.setFontSize(9);
-    doc.text("FECHA", pageWidth - 47, 20, { align: "center" });
-    doc.setTextColor(96, 89, 93);
-    doc.text(fechaHoy, pageWidth - 22, 20, { align: "center" });
 
-    let y = 40;
-
-    doc.setTextColor(96, 89, 93);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("REPORTE DE OFICIOS", pageWidth / 2, y, { align: "center" });
-
-    y += 6;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Periodo: ${fechaInicio} al ${fechaFin}`, pageWidth / 2, y, { align: "center" });
-
-    y += 10;
-    doc.setFontSize(9);
-    doc.text(`Oficios visibles: ${oficiosFiltrados.length}`, margin, y);
-
-    y += 8;
-    const columnas = ["FOLIO", "TIPO", "ASUNTO", "DESTINATARIO", "REMITENTE", "FECHA"];
-    const anchos = [18, 18, 58, 35, 35, 22];
-
-    let x = margin;
-    columnas.forEach((titulo, index) => {
-      doc.setFillColor(139, 21, 56);
-      doc.rect(x, y, anchos[index], 8, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.text(titulo, x + 1.5, y + 5.5);
-      x += anchos[index];
-    });
-
-    y += 8;
-    doc.setTextColor(0, 0, 0);
-
-    oficiosFiltrados.forEach((oficio) => {
-      if (y > pageHeight - 24) {
-        doc.addPage();
-        y = 20;
+    doc.text(
+      titulo,
+      x + anchos[index] / 2,
+      y + 6,
+      {
+        align: "center",
       }
+    );
 
-      const fila = [
-        oficio?.folio || oficio?.numero || "-",
-        oficio?.tipo || "-",
-        (oficio?.asunto || "-").slice(0, 60),
-        oficio?.destinatarioId?.name || oficio?.dirigido || "-",
-        oficio?.remitenteId?.name || oficio?.generado || "-",
-        formatDate(oficio?.fecha || oficio?.createdAt),
-      ];
+    x += anchos[index];
+  });
 
-      let xx = margin;
-      fila.forEach((valor, index) => {
-        const texto = String(valor);
-        const lineas = doc.splitTextToSize(texto, anchos[index] - 2);
-        doc.setFillColor(index % 2 === 0 ? 245 : 255);
-        doc.rect(xx, y, anchos[index], 10, "F");
-        doc.text(lineas, xx + 1.5, y + 3.5);
-        xx += anchos[index];
-      });
-      y += 10;
-    });
+  y += 10;
+};
 
-    const nombrePDF = `Reporte_Oficios_${fechaInicio}_al_${fechaFin}.pdf`;
+dibujarEncabezadoTabla();
+
+let fila = 0;
+
+oficiosFiltrados.forEach((oficio) => {
+
+  const valores = [
+    oficio?.folio || oficio?.numero || "-",
+    oficio?.tipo || "-",
+    oficio?.asunto || "-",
+    oficio?.destinatarioId?.name ||
+      oficio?.dirigido ||
+      "-",
+    oficio?.remitenteId?.name ||
+      oficio?.generado ||
+      "-",
+    formatDate(
+      oficio?.fecha ||
+      oficio?.createdAt
+    ),
+  ];
+
+  const lineasPorCelda = valores.map(
+    (valor, i) =>
+      doc.splitTextToSize(
+        String(valor),
+        anchos[i] - 3
+      )
+  );
+
+  const maxLineas = Math.max(
+    ...lineasPorCelda.map(
+      l => l.length
+    )
+  );
+
+  const rowHeight =
+    Math.max(
+      10,
+      maxLineas * 4 + 4
+    );
+
+  if (y + rowHeight > pageHeight - 20) {
+
+    doc.addPage();
+
+    dibujarEncabezadoPagina();
+
+    y = 40;
+
+    dibujarEncabezadoTabla();
+  }
+
+  const fondo =
+    fila % 2 === 0
+      ? COLORS.blanco
+      : [245, 245, 245];
+
+  let x = margin;
+
+  lineasPorCelda.forEach((lineas, i) => {
+
+    doc.setFillColor(...fondo);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      rowHeight,
+      "F"
+    );
+
+    doc.setDrawColor(...COLORS.grisSecundario);
+
+    doc.rect(
+      x,
+      y,
+      anchos[i],
+      rowHeight
+    );
+
+    doc.setTextColor(...COLORS.negro);
+
+    doc.setFont(
+      "Montserrat",
+      "normal"
+    );
+
+    doc.setFontSize(9);
+
+    doc.text(
+      lineas,
+      x + 1.5,
+      y + 4
+    );
+
+    x += anchos[i];
+  });
+
+  y += rowHeight;
+
+  fila++;
+});
+
+const footerY = pageHeight - 15;
+
+doc.setDrawColor(...COLORS.grisPrincipal);
+
+doc.line(
+  margin,
+  footerY,
+  pageWidth - margin,
+  footerY
+);
+
+doc.setTextColor(...COLORS.grisPrincipal);
+
+doc.setFont("Montserrat", "normal");
+doc.setFontSize(8);
+
+doc.text(
+  "Sistema Automatizado de Gestión y Archivo de la Secretaría de Educación (SAGASE)",
+  pageWidth / 2,
+  footerY + 5,
+  {
+    align: "center",
+  }
+);
+
+const formatearFechaNombre = (fecha) => {
+  if (!fecha) return "";
+
+  const [anio, mes, dia] = fecha.split("-");
+
+  return `${dia}-${mes}-${anio}`;
+};
+
+const nombrePDF =
+  `Reporte_Oficios_${
+    formatearFechaNombre(fechaInicio)
+  }_al_${
+    formatearFechaNombre(fechaFin)
+  }.pdf`;
+
     const pdfBlob = doc.output("blob");
     const pdfUrl = URL.createObjectURL(pdfBlob);
 
@@ -359,7 +610,7 @@ export function ControlOficios() {
             >
               <div className="bg-[#8B1538] text-white flex justify-between items-center p-3">
                 <span>{nombreReporte}</span>
-                <button onClick={() => setMostrarReporte(false)} className="px-3 py-1 bg-white text-[#8B1538] rounded hover:bg-gray-100 transition">Cerrar</button>
+                <button onClick={() => setMostrarReporte(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"><Minus size={16} /></button>
               </div>
               <iframe src={reporteUrl} className="w-full h-[calc(100%-56px)]" title="Reporte de oficios" />
             </motion.div>

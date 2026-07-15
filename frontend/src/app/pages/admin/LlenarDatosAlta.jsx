@@ -8,6 +8,8 @@ import { getAreas } from "../../services/catalogos.service.js";
 import { createSolicitud } from "../../services/user.service.js";
 
 export function LlenarDatosAlta() {
+  const [errores, setErrores] = useState({});
+
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -32,9 +34,15 @@ export function LlenarDatosAlta() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     const nextForm = {
       ...form,
-      [name]: type === "checkbox" ? checked : name === "nombre" ? value.toUpperCase() : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : name === "nombre"
+          ? value.toUpperCase()
+          : value,
     };
 
     if (name === "nombre") {
@@ -42,16 +50,25 @@ export function LlenarDatosAlta() {
     }
 
     setForm(nextForm);
+
+    setErrores((prev) => ({
+      ...prev,
+      [name]: false,
+    }));
   };
 
   const validarFormulario = () => {
-    return (
-      form.nombre &&
-      form.sexo &&
-      form.area &&
-      form.correo &&
-      form.rol
-    );
+    const nuevosErrores = {
+      nombre: !form.nombre.trim(),
+      sexo: !form.sexo,
+      area: !form.area,
+      correo: !form.correo.trim(),
+      rol: !form.rol,
+    };
+
+    setErrores(nuevosErrores);
+
+    return !Object.values(nuevosErrores).some(Boolean);
   };
 
 
@@ -154,7 +171,9 @@ export function LlenarDatosAlta() {
               value={form.nombre}
               placeholder="Nombre completo"
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 uppercase"
+              className={`w-full rounded px-3 py-2 border ${
+                errores.nombre ? "border-red-500 bg-red-50" : "border-gray-300"
+              } uppercase`}
             />
 
             <input
@@ -169,7 +188,9 @@ export function LlenarDatosAlta() {
               name="sexo"
               value={form.sexo}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className={`w-full rounded px-3 py-2 border ${
+                errores.sexo ? "border-red-500 bg-red-50" : "border-gray-300"
+              }`}
             >
               <option value="">Seleccione sexo</option>
               <option>Masculino</option>
@@ -178,15 +199,24 @@ export function LlenarDatosAlta() {
             </select>
 
             <div className="relative">
-                <label className="block mb-1 text-sm">Área:</label>
-                <div className="flex items-center border rounded px-2 py-2">
+                <label className="block mb-1 text-sm">Área</label>
+                <div
+                  className={`flex items-center rounded px-2 py-2 border ${
+                    errores.area ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                >
                     <Search size={16} className="text-gray-400 mr-1" />
                     <input
                     type="text"
                     value={busquedaArea}
                     onChange={(e) => {
                         setBusquedaArea(e.target.value);
-                        setForm({...form, area: e.target.value});
+                        setForm({ ...form, area: e.target.value });
+
+                        setErrores((prev) => ({
+                          ...prev,
+                          area: false,
+                        }));
                     }}
                     onFocus={() => setMostrarOpcionesArea(true)}
                     className="w-full outline-none text-sm"
@@ -205,9 +235,14 @@ export function LlenarDatosAlta() {
                             key={area._id}
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                             onClick={() => {
-                            setForm({...form, area: area._id});
-                            setBusquedaArea(area.nombre);
-                            setMostrarOpcionesArea(false);
+                                setForm({ ...form, area: area._id });
+                                setBusquedaArea(area.nombre);
+                                setMostrarOpcionesArea(false);
+
+                                setErrores((prev) => ({
+                                  ...prev,
+                                  area: false,
+                                }));
                             }}
                         >
                             {area.nombre}
@@ -242,7 +277,9 @@ export function LlenarDatosAlta() {
               value={form.correo}
               placeholder="Correo institucional"
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className={`w-full rounded px-3 py-2 border ${
+                errores.correo ? "border-red-500 bg-red-50" : "border-gray-300"
+              }`}
             />
 
             <div className="col-span-1">
@@ -251,11 +288,13 @@ export function LlenarDatosAlta() {
                   value={form.rol}
                   onChange={handleChange}
                   name="rol"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 transition
-                    focus:border-[#8B1538]
-                    focus:ring-2
-                    focus:ring-[#8B1538]/20
-                    outline-none"
+                  className={`w-full rounded-lg px-3 py-2.5 border transition
+                  ${
+                    errores.rol
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 focus:border-[#8B1538] focus:ring-2 focus:ring-[#8B1538]/20"
+                  }
+                  outline-none`}
                 >
                   <option value="">Seleccionar</option>
                   <option value="ADMIN">ADMIN</option>

@@ -1,4 +1,5 @@
-import { Minus, Loader2, Search } from "lucide-react";
+import { Minus, Loader2, Search, ChevronLeft,
+  ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getUsers, updateUser, deleteUser } from "../../services/user.service.js";
@@ -112,7 +113,7 @@ export function Users() {
     cargarAreas();
   }, []);
 
-  // 🔍 FILTRO EN TIEMPO REAL
+  // FILTRO EN TIEMPO REAL
   const filteredUsers = users.filter((user) => {
     const texto = criterio.toLowerCase();
     return (
@@ -238,19 +239,19 @@ export function Users() {
   };
 
   const handleEliminarConfirmado = async () => {
-    const result = await Swal.fire({
-      title: "¿Eliminar usuario?",
-      text: `Se eliminará a ${modalEliminar.user?.nombre || "este usuario"}.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      reverseButtons: true,
-    });
+    // const result = await Swal.fire({
+    //   title: "¿Eliminar usuario?",
+    //   text: `Se eliminará a ${modalEliminar.user?.nombre || "este usuario"}.`,
+    //   icon: "warning",
+    //   showCancelButton: true,
+    //   confirmButtonColor: "#dc2626",
+    //   cancelButtonColor: "#6b7280",
+    //   confirmButtonText: "Sí, eliminar",
+    //   cancelButtonText: "Cancelar",
+    //   reverseButtons: true,
+    // });
 
-    if (!result.isConfirmed) return;
+    // if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -261,6 +262,11 @@ export function Users() {
       }
 
       await fetchUsers();
+      
+      setModalEliminar({
+        visible: false,
+        user: null,
+      });
 
       Swal.fire({
         icon: "success",
@@ -273,10 +279,6 @@ export function Users() {
         timerProgressBar: true,
       });
 
-      setModalEliminar({
-        visible: false,
-        user: null,
-      });
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
       Swal.fire({
@@ -287,6 +289,22 @@ export function Users() {
       });
     }
   };
+
+  const [paginaActual, setPaginaActual] = useState(1);
+
+  const usuariosPorPagina = 10;
+
+  const totalPaginas = Math.ceil(
+    filteredUsers.length / usuariosPorPagina
+  );
+
+  const indiceInicio = (paginaActual - 1) * usuariosPorPagina;
+  const indiceFin = indiceInicio + usuariosPorPagina;
+
+  const usuariosPaginados = filteredUsers.slice(
+    indiceInicio,
+    indiceFin
+  );
 
   return (
     <div className="flex-1 p-6 bg-gray-100 overflow-y-auto" onClick={cerrarMenu}>
@@ -312,7 +330,10 @@ export function Users() {
           <input
             type="text"
             value={criterio}
-            onChange={(e) => setCriterio(e.target.value)}
+            onChange={(e) => {
+              setCriterio(e.target.value);
+              setPaginaActual(1);
+            }}
             className="w-full border rounded px-2 py-2"
             placeholder="Buscar por nombre, iniciales, área, correo..."
           />
@@ -359,7 +380,7 @@ export function Users() {
                     </td>
                   </tr>
                 ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user, index) => (
+                  usuariosPaginados.map((user, index) => (
                     <motion.tr
                       key={index}
                       onClick={(e) => handleClick(e, user)}
@@ -406,6 +427,96 @@ export function Users() {
             </table>
           </motion.div>
         </AnimatePresence>
+
+        {/* PAGINACIÓN */}
+        {filteredUsers.length > 0 && totalPaginas > 1 && (
+          <div className="border-t border-gray-100 px-3 py-3 bg-white rounded-b-md">
+            <div className="flex items-center justify-center gap-2">
+
+              {/* ANTERIOR */}
+              <button
+                onClick={() =>
+                  setPaginaActual((prev) => Math.max(prev - 1, 1))
+                }
+                disabled={paginaActual === 1}
+                className="
+                  w-8 h-8 flex items-center justify-center
+                  rounded-xl border border-gray-200 bg-white shadow-sm
+                  hover:bg-[#8B1538] hover:text-white hover:border-[#8B1538]
+                  transition-all duration-200
+                  disabled:opacity-30
+                  disabled:hover:bg-white
+                  disabled:hover:text-gray-400
+                "
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {/* NÚMEROS */}
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const maxVisible = 3;
+
+                  let inicio = Math.max(1, paginaActual - 1);
+                  let fin = inicio + maxVisible - 1;
+
+                  if (fin > totalPaginas) {
+                    fin = totalPaginas;
+                    inicio = Math.max(
+                      1,
+                      fin - maxVisible + 1
+                    );
+                  }
+
+                  return Array.from(
+                    { length: fin - inicio + 1 },
+                    (_, i) => {
+                      const numeroPagina = inicio + i;
+
+                      return (
+                        <button
+                          key={numeroPagina}
+                          onClick={() =>
+                            setPaginaActual(numeroPagina)
+                          }
+                          className={`w-8 h-8 rounded-xl text-xs font-medium transition-all duration-200 ${
+                            paginaActual === numeroPagina
+                              ? "bg-[#8B1538] text-white shadow-md scale-105"
+                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          {numeroPagina}
+                        </button>
+                      );
+                    }
+                  );
+                })()}
+              </div>
+
+              {/* SIGUIENTE */}
+              <button
+                onClick={() =>
+                  setPaginaActual((prev) =>
+                    Math.min(prev + 1, totalPaginas)
+                  )
+                }
+                disabled={paginaActual === totalPaginas}
+                className="
+                  w-8 h-8 flex items-center justify-center
+                  rounded-xl border border-gray-200 bg-white shadow-sm
+                  hover:bg-[#8B1538] hover:text-white hover:border-[#8B1538]
+                  transition-all duration-200
+                  disabled:opacity-30
+                  disabled:hover:bg-white
+                  disabled:hover:text-gray-400
+                "
+              >
+                <ChevronRight size={16} />
+              </button>
+
+            </div>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -552,7 +663,6 @@ export function Users() {
                       onChange={(e) => setFormEditar({ ...formEditar, sexo: e.target.value })}
                       className="w-full rounded-lg border px-3 py-2"
                     >
-
                       <option>Masculino</option>
                       <option>Femenino</option>
 
@@ -581,16 +691,16 @@ export function Users() {
                     <div className="relative">
                       <div
                         className="
-              flex items-center
-              rounded-lg
-              border
-              border-gray-300
-              px-3
-              py-2.5
-              transition
-              focus-within:border-[#8B1538]
-              focus-within:ring-2
-              focus-within:ring-[#8B1538]/20"
+                        flex items-center
+                        rounded-lg
+                        border
+                        border-gray-300
+                        px-3
+                        py-2.5
+                        transition
+                        focus-within:border-[#8B1538]
+                        focus-within:ring-2
+                        focus-within:ring-[#8B1538]/20"
                       >
                         <Search
                           size={16}
@@ -660,16 +770,16 @@ export function Users() {
                         })
                       }
                       className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            px-3
-            py-2
-            focus:border-[#8B1538]
-            focus:ring-2
-            focus:ring-[#8B1538]/20
-            outline-none"
+                      w-full
+                      rounded-lg
+                      border
+                      border-gray-300
+                      px-3
+                      py-2
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     />
 
                   </div>
@@ -689,16 +799,16 @@ export function Users() {
                         })
                       }
                       className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            px-3
-            py-2
-            focus:border-[#8B1538]
-            focus:ring-2
-            focus:ring-[#8B1538]/20
-            outline-none"
+                      w-full
+                      rounded-lg
+                      border
+                      border-gray-300
+                      px-3
+                      py-2
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     />
 
                   </div>
@@ -722,16 +832,16 @@ export function Users() {
                         })
                       }
                       className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            px-3
-            py-2
-            focus:border-[#8B1538]
-            focus:ring-2
-            focus:ring-[#8B1538]/20
-            outline-none"
+                      w-full
+                      rounded-lg
+                      border
+                      border-gray-300
+                      px-3
+                      py-2
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
                     />
 
                   </div>
@@ -767,19 +877,18 @@ export function Users() {
                         })
                       }
                       className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            px-3
-            py-2.5
-            transition
-            focus:border-[#8B1538]
-            focus:ring-2
-            focus:ring-[#8B1538]/20
-            outline-none"
-                    >
-
+                      w-full
+                      rounded-lg
+                      border
+                      border-gray-300
+                      px-3
+                      py-2.5
+                      transition
+                      focus:border-[#8B1538]
+                      focus:ring-2
+                      focus:ring-[#8B1538]/20
+                      outline-none"
+                      >
                       <option value="">Seleccionar</option>
                       <option value="REGISTRADOR">REGISTRADOR</option>
                       <option value="EJECUTOR">EJECUTOR</option>
@@ -792,38 +901,38 @@ export function Users() {
                   {/* Si vuelves a usar copia */}
 
                   {/*
-    <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+                  <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
 
-        <label className="flex items-center gap-3 cursor-pointer">
+                      <label className="flex items-center gap-3 cursor-pointer">
 
-            <input
-                type="checkbox"
-                checked={formEditar.copia}
-                onChange={(e)=>
-                    setFormEditar({
-                        ...formEditar,
-                        copia:e.target.checked
-                    })
-                }
-                className="accent-[#8B1538]"
-            />
+                          <input
+                              type="checkbox"
+                              checked={formEditar.copia}
+                              onChange={(e)=>
+                                  setFormEditar({
+                                      ...formEditar,
+                                      copia:e.target.checked
+                                  })
+                              }
+                              className="accent-[#8B1538]"
+                          />
 
-            <div>
+                          <div>
 
-                <p className="font-medium">
-                    Recibir copia de documentos
-                </p>
+                              <p className="font-medium">
+                                  Recibir copia de documentos
+                              </p>
 
-                <p className="text-xs text-gray-500">
-                    El usuario recibirá copia de los documentos relacionados.
-                </p>
+                              <p className="text-xs text-gray-500">
+                                  El usuario recibirá copia de los documentos relacionados.
+                              </p>
 
-            </div>
+                          </div>
 
-        </label>
+                      </label>
 
-    </div>
-    */}
+                  </div>
+                  */}
 
                 </div>
                 <div className="flex justify-center">

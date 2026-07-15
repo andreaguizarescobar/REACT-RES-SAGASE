@@ -105,13 +105,17 @@ export function AltaUsuarios() {
     const token = localStorage.getItem("token");
     const response = await registerRequest(nuevoUsuario, token);
     if (response.ok) {
-        Swal.fire({
-        icon: "success",
-        title: "Usuario creado",
-        text: `El usuario ${form.nombre} ha sido creado exitosamente.`,
+        // Swal.fire({
+        // icon: "success",
+        // title: "Usuario creado",
+        // text: `El usuario ${form.nombre} ha sido creado exitosamente.`,
+        // });
+        const data = await response.json();
+
+        setCredenciales({
+          ...data.user.credenciales,
+          nombre: form.nombre,
         });
-        const credenciales = await response.json();
-        setCredenciales(credenciales.user.credenciales);
     } else {
         Swal.fire({
             icon: "error",
@@ -562,7 +566,7 @@ export function AltaUsuarios() {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                    <label className="block mb-1">Usuario:</label>
+                    <label className="block mb-1">Usuario</label>
                     <input
                         value={credenciales.username}
                         readOnly
@@ -571,7 +575,7 @@ export function AltaUsuarios() {
                     </div>
 
                     <div>
-                    <label className="block mb-1">Contraseña:</label>
+                    <label className="block mb-1">Contraseña temporal</label>
                     <input
                         value={credenciales.password}
                         readOnly
@@ -583,7 +587,7 @@ export function AltaUsuarios() {
                 <div className="text-gray-600">
                     Usuario creado para:{" "}
                     <span className="font-semibold text-gray-800">
-                    {form.nombre}
+                    {credenciales?.nombre}
                     </span>
                 </div>
 

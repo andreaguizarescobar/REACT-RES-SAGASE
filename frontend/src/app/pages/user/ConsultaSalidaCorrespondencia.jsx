@@ -124,7 +124,7 @@ const exportarExcel = async () => {
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
 
-  // 🔥 MISMO NOMBRE QUE EL PDF
+  // MISMO NOMBRE QUE EL PDF
   link.download = `${nombreAutomatico}.csv`;
 
   link.click();
@@ -622,9 +622,9 @@ const generarSalidaCorrespondencia = async (datos, nombreArchivo) => {
 
               <button
                 onClick={handleCerrarModal}
-                className="px-4 py-2 bg-[#79142A] text-white rounded"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"
               >
-                Cerrar
+                <Minus size={16} />
               </button>
             </div>
           </motion.div>
@@ -650,9 +650,9 @@ const generarSalidaCorrespondencia = async (datos, nombreArchivo) => {
 
                 <button
                   onClick={() => setMostrarVisorPDF(false)}
-                  className="px-3 py-1 bg-white text-[#8B1538] rounded"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#8B1538]"
                 >
-                  Cerrar
+                  <Minus size={16} />
                 </button>
               </div>
 
